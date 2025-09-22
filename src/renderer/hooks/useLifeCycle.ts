@@ -140,9 +140,12 @@ export const useLifeCycle = () => {
 
 		void setters.setMacAddress((prevMacAddress) => {
 			if (prevMacAddress !== macAddress) {
-				toast.warning("检测到信息变更，虽然右上角有头像，但是请重新登录以确保正常使用", {
-					duration: 10000,
-				})
+				toast.warning(
+					"检测到信息变更，虽然右上角有头像，但是请重新登录以确保正常使用",
+					{
+						duration: 10000,
+					},
+				)
 			}
 			return macAddress
 		})

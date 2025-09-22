@@ -60,9 +60,9 @@ export const useLifeCycle = () => {
 	const { refetchLocalVersions } = useLocalVersions()
 	const isUpdating = useAtomValue(isUpdatingAtom)
 	const isAutoLogin = useAtomValue(isAutoLoginAtom)
-	const { settings } = useSettings()
 	useAtom(versionsEffectAtom) // -- 监听版本更新
 	useAppVersions() // -- 检查远程版本
+	useSettings() // -- 监听设置更新
 
 	// -- 自定义 Hooks
 	const { user, isLoggedIn } = useUserInfoSync()
@@ -74,13 +74,13 @@ export const useLifeCycle = () => {
 
 	// -- Setters
 	const setters = {
+		setLibraryType: useSetAtom(libraryTypeAtom),
 		// setExtraWorkStatus: useSetAtom(extraWorkStatusAtom),
 		setMacAddress: useSetAtom(macAddressAtom),
 		setLoading: useSetAtom(loadingAnimeAtom),
 		setIsFullscreen: useSetAtom(isFullscreenAtom),
 		setAccountKey: useSetAtom(accountKeyAtom),
 		setRealMarketConfig: useSetAtom(realMarketConfigSchemaAtom),
-		setLibraryType: useSetAtom(libraryTypeAtom),
 	}
 
 	// -- 用于保存休眠前的更新状态
@@ -131,26 +131,29 @@ export const useLifeCycle = () => {
 	 * -- 初始化账户信息
 	 */
 	const initAccountInfo = async () => {
-		const macAddress = await getMacAddress()
+		const [apiKey, uuid, libraryType, macAddress] = await Promise.all([
+			getStoreValue("settings.api_key", ""),
+			getStoreValue("settings.hid", ""),
+			getStoreValue("settings.libraryType", "select"),
+			getMacAddress(),
+		])
 
-		setters.setMacAddress((prevMacAddress) => {
+		void setters.setMacAddress((prevMacAddress) => {
 			if (prevMacAddress !== macAddress) {
-				toast.warning("检测到设备地址变更，请稍后重新登录")
+				toast.warning("检测到信息变更，虽然右上角有头像，但是请重新登录以确保正常使用", {
+					duration: 10000,
+				})
 			}
 			return macAddress
 		})
-		setters.setAccountKey({
-			apiKey: settings.api_key,
-			uuid: settings.hid,
+		void setters.setAccountKey({
+			apiKey: apiKey as string,
+			uuid: uuid as string,
 		})
 
-		// if (isLoggedIn && user?.apiKey && user?.uuid) {
-		// 	const { data } = await mutateAsync({
-		// 		apiKey: user.apiKey,
-		// 		uuid: user.uuid,
-		// 	})
-		// 	setters.setExtraWorkStatus(data)
-		// }
+		setters.setLibraryType(libraryType === "pos" ? "pos" : "select") // -- 设置策略库类型
+
+		return { apiKey, uuid, libraryType, macAddress }
 	}
 
 	/**
@@ -166,15 +169,17 @@ export const useLifeCycle = () => {
 		}
 	}
 
-	const initAutoLauncher = async () => {
-		if (settings.is_auto_launch_update) {
+	const initAutoLauncher = async (apiKey: string, uuid: string) => {
+		if (!apiKey || !uuid) return
+		const [isAutoLaunchUpdate, isAutoLaunchRealTrading] = await Promise.all([
+			getStoreValue("settings.is_auto_launch_update", false),
+			getStoreValue("settings.is_auto_launch_real_trading", false),
+		])
+		if (isAutoLaunchUpdate) {
 			await handleTimeTask(false, false)
 			toast.success("已为您开启自动更新数据")
 		}
-		if (
-			settings.is_auto_launch_update &&
-			settings.is_auto_launch_real_trading
-		) {
+		if (isAutoLaunchUpdate && isAutoLaunchRealTrading) {
 			await handleToggleAutoRocket(true, false, true)
 			toast.success("已为您开启自动实盘和自动更新数据")
 		} else {
@@ -185,9 +190,10 @@ export const useLifeCycle = () => {
 	// -- 生命周期钩子
 	useMount(async () => {
 		// versionCheck.start()
-		setters.setLibraryType(settings.libraryType || "select")
-
-		await Promise.all([initScheduleTask(), initAccountInfo()])
+		const [_, { apiKey, uuid }] = await Promise.all([
+			initScheduleTask(),
+			initAccountInfo(),
+		])
 
 		// -- 初始化监听器
 		onPowerStatus(handlePowerStatusChange)
@@ -222,7 +228,11 @@ export const useLifeCycle = () => {
 
 		// -- 清理实时市场数据，这个虽然useMarket的过程中会清理，但是这里是为了保险起见，初始化时再清理一次
 		// await cleanMarketData()
-		await Promise.all([syncSelectStgList(), syncFusion(), initAutoLauncher()])
+		await Promise.all([
+			syncSelectStgList(),
+			syncFusion(),
+			initAutoLauncher(apiKey, uuid),
+		])
 	})
 
 	// -- 更新效果

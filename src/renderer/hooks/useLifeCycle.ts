@@ -30,7 +30,6 @@ import { useLocalVersions, versionsEffectAtom } from "@/renderer/store/versions"
 import { useMount, useUnmount, useUpdateEffect } from "etc-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { toast } from "sonner"
-import { syncUserState } from "../ipc/userInfo"
 import { useAppVersions } from "./useAppVersion"
 import { useFusionManager } from "./useFusionManager"
 import { useSettings } from "./useSettings"
@@ -60,12 +59,13 @@ export const useLifeCycle = () => {
 	const { refetchLocalVersions } = useLocalVersions()
 	const isUpdating = useAtomValue(isUpdatingAtom)
 	const isAutoLogin = useAtomValue(isAutoLoginAtom)
+	const accountKey = useAtomValue(accountKeyAtom)
 	useAtom(versionsEffectAtom) // -- 监听版本更新
 	useAppVersions() // -- 检查远程版本
 	useSettings() // -- 监听设置更新
 
 	// -- 自定义 Hooks
-	const { user, isLoggedIn } = useUserInfoSync()
+	useUserInfoSync() // -- 同步用户信息，一分钟轮询一次
 	const { syncSelectStgList } = useStrategyManager()
 	const { syncFusion } = useFusionManager()
 	const { handleToggleAutoRocket } = useToggleAutoRealTrading()
@@ -131,9 +131,7 @@ export const useLifeCycle = () => {
 	 * -- 初始化账户信息
 	 */
 	const initAccountInfo = async () => {
-		const [apiKey, uuid, libraryType, macAddress] = await Promise.all([
-			getStoreValue("settings.api_key", ""),
-			getStoreValue("settings.hid", ""),
+		const [libraryType, macAddress] = await Promise.all([
 			getStoreValue("settings.libraryType", "select"),
 			getMacAddress(),
 		])
@@ -149,14 +147,10 @@ export const useLifeCycle = () => {
 			}
 			return macAddress
 		})
-		void setters.setAccountKey({
-			apiKey: apiKey as string,
-			uuid: uuid as string,
-		})
 
 		setters.setLibraryType(libraryType === "pos" ? "pos" : "select") // -- 设置策略库类型
 
-		return { apiKey, uuid, libraryType, macAddress }
+		return { libraryType, macAddress }
 	}
 
 	/**
@@ -172,7 +166,8 @@ export const useLifeCycle = () => {
 		}
 	}
 
-	const initAutoLauncher = async (apiKey: string, uuid: string) => {
+	const initAutoLauncher = async () => {
+		const { apiKey, uuid } = accountKey
 		if (!apiKey || !uuid) return
 		const [isAutoLaunchUpdate, isAutoLaunchRealTrading] = await Promise.all([
 			getStoreValue("settings.is_auto_launch_update", false),
@@ -193,10 +188,7 @@ export const useLifeCycle = () => {
 	// -- 生命周期钩子
 	useMount(async () => {
 		// versionCheck.start()
-		const [_, { apiKey, uuid }] = await Promise.all([
-			initScheduleTask(),
-			initAccountInfo(),
-		])
+		await Promise.all([initScheduleTask(), initAccountInfo()])
 
 		// -- 初始化监听器
 		onPowerStatus(handlePowerStatusChange)
@@ -209,33 +201,9 @@ export const useLifeCycle = () => {
 		const initialFullscreenState = await fetchFullscreenState()
 		setters.setIsFullscreen(initialFullscreenState)
 
-		// -- 同步用户状态并处理自动启动
-		await syncUserState({
-			user: {
-				id: user?.id ?? "",
-				uuid: user?.uuid ?? "",
-				apiKey: user?.apiKey ?? "",
-				headimgurl: user?.headimgurl ?? "",
-				isMember: user?.isMember ?? false,
-				nickname: user?.nickname ?? "",
-				approval: user?.approval ?? {
-					block: false,
-					crypto: false,
-					stock: false,
-				},
-				membershipInfo: user?.membershipInfo ?? [],
-				groupInfo: user?.groupInfo ?? [],
-			},
-			isLoggedIn,
-		})
-
 		// -- 清理实时市场数据，这个虽然useMarket的过程中会清理，但是这里是为了保险起见，初始化时再清理一次
 		// await cleanMarketData()
-		await Promise.all([
-			syncSelectStgList(),
-			syncFusion(),
-			initAutoLauncher(apiKey, uuid),
-		])
+		await Promise.all([syncSelectStgList(), syncFusion(), initAutoLauncher()])
 	})
 
 	// -- 更新效果

@@ -9,6 +9,7 @@
  */
 
 import { useAtom } from "jotai"
+import { RESET } from "jotai/utils"
 import { useEffect } from "react"
 import { userInfoMutationAtom } from "../store/mutation"
 import { userAtom } from "../store/user"
@@ -21,16 +22,14 @@ export const useUserInfoSync = () => {
 	const [{ user, isLoggedIn, token }, setUser] = useAtom(userAtom)
 	const [{ mutateAsync: fetchUserInfo }] = useAtom(userInfoMutationAtom)
 
-	const { start, stop } = useInterval(
-		async () => {
-			const res = await fetchUserInfo(token)
-			setUser((prev) => ({
-				...prev,
-				user: res,
-			}))
-		},
-		1000 * 60 * 60 * 2,
-	)
+	const { start, stop } = useInterval(async () => {
+		const res = await fetchUserInfo({ token })
+		if (res) {
+			setUser(res)
+		} else {
+			setUser(RESET)
+		}
+	}, 1000 * 60) // -- 1分钟轮询
 
 	useEffect(() => {
 		if (isLoggedIn) {
@@ -41,5 +40,14 @@ export const useUserInfoSync = () => {
 		return () => stop()
 	}, [isLoggedIn])
 
-	return { user, isLoggedIn }
+	const forceRefresh = async () => {
+		const res = await fetchUserInfo({ token, isForce: true })
+		if (res) {
+			setUser(res)
+		} else {
+			setUser(RESET)
+		}
+	}
+
+	return { user, isLoggedIn, forceRefresh }
 }

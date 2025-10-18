@@ -178,6 +178,14 @@ if (!gotTheLock) {
 			logger.info("[user] 信息已清除")
 			await userStore.clearUserState()
 		})
+
+		// -- 监听更新用户信息请求（带两小时缓存）
+		ipcMain.handle(
+			"update-user-info",
+			async (_event, token: string, isForce = false) => {
+				return await userStore.updateUserInfo(token, isForce)
+			},
+		)
 	})
 
 	// -- 当应用程序激活时

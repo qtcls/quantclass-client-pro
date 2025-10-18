@@ -12,7 +12,7 @@ import { _ipcRenderer } from "@/renderer/constant"
 import type { UserState } from "@/shared/types"
 
 // 同步用户状态到主进程
-export const syncUserState = async (userState: Omit<UserState, "token">) => {
+export const syncUserState = async (userState: UserState) => {
 	try {
 		await _ipcRenderer.send("sync-user-state", userState)
 	} catch (error) {
@@ -27,6 +27,19 @@ export const getUserState = async (): Promise<UserState | null> => {
 		return await _ipcRenderer.invoke("get-user-state")
 	} catch (error) {
 		console.error("Failed to get user state:", error)
+		return null
+	}
+}
+
+// 更新用户信息（带两小时缓存）
+export const updateUserInfo = async (
+	token: string,
+	isForce = false,
+): Promise<UserState | null> => {
+	try {
+		return await _ipcRenderer.invoke("update-user-info", token, isForce)
+	} catch (error) {
+		console.error("Failed to update user info:", error)
 		return null
 	}
 }

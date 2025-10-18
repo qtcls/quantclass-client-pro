@@ -63,7 +63,6 @@ export const UserMenu = () => {
 	// -- Effect Atom
 	useAtom(userAuthEffectAtom)
 	useAtom(checkAccountRoleEffectAtom)
-
 	// -- Dialog 状态
 	const [open, setOpen] = useState(false)
 	const [loginUrl, setLoginUrl] = useState("")
@@ -71,6 +70,7 @@ export const UserMenu = () => {
 	useEffect(() => {
 		if (isLoggedIn) {
 			setOpen(false)
+			setIsLogin(false)
 		}
 	}, [isLoggedIn])
 	// -- 处理认证响应

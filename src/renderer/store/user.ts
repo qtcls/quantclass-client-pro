@@ -16,14 +16,14 @@ import {
 	collectUserInfo,
 	generatePermissionSet,
 } from "@/renderer/hooks/useIdentityArray"
-import { syncUserState } from "@/renderer/ipc/userInfo"
+import { getUserState, syncUserState } from "@/renderer/ipc/userInfo"
 import {
 	accountKeyAtom,
 	accountRoleAtom,
 	isLoginAtom,
 	userIdentityAtom,
 } from "@/renderer/store/storage"
-import type { UserState } from "@/shared/types"
+import type { UserInfo, UserState } from "@/shared/types"
 import { atom } from "jotai"
 import { atomEffect } from "jotai-effect"
 import { atomWithQuery } from "jotai-tanstack-query"
@@ -93,75 +93,73 @@ export const userAtom = atomWithStorage<UserState>(
 	{ getOnInit: true },
 )
 
-export const userAuthAtom = atomWithQuery<UserState & { success: boolean }>(
-	(get) => {
-		const { isLoggedIn } = get(userAtom)
-		const enabled = get(isLoginAtom)
-		const newTimestampSign = generateTimestampSign()
-		return {
-			retry: false,
-			refetchInterval: 3 * 1000,
-			enabled,
-			queryKey: [
-				"user-auth",
-				get(nonceAtom),
-				get(macAddressAtom),
-				newTimestampSign, // 使用新的 timestamp_sign
-			],
-			queryFn: async ({ queryKey: [, nonce, client_id, timestamp_sign] }) => {
-				if (isLoggedIn) return null
-				try {
-					// 发起请求
-					const res = await fetch(`${VITE_BASE_URL}/user/client/authorized`, {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							nonce,
-							client_id,
-							timestamp_sign,
-						}),
-					})
-					// 如果请求失败，记录错误并返回 null
-					if (!res.ok) {
-						return null
-					}
-					// 请求成功，返回解析后的 JSON 数据
-					return await res.json()
-				} catch (error) {
+export const userAuthAtom = atomWithQuery<{
+	name: string
+	token: string
+	user: UserInfo
+	success: boolean
+}>((get) => {
+	const { isLoggedIn } = get(userAtom)
+	const enabled = get(isLoginAtom)
+	const newTimestampSign = generateTimestampSign()
+	return {
+		retry: false,
+		refetchInterval: 3 * 1000,
+		enabled,
+		queryKey: [
+			"user-auth",
+			get(nonceAtom),
+			get(macAddressAtom),
+			newTimestampSign, // 使用新的 timestamp_sign
+		],
+		queryFn: async ({ queryKey: [, nonce, client_id, timestamp_sign] }) => {
+			if (isLoggedIn) return null
+			try {
+				// 发起请求
+				const res = await fetch(`${VITE_BASE_URL}/user/client/authorized`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						nonce,
+						client_id,
+						timestamp_sign,
+					}),
+				})
+				// 如果请求失败，记录错误并返回 null
+				if (!res.ok) {
 					return null
 				}
-			},
-		}
-	},
-)
+				// 请求成功，返回解析后的 JSON 数据
+				return await res.json()
+			} catch (error) {
+				return null
+			}
+		},
+	}
+})
 
 export const userInfoTtlAtom = atom<number>(0)
 
-export const useInfoAtom = atomWithQuery<UserState & { success: boolean }>(
-	() => {
-		return {
-			retry: false,
-			queryKey: ["user-info"],
-			queryFn: async () => {
-				const token = localStorage.getItem("user-storage")
-				if (!token) return null
-				const parsedToken = JSON.parse(token)
-				const tokenData = parsedToken.token
-				const res = await fetch(`${VITE_BASE_URL}/user/info`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: tokenData,
-					},
-					body: JSON.stringify({}),
-				})
+export const useInfoAtom = atomWithQuery<UserInfo>((get) => {
+	return {
+		retry: false,
+		queryKey: ["user-info"],
+		queryFn: async () => {
+			const { token } = get(userAtom)
+			const res = await fetch(`${VITE_BASE_URL}/user/info`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: token,
+				},
+				body: JSON.stringify({}),
+			})
 
-				if (!res.ok) return null
-				return await res.json()
-			},
-		}
-	},
-)
+			if (!res.ok) return null
+			return await res.json()
+		},
+	}
+})
 
 // -- 账户角色检查
 export const checkAccountRoleAtom = atomWithQuery<
@@ -220,59 +218,46 @@ export const userAuthEffectAtom = atomEffect((get, set) => {
 
 		if (!data?.success) return // 如果请求失败，直接返回
 
-		// 基础用户信息设置
-		set(userAtom, {
+		// 先同步用户状态到主进程
+		await syncUserState({
 			token: data.token,
 			user: data.user,
 			isLoggedIn: true,
 		})
 
-		// 账户密钥设置
-		set(accountKeyAtom, {
-			uuid: data.user?.uuid!,
-			apiKey: data.user?.apiKey!,
-		})
+		// 从主进程读取用户状态（确保主进程数据主导）
+		const userStateFromMain = await getUserState()
 
-		// 如果用户未登录，执行登录请求
-		if (!isLoggedIn) {
-			await mutateAsync("登录")
+		if (userStateFromMain) {
+			// 使用从主进程读取的数据设置本地状态
+			set(userAtom, userStateFromMain)
+
+			// 如果用户未登录，执行登录请求
+			if (!isLoggedIn) {
+				await mutateAsync("登录")
+			}
+
+			// 账户密钥设置
+			if (userStateFromMain.user) {
+				set(accountKeyAtom, {
+					uuid: userStateFromMain.user.uuid,
+					apiKey: userStateFromMain.user.apiKey,
+				})
+
+				// 存储用户身份标识
+				set(
+					userIdentityAtom,
+					generatePermissionSet(collectUserInfo(userStateFromMain.user)),
+				)
+			}
+
+			// 手动触发 accountRoleUpdateAtom
+			const { data: roleData } = get(statusQueryAtom)
+			if (roleData) {
+				set(accountRoleUpdateAtom, roleData)
+			}
+
+			rendererLog("info", "[user] 用户信息已从主进程同步到渲染进程")
 		}
-
-		// 手动触发 accountRoleUpdateAtom
-		const { data: roleData } = get(statusQueryAtom)
-		if (roleData) {
-			set(accountRoleUpdateAtom, roleData)
-		}
-
-		// 同步用户状态到主进程
-		await syncUserState({
-			user: {
-				id: data.user?.id ?? "",
-				uuid: data.user?.uuid ?? "",
-				apiKey: data.user?.apiKey ?? "",
-				headimgurl: data.user?.headimgurl ?? "",
-				isMember: data.user?.isMember ?? false,
-				nickname: data.user?.nickname ?? "",
-				approval: data.user?.approval ?? {
-					block: false,
-					crypto: false,
-					stock: false,
-				},
-				membershipInfo: data.user?.membershipInfo ?? [],
-				groupInfo: data.user?.groupInfo ?? [],
-			},
-			isLoggedIn: true,
-		})
-
-		// 存储用户身份标识
-		set(userIdentityAtom, generatePermissionSet(collectUserInfo(data.user)))
-
-		// 设置本地存储值
-		data.user?.uuid && setStoreValue("settings.hid", data.user?.uuid)
-		data.user?.apiKey && setStoreValue("settings.api_key", data.user?.apiKey)
-		//   console.log(data.user?.apiKey,'更新后的apikey');
-
-		// 提示用户数据已同步
-		//   console.log("用户信息已同步");
 	})()
 })

@@ -8,48 +8,24 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { updateUserInfo } from "@/renderer/ipc/userInfo"
 import { postUserAction } from "@/renderer/request"
 import { accountKeyAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { versionsAtom } from "@/renderer/store/versions"
-import type { UserInfo } from "@/shared/types"
 import { atomWithMutation } from "jotai-tanstack-query"
-import { syncUserState } from "../ipc/userInfo"
 
-const { VITE_BASE_URL } = import.meta.env
 const { rendererLog } = window.electronAPI
 
 export const userInfoMutationAtom = atomWithMutation(() => ({
 	mutationKey: ["user-info"],
-	mutationFn: async (token: string) => {
-		const res = await fetch(`${VITE_BASE_URL}/user/info`, {
-			method: "POST",
-			headers: {
-				authorization: token,
-			},
-		})
-
-		return ((await res.json()) as UserInfo | null) ?? null
-	},
-	onSuccess(data) {
-		syncUserState({
-			user: {
-				id: data?.id ?? "",
-				uuid: data?.uuid ?? "",
-				apiKey: data?.apiKey ?? "",
-				headimgurl: data?.headimgurl ?? "",
-				isMember: data?.isMember ?? false,
-				nickname: data?.nickname ?? "",
-				approval: data?.approval ?? {
-					block: false,
-					crypto: false,
-					stock: false,
-				},
-				membershipInfo: data?.membershipInfo ?? [],
-				groupInfo: data?.groupInfo ?? [],
-			},
-			isLoggedIn: true,
-		})
+	mutationFn: async ({
+		token,
+		isForce = false,
+	}: { token: string; isForce?: boolean }) => {
+		// 使用主进程的 updateUserInfo 接口，带缓存逻辑
+		const userState = await updateUserInfo(token, isForce)
+		return userState
 	},
 }))
 

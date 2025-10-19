@@ -59,7 +59,6 @@ export const useLifeCycle = () => {
 	const { refetchLocalVersions } = useLocalVersions()
 	const isUpdating = useAtomValue(isUpdatingAtom)
 	const isAutoLogin = useAtomValue(isAutoLoginAtom)
-	const accountKey = useAtomValue(accountKeyAtom)
 	useAtom(versionsEffectAtom) // -- 监听版本更新
 	useAppVersions() // -- 检查远程版本
 	useSettings() // -- 监听设置更新
@@ -131,7 +130,9 @@ export const useLifeCycle = () => {
 	 * -- 初始化账户信息
 	 */
 	const initAccountInfo = async () => {
-		const [libraryType, macAddress] = await Promise.all([
+		const [apiKey, uuid, libraryType, macAddress] = await Promise.all([
+			getStoreValue("settings.api_key", ""),
+			getStoreValue("settings.hid", ""),
 			getStoreValue("settings.libraryType", "select"),
 			getMacAddress(),
 		])
@@ -147,10 +148,14 @@ export const useLifeCycle = () => {
 			}
 			return macAddress
 		})
+		void setters.setAccountKey({
+			apiKey: apiKey as string,
+			uuid: uuid as string,
+		})
 
 		setters.setLibraryType(libraryType === "pos" ? "pos" : "select") // -- 设置策略库类型
 
-		return { libraryType, macAddress }
+		return { apiKey, uuid, libraryType, macAddress }
 	}
 
 	/**
@@ -166,8 +171,7 @@ export const useLifeCycle = () => {
 		}
 	}
 
-	const initAutoLauncher = async () => {
-		const { apiKey, uuid } = accountKey
+	const initAutoLauncher = async (apiKey: string, uuid: string) => {
 		if (!apiKey || !uuid) return
 		const [isAutoLaunchUpdate, isAutoLaunchRealTrading] = await Promise.all([
 			getStoreValue("settings.is_auto_launch_update", false),
@@ -188,7 +192,10 @@ export const useLifeCycle = () => {
 	// -- 生命周期钩子
 	useMount(async () => {
 		// versionCheck.start()
-		await Promise.all([initScheduleTask(), initAccountInfo()])
+		const [_, { apiKey, uuid }] = await Promise.all([
+			initScheduleTask(),
+			initAccountInfo(),
+		])
 
 		// -- 初始化监听器
 		onPowerStatus(handlePowerStatusChange)
@@ -203,7 +210,11 @@ export const useLifeCycle = () => {
 
 		// -- 清理实时市场数据，这个虽然useMarket的过程中会清理，但是这里是为了保险起见，初始化时再清理一次
 		// await cleanMarketData()
-		await Promise.all([syncSelectStgList(), syncFusion(), initAutoLauncher()])
+		await Promise.all([
+			syncSelectStgList(),
+			syncFusion(),
+			initAutoLauncher(apiKey, uuid),
+		])
 	})
 
 	// -- 更新效果

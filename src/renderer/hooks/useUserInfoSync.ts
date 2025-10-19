@@ -52,5 +52,5 @@ export const useUserInfoSync = () => {
 		}
 	}
 
-	return { user, isLoggedIn, forceRefresh }
+	return { user, isLoggedIn, token, forceRefresh }
 }

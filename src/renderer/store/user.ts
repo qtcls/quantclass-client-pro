@@ -201,6 +201,10 @@ export const userAuthEffectAtom = atomEffect((get, set) => {
 			isLoggedIn: true,
 		})
 
+		// 设置本地文件存储值
+		data.user?.uuid && setStoreValue("settings.hid", data.user?.uuid)
+		data.user?.apiKey && setStoreValue("settings.api_key", data.user?.apiKey)
+
 		// 从主进程读取用户状态（确保主进程数据主导）
 		const userStateFromMain = await getUserState()
 

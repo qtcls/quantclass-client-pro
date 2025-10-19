@@ -50,6 +50,9 @@ export const useLogout = () => {
 		setTimestampSign(generateTimestampSign())
 		setNonce(uuidV4())
 		deleteStoreValue("status")
+		deleteStoreValue("settings.hid")
+		deleteStoreValue("settings.api_key")
+
 		if (isUpdating) {
 			handleTimeTask(true)
 		}

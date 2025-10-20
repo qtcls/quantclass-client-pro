@@ -7,10 +7,11 @@
  * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
-
+import type { RealMarketConfigSchema } from "@/renderer/page/trading/config-form"
 import type { SelectStgType } from "@/renderer/types/strategy"
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
+import type { z } from "zod"
 
 // 版本提示列表
 export const versionListAtom = atomWithStorage<string[]>(
@@ -117,12 +118,12 @@ export const accountKeyAtom = atomWithStorage<{
 // 	role: 0 | 1 | 2
 // }>("accountRole", { msg: "NONE", role: 0 }, undefined, { getOnInit: true })
 
-// export const isAutoLoginAtom = atomWithStorage<boolean>(
-// 	"isAutoLogin",
-// 	true,
-// 	undefined,
-// 	{ getOnInit: true },
-// )
+export const isAutoLoginAtom = atomWithStorage<boolean>(
+	"isAutoLogin",
+	true,
+	undefined,
+	{ getOnInit: true },
+)
 
 // export const isAutoRocketAtom = atomWithStorage<boolean>(
 // 	"isAutoRocket",
@@ -130,6 +131,25 @@ export const accountKeyAtom = atomWithStorage<{
 // 	undefined,
 // 	{ getOnInit: true },
 // )
+
+export const realMarketConfigSchemaAtom = atomWithStorage<
+	Partial<z.infer<typeof RealMarketConfigSchema>>
+>(
+	"realMarketConfig",
+	{
+		qmt_path: "",
+		account_id: "",
+		qmt_port: "58610",
+		message_robot_url: "",
+		filter_kcb: "1",
+		filter_cyb: "1",
+		filter_bj: "1",
+		performance_mode: "EQUAL",
+		date_start: new Date(new Date().setFullYear(new Date().getFullYear() - 3)),
+	},
+	undefined,
+	{ getOnInit: true },
+)
 
 export const showMoneyAtom = atomWithStorage<boolean>(
 	"showMoney",

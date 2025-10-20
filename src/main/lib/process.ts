@@ -198,25 +198,19 @@ export const execBin = async (
 	try {
 		const api_key = await store.getSetting("api_key", "")
 		const hid = await store.getSetting("hid", "")
-		const status = await store.getValue("status", 0)
-		const userState = await userStore.getUserState()
+		const userAccount = await userStore.getUserAccount()
 
 		if (kernel !== "fuel") {
-			const isAnonymous = (!api_key && !hid) || !userState?.isLoggedIn //--是否是游客
-			const isAllowed = status !== 2 // --可以使用内核
+			const isAnonymous = (!api_key && !hid) || !userAccount?.isLoggedIn //--是否是游客
+			const isAllowed = userAccount?.isMember // --是否是分享会
 			if (isAnonymous) {
 				logger.warn(`[exec-${kernel}] 未登录，不调用内核`)
 				return
 			}
-			if (isAllowed) {
+			if (!isAllowed) {
 				logger.warn(`[exec-${kernel}] 非分享会，不调用内核`)
 				return
 			}
-		}
-
-		if (!userState?.isLoggedIn) {
-			logger.warn("[exec-fuel] 未登录，不调用内核")
-			return
 		}
 
 		// -- 根据指定的内核选择相应的执行文件路径

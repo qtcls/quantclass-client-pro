@@ -9,7 +9,7 @@
  */
 
 import { _ipcRenderer } from "@/renderer/constant"
-import type { UserState } from "@/shared/types"
+import type { UserAccount, UserState } from "@/shared/types"
 
 // 同步用户状态到主进程
 export const syncUserState = async (userState: UserState) => {
@@ -22,9 +22,9 @@ export const syncUserState = async (userState: UserState) => {
 }
 
 // 获取当前的用户状态
-export const getUserState = async (): Promise<UserState | null> => {
+export const getUserAccount = async (): Promise<UserAccount | null> => {
 	try {
-		return await _ipcRenderer.invoke("get-user-state")
+		return await _ipcRenderer.invoke("get-user-account")
 	} catch (error) {
 		console.error("Failed to get user state:", error)
 		return null
@@ -33,11 +33,10 @@ export const getUserState = async (): Promise<UserState | null> => {
 
 // 更新用户信息（带两小时缓存）
 export const updateUserInfo = async (
-	token: string,
 	isForce = false,
-): Promise<UserState | null> => {
+): Promise<UserAccount | null> => {
 	try {
-		return await _ipcRenderer.invoke("update-user-info", token, isForce)
+		return await _ipcRenderer.invoke("update-user-info", isForce)
 	} catch (error) {
 		console.error("Failed to update user info:", error)
 		return null

@@ -169,8 +169,8 @@ if (!gotTheLock) {
 		})
 
 		// -- 监听获取用户信息请求
-		ipcMain.handle("get-user-state", async () => {
-			return await userStore.getUserState()
+		ipcMain.handle("get-user-account", async () => {
+			return await userStore.getUserAccount()
 		})
 
 		// -- 监听清除用户信息请求
@@ -180,12 +180,9 @@ if (!gotTheLock) {
 		})
 
 		// -- 监听更新用户信息请求（带两小时缓存）
-		ipcMain.handle(
-			"update-user-info",
-			async (_event, token: string, isForce = false) => {
-				return await userStore.updateUserInfo(token, isForce)
-			},
-		)
+		ipcMain.handle("update-user-info", async (_event, isForce = false) => {
+			return await userStore.updateUserInfo(isForce)
+		})
 	})
 
 	// -- 当应用程序激活时

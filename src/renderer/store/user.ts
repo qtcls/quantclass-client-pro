@@ -16,14 +16,14 @@ import {
 	collectUserInfo,
 	generatePermissionSet,
 } from "@/renderer/hooks/useIdentityArray"
-import { getUserState, syncUserState } from "@/renderer/ipc/userInfo"
+import { getUserAccount, syncUserState } from "@/renderer/ipc/userInfo"
 import {
 	accountKeyAtom,
 	accountRoleAtom,
 	isLoginAtom,
 	userIdentityAtom,
 } from "@/renderer/store/storage"
-import type { UserInfo, UserState } from "@/shared/types"
+import type { UserAccount, UserInfo } from "@/shared/types"
 import { atomEffect } from "jotai-effect"
 import { atomWithQuery } from "jotai-tanstack-query"
 import { RESET, atomWithStorage } from "jotai/utils"
@@ -81,12 +81,15 @@ export const timestampSignAtom = atomWithStorage<string>(
 )
 
 // -- 用户状态
-export const userAtom = atomWithStorage<UserState>(
+export const userAtom = atomWithStorage<UserAccount>(
 	"user-storage",
 	{
-		token: "",
 		user: null,
 		isLoggedIn: false,
+		isMember: false,
+		isStock: false,
+		isCrypto: false,
+		isBlock: false,
 	},
 	undefined,
 	{ getOnInit: true },
@@ -196,7 +199,6 @@ export const userAuthEffectAtom = atomEffect((get, set) => {
 
 		// 先同步用户状态到主进程
 		await syncUserState({
-			token: data.token,
 			user: data.user,
 			isLoggedIn: true,
 		})
@@ -206,7 +208,7 @@ export const userAuthEffectAtom = atomEffect((get, set) => {
 		data.user?.apiKey && setStoreValue("settings.api_key", data.user?.apiKey)
 
 		// 从主进程读取用户状态（确保主进程数据主导）
-		const userStateFromMain = await getUserState()
+		const userStateFromMain = await getUserAccount()
 
 		if (userStateFromMain) {
 			// 使用从主进程读取的数据设置本地状态

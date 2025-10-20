@@ -19,13 +19,10 @@ const { rendererLog } = window.electronAPI
 
 export const userInfoMutationAtom = atomWithMutation(() => ({
 	mutationKey: ["user-info"],
-	mutationFn: async ({
-		token,
-		isForce = false,
-	}: { token: string; isForce?: boolean }) => {
+	mutationFn: async ({ isForce = false }: { isForce?: boolean } = {}) => {
 		// 使用主进程的 updateUserInfo 接口，带缓存逻辑
-		const userState = await updateUserInfo(token, isForce)
-		return userState
+		const userAccount = await updateUserInfo(isForce)
+		return userAccount
 	},
 }))
 

@@ -18,9 +18,8 @@ import {
 	killKernalByForce,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
-import { BASE_URL } from "@/main/vars.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
-import type { UserState } from "@/shared/types/user.js"
+import type { UserAccount } from "@/shared/types/user.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
 import isBetween from "dayjs/plugin/isBetween.js"
@@ -55,30 +54,11 @@ async function initializeSystem() {
 		// -- 非 Windows 平台到此结束
 		if (!platform.isWindows) return
 
-		const apiKey = (await _store.get("settings.api_key", "")) as string
-		const hid = (await _store.get("settings.hid", "")) as string
+		// 强制更新用户信息
+		const userInfo = await userStore.updateUserInfo(true)
 
-		if (!apiKey || !hid) return
-
-		// -- 检查状态，只有 status === 2 才更新其他内核
-		try {
-			if (!_store.has("status")) {
-				const headers = { "api-key": apiKey }
-				const params = new URLSearchParams({ uuid: hid })
-				const response = await fetch(`${BASE_URL}/api/data/status?${params}`, {
-					headers,
-				})
-				const res = (await response.json()) as { msg: string; role: 0 | 1 | 2 }
-				_store.set("status", res.role)
-				if (res.role !== 2) {
-					logger.info("最新状态：非法状态")
-					return
-				}
-			}
-		} catch (error) {
-			logger.error(`获取状态失败: ${error}`)
-			return
-		}
+		// 若未获取到或不是共享会会员则return
+		if (!userInfo?.isMember) return
 	} catch (error) {
 		logger.error(`系统初始化失败: ${error}`)
 		throw error // -- 向上抛出错误，让调用方处理
@@ -133,11 +113,11 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 	 */
 	systemState.job = schedule.scheduleJob("* * * * *", async () => {
 		logger.info(">>>>>>>>>>>>>>>> scheduler start <<<<<<<<<<<<<<<<")
-		const userState = await userStore.getUserState() // -- 获取用户状态
+		const userAccount = await userStore.getUserAccount() // -- 获取用户状态
 
 		mw?.webContents.send("send-schedule-status", "start")
 		logger.info(
-			`[scheduler] 自动数据: ${systemState.isSetAutoUpdate}, 自动下单: ${systemState.isSetAutoTrading}, 在线: ${systemState.isOnline}, 用户登录: ${userState?.isLoggedIn}`,
+			`[scheduler] 自动数据: ${systemState.isSetAutoUpdate}, 自动下单: ${systemState.isSetAutoTrading}, 在线: ${systemState.isOnline}, 用户登录: ${userAccount?.isLoggedIn}`,
 		)
 
 		// -- 检查网络状态
@@ -148,7 +128,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 		}
 
 		// -- 检查用户登录：未登录直接返回
-		if (!userState?.isLoggedIn) {
+		if (!userAccount?.isLoggedIn) {
 			logger.info("[user] 用户未登录，跳过本轮调度")
 			return
 		}
@@ -157,7 +137,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 		const requireTrading = systemState.isSetAutoTrading && platform.isWindows
 
 		// -- 检查是否设置自动更新数据，如果设置了，唤醒 Rocket
-		if (requireTrading) await wakeUpRocket(userState, mw)
+		if (requireTrading) await wakeUpRocket(userAccount, mw)
 
 		if (await isAnyKernalBusy()) {
 			logger.info("[scheduler] 内核正忙，跳过本轮调度")
@@ -211,7 +191,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 					} else if (!isScheduleSelectModule) {
 						logger.info("[zeus] 非定时选股时间，跳过本轮选股")
 					} else {
-						await wakeUpZeus(userState, mw)
+						await wakeUpZeus(userAccount, mw)
 					}
 					break
 				case "select":
@@ -220,7 +200,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 					} else if (!isScheduleSelectModule) {
 						logger.info("[aqua] 非定时选股时间，跳过本轮选股")
 					} else {
-						await wakeUpAqua(userState, mw)
+						await wakeUpAqua(userAccount, mw)
 					}
 					break
 			}
@@ -246,9 +226,9 @@ async function wakeUpFuel(mw) {
 	}
 }
 
-async function wakeUpAqua(userState: UserState, mw) {
-	if (!userState?.user?.isMember || !platform.isWindows) {
-		logger.info(`[aqua] 非分享会状态，跳过Aqua，${userState?.user}`)
+async function wakeUpAqua(userAccount: UserAccount, mw) {
+	if (!userAccount?.isMember || !platform.isWindows) {
+		logger.info(`[Aqua] 非分享会状态，跳过Aqua，${userAccount?.user}`)
 		return
 	}
 	try {
@@ -260,9 +240,9 @@ async function wakeUpAqua(userState: UserState, mw) {
 	}
 }
 
-async function wakeUpZeus(userState: UserState, mw) {
-	if (!userState?.user?.isMember || !platform.isWindows) {
-		logger.info(`[aqua] 非分享会状态，跳过Aqua，${userState?.user}`)
+async function wakeUpZeus(userAccount: UserAccount, mw) {
+	if (!userAccount?.isMember || !platform.isWindows) {
+		logger.info(`[zeus] 非分享会状态，跳过zeus，${userAccount?.user}`)
 		return
 	}
 	logger.info("[zeus] 正在调用zeus")
@@ -276,7 +256,7 @@ async function wakeUpZeus(userState: UserState, mw) {
 }
 
 // -- 处理实盘交易逻辑
-async function wakeUpRocket(userState: UserState, mw) {
+async function wakeUpRocket(userAccount: UserAccount, mw) {
 	// TODO: 启动之前，要检查以下QMT的设置是否OK
 	// -- 非 Windows 或非会员用户跳过实盘逻辑
 	if (!platform.isWindows) {
@@ -293,14 +273,10 @@ async function wakeUpRocket(userState: UserState, mw) {
 		return
 	}
 
-	if (!userState?.user?.isMember) {
-		logger.info(`[trade] 非分享会状态，跳过Rocket，${userState?.user}`)
+	if (!userAccount?.isMember) {
+		logger.info(`[trade] 非分享会状态，跳过Rocket，${userAccount?.user}`)
 		return
 	}
-
-	// -- 获取状态???
-	const status = (await _store.get("status", 0)) as 0 | 1 | 2
-	if (status !== 2) return
 
 	// -- 交易条件检查
 	const shouldWakeUp = isTradingTime()

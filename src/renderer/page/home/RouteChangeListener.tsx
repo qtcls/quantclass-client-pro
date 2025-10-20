@@ -23,7 +23,7 @@ const { rendererLog } = window.electronAPI
 
 const RouteChangeListener = () => {
 	const location = useLocation()
-	const [{ token, user, isLoggedIn }, setUser] = useAtom(userAtom)
+	const [{ user, isLoggedIn }, setUser] = useAtom(userAtom)
 	const setUserIdentity = useSetAtom(userIdentityAtom)
 
 	useEffect(() => {
@@ -35,22 +35,22 @@ const RouteChangeListener = () => {
 
 	useEffect(() => {
 		// 如果用户未登录，不执行更新逻辑
-		if (!isLoggedIn || !token) {
+		if (!isLoggedIn) {
 			return
 		}
 
 		// 每次路由变化都通过 IPC 更新用户信息
-		updateUserInfo(token)
-			.then((userState) => {
-				if (userState) {
-					setUser(userState)
+		updateUserInfo()
+			.then((userAccount) => {
+				if (userAccount) {
+					setUser(userAccount)
 					rendererLog("info", "[RouteChangeListener] 用户信息已更新")
 				}
 			})
 			.catch((error) => {
 				rendererLog("error", `[RouteChangeListener] 更新用户信息失败: ${error}`)
 			})
-	}, [location, token, isLoggedIn]) // 每次路由变化时触发更新
+	}, [location, isLoggedIn]) // 每次路由变化时触发更新
 
 	return null
 }

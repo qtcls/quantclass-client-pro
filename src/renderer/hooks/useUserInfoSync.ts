@@ -9,28 +9,33 @@
  */
 
 import { useAtom } from "jotai"
+import { RESET } from "jotai/utils"
 import { useEffect } from "react"
+import { toast } from "sonner"
 import { userInfoMutationAtom } from "../store/mutation"
 import { userAtom } from "../store/user"
 import { useInterval } from "./useInterval"
+
+const { rendererLog } = window.electronAPI
 
 /**
  * -- 使用用户信息同步的自定义 Hook
  */
 export const useUserInfoSync = () => {
-	const [{ user, isLoggedIn, token }, setUser] = useAtom(userAtom)
+	const [{ user, isLoggedIn }, setUser] = useAtom(userAtom)
 	const [{ mutateAsync: fetchUserInfo }] = useAtom(userInfoMutationAtom)
 
-	const { start, stop } = useInterval(
-		async () => {
-			const res = await fetchUserInfo(token)
-			setUser((prev) => ({
-				...prev,
-				user: res,
-			}))
-		},
-		1000 * 60 * 60 * 2,
-	)
+	const { start, stop } = useInterval(async () => {
+		const res = await fetchUserInfo(false)
+		if (res) {
+			setUser(res)
+		} else {
+			setUser(RESET)
+			toast.dismiss()
+			toast.warning("账户信息异常，请重新登录")
+		}
+		rendererLog("info", "[useUserInfoSync] 用户信息已更新")
+	}, 1000 * 60) // -- 1分钟轮询
 
 	useEffect(() => {
 		if (isLoggedIn) {
@@ -41,5 +46,16 @@ export const useUserInfoSync = () => {
 		return () => stop()
 	}, [isLoggedIn])
 
-	return { user, isLoggedIn }
+	const forceRefresh = async () => {
+		const res = await fetchUserInfo(true)
+		if (res) {
+			setUser(res)
+		} else {
+			setUser(RESET)
+			toast.dismiss()
+			toast.warning("账户信息异常，请重新登录")
+		}
+	}
+
+	return { user, isLoggedIn, forceRefresh }
 }

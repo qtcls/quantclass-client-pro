@@ -16,7 +16,7 @@ import {
 } from "@/renderer/components/ui/card"
 import { H3 } from "@/renderer/components/ui/typography"
 // import { H3 } from "@/renderer/components/ui/typography"
-import { useRealTradingRole } from "@/renderer/hooks/useRealTradingRole"
+import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
 import { libraryTypeAtom } from "@/renderer/store/storage"
@@ -35,7 +35,7 @@ import { useMemo } from "react"
 
 export const ProcessKanban = () => {
 	const { user } = useAtomValue(userAtom)
-	const hasRealTradingAccess = useRealTradingRole()
+	const { checkRealTradingRole } = usePermissionCheck()
 	const [{ data }] = useAtom(monitorProcessesQueryAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
 
@@ -51,13 +51,13 @@ export const ProcessKanban = () => {
 
 			<div className="grid  gap-2">
 				<ProcessCard data={data} kernel="fuel" />
-				{hasRealTradingAccess && user?.isMember && (
+				{checkRealTradingRole() && user?.isMember && (
 					<ProcessCard
 						data={data}
 						kernel={libraryType === "pos" ? "zeus" : "aqua"}
 					/>
 				)}
-				{hasRealTradingAccess && user?.isMember && (
+				{checkRealTradingRole() && user?.isMember && (
 					<ProcessCard data={data} kernel="rocket" />
 				)}
 			</div>

@@ -9,12 +9,12 @@
  */
 
 import { DataTable } from "@/renderer/components/ui/data-table"
-import { usePermission } from "@/renderer/hooks/useIdentityArray"
-import { isUpdatingAtom } from "@/renderer/store"
+import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { useProductList } from "@/renderer/hooks/useProductList"
 import { dataColumns } from "@/renderer/page/data/table/columns"
 import { DataTableActionOptions } from "@/renderer/page/data/table/options"
 import { ISubscribeListType } from "@/renderer/schemas/subscribe-schema"
+import { isUpdatingAtom } from "@/renderer/store"
 import { ColumnDef } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
 import { type FC, memo } from "react"
@@ -25,7 +25,7 @@ const DataList: FC = () => {
 		productList,
 		isUpdating: isProductUpdating,
 	} = useProductList()
-	const { checkDataListPermission } = usePermission()
+	const { checkDataListPermission } = usePermissionCheck()
 	const isUpdating = useAtomValue(isUpdatingAtom)
 
 	return (

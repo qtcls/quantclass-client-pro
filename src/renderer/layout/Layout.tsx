@@ -35,7 +35,6 @@ import {
 	SidebarRail,
 } from "@/renderer/components/ui/sidebar"
 import { useCalcTotalWeight } from "@/renderer/hooks/useCalcTotalWeight"
-// import { useClassStatusInterval } from "@/renderer/hooks/useClassStatusInterval"
 import { Footer } from "@/renderer/layout/Footer"
 import { UserMenu } from "@/renderer/layout/UserMenu"
 import { _BreadCrumb } from "./BreadCrumb"
@@ -66,7 +65,6 @@ const Layout: FC = () => {
 	useLifeCycle()
 	// useMigrateStrategyData()
 	useCalcTotalWeight()
-	// useClassStatusInterval()
 	useNetworkToast()
 
 	// -- State & Atoms

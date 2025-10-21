@@ -30,7 +30,6 @@ import { useLocalVersions, versionsEffectAtom } from "@/renderer/store/versions"
 import { useMount, useUnmount, useUpdateEffect } from "etc-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { toast } from "sonner"
-import { syncUserState } from "../ipc/userInfo"
 import { useAppVersions } from "./useAppVersion"
 import { useFusionManager } from "./useFusionManager"
 import { useSettings } from "./useSettings"
@@ -65,7 +64,7 @@ export const useLifeCycle = () => {
 	useSettings() // -- 监听设置更新
 
 	// -- 自定义 Hooks
-	const { user, isLoggedIn } = useUserInfoSync()
+	useUserInfoSync() // -- 同步用户信息，一分钟轮询一次
 	const { syncSelectStgList } = useStrategyManager()
 	const { syncFusion } = useFusionManager()
 	const { handleToggleAutoRocket } = useToggleAutoRealTrading()
@@ -208,26 +207,6 @@ export const useLifeCycle = () => {
 		// -- 初始化其他状态
 		const initialFullscreenState = await fetchFullscreenState()
 		setters.setIsFullscreen(initialFullscreenState)
-
-		// -- 同步用户状态并处理自动启动
-		await syncUserState({
-			user: {
-				id: user?.id ?? "",
-				uuid: user?.uuid ?? "",
-				apiKey: user?.apiKey ?? "",
-				headimgurl: user?.headimgurl ?? "",
-				isMember: user?.isMember ?? false,
-				nickname: user?.nickname ?? "",
-				approval: user?.approval ?? {
-					block: false,
-					crypto: false,
-					stock: false,
-				},
-				membershipInfo: user?.membershipInfo ?? [],
-				groupInfo: user?.groupInfo ?? [],
-			},
-			isLoggedIn,
-		})
 
 		// -- 清理实时市场数据，这个虽然useMarket的过程中会清理，但是这里是为了保险起见，初始化时再清理一次
 		// await cleanMarketData()

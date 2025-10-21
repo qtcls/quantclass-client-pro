@@ -49,7 +49,7 @@ const { VITE_XBX_ENV } = import.meta.env
  * -- 用于检查用户的登录状态、会员权限、系统要求等
  */
 export function usePermissionCheck() {
-	const { user, isLoggedIn } = useAtomValue(userAtom)
+	const { isLoggedIn, isMember, isStock, isCrypto } = useAtomValue(userAtom)
 
 	/**
 	 * -- 显示提示信息
@@ -92,7 +92,7 @@ export function usePermissionCheck() {
 		}
 
 		// -- 检查会员权限
-		if (requireMember && !user?.isMember) {
+		if (requireMember && !isMember) {
 			const message =
 				messages.requireMember ?? "本功能暂时仅限策略分享会同学使用"
 			!skipToast && showToast(message, "member")
@@ -118,5 +118,32 @@ export function usePermissionCheck() {
 		return { isValid: true }
 	}
 
-	return { check }
+	/**
+	 * -- 数据列表查询权限检查
+	 */
+	const checkDataListPermission = (courseType?: string) => {
+		if (isMember) return false
+		// 如果查到了权限checkPermission返回true，表格checked如果接收true会被禁用，所以做一下取反操作
+		switch (courseType) {
+			case "coin":
+				return !isCrypto
+			case "stock":
+				return !isStock
+			default:
+				return true //默认禁用
+		}
+	}
+
+	/**
+	 * -- 实盘交易权限检查
+	 */
+	const checkRealTradingRole = () => {
+		if (VITE_XBX_ENV === "development") {
+			return true
+		}
+
+		return isMember && isWindows && VITE_XBX_ENV === "production"
+	}
+
+	return { check, checkDataListPermission, checkRealTradingRole }
 }

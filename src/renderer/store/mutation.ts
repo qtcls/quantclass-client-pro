@@ -12,15 +12,19 @@ import { postUserAction } from "@/renderer/request"
 import { accountKeyAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { versionsAtom } from "@/renderer/store/versions"
+import type { UserAccount } from "@/shared/types/user"
 import { atomWithMutation } from "jotai-tanstack-query"
 
-const { rendererLog, updateUserInfo } = window.electronAPI
+const { rendererLog, getUserAccount } = window.electronAPI
 
-export const userInfoMutationAtom = atomWithMutation(() => ({
+export const userInfoMutationAtom = atomWithMutation<
+	UserAccount | null,
+	boolean
+>(() => ({
 	mutationKey: ["user-info"],
-	mutationFn: async ({ isForce = false }: { isForce?: boolean } = {}) => {
-		// 使用主进程的 updateUserInfo 接口，带缓存逻辑
-		const userAccount = await updateUserInfo(isForce)
+	mutationFn: async (isForce = false) => {
+		// 使用 getUserAccount 接口，带缓存逻辑
+		const userAccount = await getUserAccount(isForce)
 		return userAccount
 	},
 }))

@@ -27,7 +27,7 @@ import {
 	isWindows,
 } from "@/renderer/constant"
 import { HotkeyItem, useHotkeys } from "@/renderer/hooks/useHotkeys"
-import { useRealTradingRole } from "@/renderer/hooks/useRealTradingRole"
+import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { SettingsGearIcon } from "@/renderer/icons/SettingsGearIcon"
 import { QuickCommand } from "@/renderer/layout/QuickCommand"
 import { QuickSearchInput } from "@/renderer/layout/QuickSearchInput"
@@ -80,12 +80,12 @@ const TRADING_PLATE: Record<string, PlateConfig> = {
 
 export const _SidebarHeader = () => {
 	const { pathname } = useLocation()
-	const hasRealTradingAccess = useRealTradingRole()
+	const { checkRealTradingRole } = usePermissionCheck()
 	const navigate = useNavigate()
 	const [isHovered, setIsHovered] = useState<boolean>(false)
 	const [_, setActiveTab] = useAtom(activeTabAtom)
 
-	const Plates = hasRealTradingAccess
+	const Plates = checkRealTradingRole()
 		? { ...BASE_PLATES, ...TRADING_PLATE }
 		: BASE_PLATES
 

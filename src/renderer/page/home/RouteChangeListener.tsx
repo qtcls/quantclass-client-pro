@@ -13,7 +13,7 @@ import { useAtom } from "jotai"
 import { useEffect } from "react"
 import { useLocation } from "react-router"
 
-const { rendererLog, updateUserInfo } = window.electronAPI
+const { rendererLog, getUserAccount } = window.electronAPI
 
 const RouteChangeListener = () => {
 	const location = useLocation()
@@ -25,8 +25,8 @@ const RouteChangeListener = () => {
 			return
 		}
 
-		// 每次路由变化都通过 IPC 更新用户信息
-		updateUserInfo()
+		// 每次路由变化都通过 IPC 获取用户信息（带缓存逻辑）
+		getUserAccount()
 			.then((userAccount) => {
 				if (userAccount) {
 					setUser(userAccount)
@@ -34,7 +34,7 @@ const RouteChangeListener = () => {
 				}
 			})
 			.catch((error) => {
-				rendererLog("error", `[RouteChangeListener] 更新用户信息失败: ${error}`)
+				rendererLog("error", `[RouteChangeListener] 获取用户信息失败: ${error}`)
 			})
 	}, [location, isLoggedIn]) // 每次路由变化时触发更新
 

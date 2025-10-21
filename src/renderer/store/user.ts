@@ -8,7 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-const { getUserAccount, syncUserState } = window.electronAPI
+const { getUserAccount, syncWebUserInfo } = window.electronAPI
 import { accountKeyAtom, isLoginAtom } from "@/renderer/store/storage"
 import type { UserAccount, UserInfo } from "@/shared/types"
 import { atomEffect } from "jotai-effect"
@@ -18,7 +18,7 @@ import md5 from "md5"
 import { postUserActionMutationAtom } from "./mutation"
 const { VITE_BASE_URL } = import.meta.env
 
-const { rendererLog, setStoreValue } = window.electronAPI
+const { rendererLog } = window.electronAPI
 
 export function uuidV4() {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -138,21 +138,17 @@ export const userAuthEffectAtom = atomEffect((get, set) => {
 		if (!data?.success) return // 如果请求失败，直接返回
 
 		// 先同步用户状态到主进程
-		await syncUserState({
+		await syncWebUserInfo({
 			user: data.user,
 			isLoggedIn: true,
 		})
 
-		// 设置本地文件存储值
-		data.user?.uuid && setStoreValue("settings.hid", data.user?.uuid)
-		data.user?.apiKey && setStoreValue("settings.api_key", data.user?.apiKey)
-
 		// 从主进程读取用户状态（确保主进程数据主导）
-		const userStateFromMain = await getUserAccount()
+		const WebUserInfoFromMain = await getUserAccount()
 
-		if (userStateFromMain) {
+		if (WebUserInfoFromMain) {
 			// 使用从主进程读取的数据设置本地状态
-			set(userAtom, userStateFromMain)
+			set(userAtom, WebUserInfoFromMain)
 
 			// 如果用户未登录，执行登录请求
 			if (!isLoggedIn) {
@@ -160,10 +156,10 @@ export const userAuthEffectAtom = atomEffect((get, set) => {
 			}
 
 			// 账户密钥设置
-			if (userStateFromMain.user) {
+			if (WebUserInfoFromMain.user) {
 				set(accountKeyAtom, {
-					uuid: userStateFromMain.user.uuid,
-					apiKey: userStateFromMain.user.apiKey,
+					uuid: WebUserInfoFromMain.user.uuid,
+					apiKey: WebUserInfoFromMain.user.apiKey,
 				})
 			}
 

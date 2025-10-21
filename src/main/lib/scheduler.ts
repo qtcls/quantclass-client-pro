@@ -55,7 +55,7 @@ async function initializeSystem() {
 		if (!platform.isWindows) return
 
 		// 强制更新用户信息
-		const userInfo = await userStore.updateUserInfo(true)
+		const userInfo = await userStore.getUserAccount(true)
 
 		// 若未获取到或不是共享会会员则return
 		if (!userInfo?.isMember) return

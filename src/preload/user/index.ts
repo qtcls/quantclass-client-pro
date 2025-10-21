@@ -8,31 +8,31 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import type { UserAccount, UserState } from "@/shared/types/user.js"
+import type { UserAccount, WebUserInfo } from "@/shared/types/user.js"
 import { ipcRenderer } from "electron"
 
 export const userIPC = {
 	/**
 	 * 同步用户状态到主进程
 	 */
-	syncUserState: (userState: UserState) =>
-		ipcRenderer.send("sync-user-state", userState),
+	syncWebUserInfo: (WebUserInfo: WebUserInfo) =>
+		ipcRenderer.send("sync-user-state", WebUserInfo),
 
 	/**
-	 * 获取当前的用户账号信息
-	 */
-	getUserAccount: (): Promise<UserAccount | null> =>
-		ipcRenderer.invoke("get-user-account"),
-
-	/**
-	 * 更新用户信息（带两小时缓存）
+	 * 获取当前的用户账号信息（带缓存逻辑）
 	 * @param isForce 是否强制更新，忽略缓存
 	 */
-	updateUserInfo: (isForce = false): Promise<UserAccount | null> =>
-		ipcRenderer.invoke("update-user-info", isForce),
+	getUserAccount: (isForce = false): Promise<UserAccount | null> =>
+		ipcRenderer.invoke("get-user-account", isForce),
+
+	/**
+	 * 更新用户信息
+	 */
+	updateUserInfo: (): Promise<UserAccount | null> =>
+		ipcRenderer.invoke("update-user-info"),
 
 	/**
 	 * 清除用户状态
 	 */
-	clearUserState: () => ipcRenderer.send("clear-user-state"),
+	clearWebUserInfo: () => ipcRenderer.send("clear-user-state"),
 }

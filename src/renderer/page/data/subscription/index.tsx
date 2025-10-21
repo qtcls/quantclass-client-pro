@@ -9,8 +9,8 @@
  */
 
 import { DataTable } from "@/renderer/components/ui/data-table"
-import { usePermission } from "@/renderer/hooks/useAccountArray"
 import { useDataSubscribed } from "@/renderer/hooks/useDataSubscribed"
+import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { useProductList } from "@/renderer/hooks/useProductList"
 import {
 	transSubscribeData,
@@ -25,7 +25,7 @@ import { FC, memo, useEffect, useMemo } from "react"
 
 const DataSubscriptionTable: FC = () => {
 	const subscribeColumns = useGenSubscribeColumns()
-	const { checkDataListPermission } = usePermission()
+	const { checkDataListPermission } = usePermissionCheck()
 	const setRowSelection = useSetAtom(rowSelectionAtom)
 	const { dataSubscribedNameList } = useDataSubscribed()
 	const { apiProductList, update, isUpdating } = useProductList()

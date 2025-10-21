@@ -32,21 +32,20 @@ export const useLogout = () => {
 	const setTimestampSign = useSetAtom(timestampSignAtom)
 	const handleTimeTask = useHandleTimeTask()
 	const setIsLogin = useSetAtom(isLoginAtom)
-	const { deleteStoreValue, clearUserState } = window.electronAPI
+	const { deleteStoreValue, clearWebUserInfo } = window.electronAPI
 	const handleLogout = () => {
 		setIsLogin(false)
 		setUser(RESET)
 		setAccountKey(RESET)
 		setTimestampSign(generateTimestampSign())
 		setNonce(uuidV4())
-		deleteStoreValue("status")
 		deleteStoreValue("settings.hid")
 		deleteStoreValue("settings.api_key")
 
 		if (isUpdating) {
 			handleTimeTask(true)
 		}
-		clearUserState()
+		clearWebUserInfo()
 		navigate("/")
 		toast.info("登出成功")
 	}

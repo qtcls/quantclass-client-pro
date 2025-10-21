@@ -9,7 +9,7 @@
  */
 
 import { DataTable } from "@/renderer/components/ui/data-table"
-import { usePermission } from "@/renderer/hooks/useAccountArray"
+import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { useProductList } from "@/renderer/hooks/useProductList"
 import { dataColumns } from "@/renderer/page/data/table/columns"
 import { DataTableActionOptions } from "@/renderer/page/data/table/options"
@@ -25,7 +25,7 @@ const DataList: FC = () => {
 		productList,
 		isUpdating: isProductUpdating,
 	} = useProductList()
-	const { checkDataListPermission } = usePermission()
+	const { checkDataListPermission } = usePermissionCheck()
 	const isUpdating = useAtomValue(isUpdatingAtom)
 
 	return (

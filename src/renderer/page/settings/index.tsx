@@ -30,7 +30,6 @@ import {
 import { useAppVersions } from "@/renderer/hooks/useAppVersion"
 import { useInvokeUpdateKernal } from "@/renderer/hooks/useInvokeUpdateKernal"
 import { useRealMarketConfig } from "@/renderer/hooks/useRealMarketConfig"
-import { useRealTradingRole } from "@/renderer/hooks/useRealTradingRole"
 import { useSettings } from "@/renderer/hooks/useSettings"
 import { useVersionCheck } from "@/renderer/hooks/useVersionCheck"
 import { cn } from "@/renderer/lib/utils"
@@ -63,8 +62,7 @@ import { AboutPage } from "./about"
 export default function SettingsPage() {
 	const [showContributors, setShowContributors] = useState(false)
 	const { user } = useAtomValue(userAtom)
-	const { check } = usePermissionCheck()
-	const hasRealTradingAccess = useRealTradingRole()
+	const { check, checkRealTradingRole } = usePermissionCheck()
 	const [isAutoLogin, setIsAutoLogin] = useAtom(isAutoLoginAtom)
 	const version = useAtomValue(versionsAtom)
 	const setVersionList = useSetAtom(versionListAtom)
@@ -236,7 +234,7 @@ export default function SettingsPage() {
 						appVersions={appVersions}
 					/>
 
-					{hasRealTradingAccess && user?.isMember && (
+					{checkRealTradingRole() && user?.isMember && (
 						<>
 							{isFusionMode ? (
 								<KernalVersion
@@ -415,7 +413,7 @@ export default function SettingsPage() {
 					/>
 				</div>
 
-				{hasRealTradingAccess && (
+				{checkRealTradingRole() && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-1">
 							<Label

@@ -10,7 +10,7 @@
 
 import { Checkbox } from "@/renderer/components/ui/checkbox"
 import { TremorBadge } from "@/renderer/components/ui/tremor-badge"
-import { usePermission } from "@/renderer/hooks/useAccountArray"
+import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { ISubscribeListType } from "@/renderer/schemas/subscribe-schema"
 import { userAtom } from "@/renderer/store/user"
 import { ColumnDef, Row } from "@tanstack/react-table"
@@ -27,7 +27,7 @@ export const useGenSubscribeColumns = (): Array<
 	ColumnDef<ISubscribeListType>
 > => {
 	const { user } = useAtomValue(userAtom)
-	const { checkDataListPermission } = usePermission()
+	const { checkDataListPermission } = usePermissionCheck()
 
 	const isDisabled = useCallback(
 		(row: Row<ISubscribeListType>) => {

@@ -24,3 +24,12 @@ export type {
 	UserAccount,
 	UserAccountInfo,
 } from "./user.js"
+
+// 策略状态相关类型
+export type {
+	StrategyStatus,
+	StrategyStatusTag,
+	StrategyStatusPlan,
+	StrategyStatusStat,
+} from "@/main/core/strategy.js"
+export { StrategyStatusEnum } from "@/main/core/strategy.js"

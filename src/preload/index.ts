@@ -14,6 +14,7 @@ import { dataIPC } from "./data/index.js"
 import { emitterIPC } from "./emitter/index.js"
 import { fileSysIPC } from "./file-sys/index.js"
 import { storeIPC } from "./store/index.js"
+import { strategyIPC } from "./strategy/index.js"
 import { userIPC } from "./user/index.js"
 
 import { electronAPI } from "@electron-toolkit/preload"
@@ -29,6 +30,7 @@ if (process.contextIsolated) {
 			...coreIPC,
 			...storeIPC,
 			...dataIPC,
+			...strategyIPC,
 			...fileSysIPC,
 			...emitterIPC,
 			...systemIPC,

@@ -29,6 +29,7 @@ import { regCoreIPC } from "@/preload/core/core-ipc.js"
 import { regDataIPC } from "@/preload/data/data-ipc.js"
 import { regFileSysIPC } from "@/preload/file-sys/file-sys-ipc.js"
 import { regStoreIPC } from "@/preload/store/store-ipc.js"
+import { regStrategyIPC } from "@/preload/strategy/strategy-ipc.js"
 import { regSystemIPC } from "@/preload/system/system-ipc.js"
 import { regUserIPC } from "@/preload/user/user-ipc.js"
 import { regWindowsIPC } from "@/preload/windows/windows-ipc.js"
@@ -102,6 +103,7 @@ if (!gotTheLock) {
 		regSystemIPC()
 		regFileSysIPC()
 		regDataIPC()
+		regStrategyIPC()
 		regWindowsIPC()
 		regUserIPC()
 

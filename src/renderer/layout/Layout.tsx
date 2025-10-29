@@ -78,6 +78,7 @@ const Layout: FC = () => {
 	const { refetchLocalVersions } = useLocalVersions()
 
 	// -- Effects
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		refetchLocalVersions()
 	}, [pathname])
@@ -123,7 +124,7 @@ const MainLayout: FC<MainLayoutProps> = ({
 }) => {
 	useLocation()
 	return (
-		<SidebarInset className="min-h-[calc(100svh-2.5rem-1px)] h-[calc(100svh-2.5rem-1px)] overflow-y: auto">
+		<SidebarInset className="min-h-[calc(100svh-2.5rem-1px)] h-[calc(100svh-2.5rem-1px)] min-w-0">
 			<header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
 				{/* <SidebarTrigger className="-ml-1 text-muted-foreground size-5" />
 				<Separator orientation="vertical" className="mr-2 h-4" /> */}

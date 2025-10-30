@@ -57,7 +57,8 @@ import {
 	SquareFunction,
 	SquareTerminal,
 } from "lucide-react"
-import { FC, useState } from "react"
+import type { FC } from "react"
+import { useState } from "react"
 import Markdown from "react-markdown"
 import { useNavigate } from "react-router"
 import Img from "../../../build/icon.ico"

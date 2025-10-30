@@ -8,8 +8,8 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { BuyRoot } from "@/renderer/page/trading/plan/types"
-import { ColumnDef } from "@tanstack/react-table"
+import type { BuyRoot } from "@/renderer/page/trading/plan/types"
+import type { ColumnDef } from "@tanstack/react-table"
 import dayjs from "dayjs"
 import { useMemo } from "react"
 import BuyBlacklistAddBtn from "../../buy-blacklist/add-btn"

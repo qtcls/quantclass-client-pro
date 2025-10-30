@@ -17,7 +17,7 @@ import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import StgImportButton from "@/renderer/page/library/import-btn"
 
 import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
-import { SelectStgType } from "@/renderer/types/strategy"
+import type { SelectStgType } from "@/renderer/types/strategy"
 import {
 	AlignVerticalSpaceAround,
 	PencilRuler,
@@ -58,7 +58,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 							toast.warning("请先导入策略")
 							return
 						}
-						const avgCapWeight = parseFloat(
+						const avgCapWeight = Number.parseFloat(
 							(100 / selectStgList.length).toFixed(6),
 						)
 						const strategies = selectStgList.map((s: SelectStgType) => ({

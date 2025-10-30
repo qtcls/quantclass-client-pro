@@ -17,7 +17,7 @@ import {
 	BreadcrumbSeparator,
 } from "@/renderer/components/ui/breadcrumb"
 import {
-	BACKTEST_PAGE as BACKTEST_PAGE,
+	BACKTEST_PAGE,
 	DATA_TAB_NAME,
 	FUSION_STRATEGY_LIBRARY_PAGE,
 	HOME_PAGE,

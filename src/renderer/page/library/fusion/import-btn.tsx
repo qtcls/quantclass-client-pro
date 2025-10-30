@@ -29,7 +29,7 @@ import {
 import { BACKTEST_PAGE, REAL_MARKET_CONFIG_PAGE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
-import {
+import type {
 	PosStrategyType,
 	SelectStgType,
 	StgGroupType,
@@ -382,7 +382,9 @@ export default function ImportStrategyButton() {
 							toast.warning("请先导入策略")
 							return
 						}
-						const avgCapWeight = parseFloat((100 / fusion.length).toFixed(5))
+						const avgCapWeight = Number.parseFloat(
+							(100 / fusion.length).toFixed(5),
+						)
 						const _fusion = fusion.map((s) => ({
 							...s,
 							cap_weight: avgCapWeight,

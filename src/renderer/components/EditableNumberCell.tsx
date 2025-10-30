@@ -12,7 +12,8 @@ import { Input } from "@/renderer/components/ui/input"
 import { totalWeightAtom } from "@/renderer/store/storage"
 import { useUnmount } from "etc-hooks"
 import { useAtom } from "jotai"
-import { type FC, useEffect, useRef, useState, ChangeEvent, KeyboardEvent } from "react"
+import { useEffect, useRef, useState } from "react"
+import type { ChangeEvent, FC, KeyboardEvent } from "react"
 import { toast } from "sonner"
 
 interface EditableNumberCellProps {
@@ -56,8 +57,8 @@ const EditableNumberCell: FC<EditableNumberCellProps> = ({
 	}
 
 	const updateValue = () => {
-		let newValue = parseFloat(parseFloat(inputValue).toFixed(5))
-		if (isNaN(newValue) || newValue < 0) {
+		let newValue = Number.parseFloat(Number.parseFloat(inputValue).toFixed(5))
+		if (Number.isNaN(newValue) || newValue < 0) {
 			toast.dismiss()
 			toast.warning("资金占比输入错误，已自动调整为 0%")
 			newValue = 0

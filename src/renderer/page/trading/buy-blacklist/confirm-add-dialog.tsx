@@ -20,6 +20,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/renderer/components/ui/dialog"
+import { Label } from "@/renderer/components/ui/label"
 import {
 	RadioGroup,
 	RadioGroupItem,
@@ -31,10 +32,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/renderer/components/ui/select"
-import { toast } from "sonner"
-import { Label } from "@/renderer/components/ui/label"
-import type { BlacklistItem } from "@/renderer/types/trading"
 import { cn } from "@/renderer/lib/utils"
+import type { BlacklistItem } from "@/renderer/types/trading"
+import { toast } from "sonner"
 
 export default function BuyBlacklistAddConfirm({
 	show,
@@ -65,8 +65,8 @@ export default function BuyBlacklistAddConfirm({
 				return
 			}
 
-			const threshold = parseFloat(thresholdValue)
-			if (isNaN(threshold)) {
+			const threshold = Number.parseFloat(thresholdValue)
+			if (Number.isNaN(threshold)) {
 				toast.error("阈值必须是有效的数字")
 				return
 			}
@@ -89,7 +89,9 @@ export default function BuyBlacklistAddConfirm({
 				blacklistType === "condition"
 					? {
 							type: conditionType,
-							threshold: parseFloat(parseFloat(thresholdValue).toFixed(2)),
+							threshold: Number.parseFloat(
+								Number.parseFloat(thresholdValue).toFixed(2),
+							),
 						}
 					: undefined,
 		}
@@ -192,7 +194,8 @@ export default function BuyBlacklistAddConfirm({
 											// 检查数值范围
 											if (
 												value === "" ||
-												(parseFloat(value) >= 0 && parseFloat(value) <= 20)
+												(Number.parseFloat(value) >= 0 &&
+													Number.parseFloat(value) <= 20)
 											) {
 												setThresholdValue(value)
 											}
@@ -247,8 +250,8 @@ export default function BuyBlacklistAddConfirm({
 							blacklistType === "condition" &&
 							(!thresholdValue ||
 								thresholdValue.trim() === "" ||
-								parseFloat(thresholdValue) < 0 ||
-								parseFloat(thresholdValue) > 20)
+								Number.parseFloat(thresholdValue) < 0 ||
+								Number.parseFloat(thresholdValue) > 20)
 						}
 					>
 						确认拉黑

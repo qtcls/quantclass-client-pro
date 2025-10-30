@@ -20,12 +20,11 @@ import {
 	AlertDialogTitle,
 } from "@/renderer/components/ui/alert-dialog"
 import { Button } from "@/renderer/components/ui/button"
-import { actionDialogAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
-import { Row } from "@tanstack/react-table"
+import type { Row } from "@tanstack/react-table"
 import { useAtom } from "jotai"
 import { Loader } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 export interface IMonitorRowActionProps<TData> {

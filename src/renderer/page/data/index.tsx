@@ -32,7 +32,7 @@ import {
 	RefreshCw,
 	Server,
 } from "lucide-react"
-import { FC } from "react"
+import type { FC } from "react"
 
 const Data: FC = () => {
 	const disabled = useAuthUpdate()
@@ -138,7 +138,7 @@ const Data: FC = () => {
 					</h3>
 					<div>
 						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
 							<HardDrive size={16} />
 							<span>
 								<span className="font-semibold">数据时间：</span>
@@ -148,7 +148,7 @@ const Data: FC = () => {
 							</span>
 						</div>
 						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
 							<Server size={16} />
 							<span>
 								<span className="font-semibold">更新时间（云端）：</span>
@@ -158,7 +158,7 @@ const Data: FC = () => {
 							</span>
 						</div>
 						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
 							<RefreshCcwDot size={16} />
 							<span>
 								<span className="font-semibold">更新时间（本地）：</span>
@@ -173,19 +173,19 @@ const Data: FC = () => {
 					</h3>
 					<div>
 						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
 							<span>
 								客户端每分钟都会检查数据，若发现有更新，将自动下载并完成更新。
 							</span>
 						</div>
 						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
 							<span>
 								量化小讲堂大部分数据每天更新一次，部分数据更新频率可能有所不同。
 							</span>
 						</div>
 						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
 							<span>
 								本地数据时间在白天看通常是前一天，晚上应该会更新至当天。如有个别数据更新延迟，系统将自动处理，无需干预。
 							</span>

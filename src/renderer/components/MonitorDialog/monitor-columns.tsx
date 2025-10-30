@@ -9,8 +9,8 @@
  */
 
 import MonitorRowAction from "@/renderer/components/MonitorDialog/monitor-row-action"
-import { IMonitorListType } from "@/renderer/components/MonitorDialog/monitor-schema"
-import { ColumnDef } from "@tanstack/react-table"
+import type { IMonitorListType } from "@/renderer/components/MonitorDialog/monitor-schema"
+import type { ColumnDef } from "@tanstack/react-table"
 
 export const monitorColumns = (): Array<ColumnDef<IMonitorListType>> => [
 	{

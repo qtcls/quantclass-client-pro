@@ -10,7 +10,7 @@
 
 import Editor from "@monaco-editor/react"
 import { useUnmount } from "etc-hooks"
-import { IDisposable, editor } from "monaco-editor"
+import type { IDisposable, editor } from "monaco-editor"
 import { useTheme } from "next-themes"
 import React, { useState } from "react"
 import { toast } from "sonner"
@@ -59,13 +59,17 @@ export function ConfigEditor() {
 	}
 
 	function handleEditorValidation(markers: editor.IMarker[]) {
-		markers.forEach((marker) => console.log("onValidate:", marker.message))
+		for (const marker of markers) {
+			console.log("onValidate:", marker.message)
+		}
 	}
 
 	// -- 组件卸载时清理
 	React.useEffect(() => {
 		return () => {
-			disposablesRef.current.forEach((d) => d.dispose())
+			for (const disposable of disposablesRef.current) {
+				disposable.dispose()
+			}
 			disposablesRef.current = []
 			if (editorRef.current) {
 				editorRef.current.dispose()
@@ -115,7 +119,7 @@ export function ConfigEditor() {
 		// -- 注册悬浮提示
 		disposablesRef.current.push(
 			monaco.languages.registerHoverProvider("json", {
-				provideHover: function (model, position) {
+				provideHover: (model, position) => {
 					const word = model.getWordAtPosition(position)
 					if (!word) return null
 
@@ -151,7 +155,9 @@ export function ConfigEditor() {
 	}
 
 	useUnmount(() => {
-		disposablesRef.current.forEach((d) => d.dispose())
+		for (const disposable of disposablesRef.current) {
+			disposable.dispose()
+		}
 		disposablesRef.current = []
 	})
 
@@ -180,7 +186,7 @@ export function ConfigEditor() {
 			<Editor
 				height="calc(100% - 2.625rem)"
 				width={open ? "calc(100vw - 20.125rem)" : "100%"}
-				theme={theme == "dark" ? "vs-dark" : "vs"}
+				theme={theme === "dark" ? "vs-dark" : "vs"}
 				defaultLanguage={language}
 				language={language}
 				defaultValue={

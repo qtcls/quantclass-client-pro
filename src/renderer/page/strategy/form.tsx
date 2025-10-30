@@ -154,9 +154,9 @@ export function SelectStgForm({
 		const index = selectItems.findIndex((item) => item.key === rebalance_time)
 
 		if (index === -1) {
-			selectItems.forEach((item) => {
+			for (const item of selectItems) {
 				item.isDisabled = true
-			})
+			}
 			const [startTime, endTime] = rebalance_time.split("-") // 使用 '-' 分割字符串
 			let label = rebalance_time
 			if (startTime === endTime) {

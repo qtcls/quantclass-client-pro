@@ -13,10 +13,13 @@ import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { DataTableToolbar } from "@/renderer/components/ui/data-table-toolbar"
 import { ScrollArea } from "@/renderer/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger } from "@/renderer/components/ui/tabs"
-import { DataTableActionOptionsProps } from "@/renderer/page/data/table/options"
+import type { DataTableActionOptionsProps } from "@/renderer/page/data/table/options"
 import BuyTable from "@/renderer/page/trading/plan/tables/BuyTable"
 import SellTable from "@/renderer/page/trading/plan/tables/SellTable"
-import { BuyTableRef, SellTableRef } from "@/renderer/page/trading/plan/types"
+import type {
+	BuyTableRef,
+	SellTableRef,
+} from "@/renderer/page/trading/plan/types"
 import { ReloadIcon } from "@radix-ui/react-icons"
 import { CircleHelpIcon } from "lucide-react"
 import { useRef, useState } from "react"

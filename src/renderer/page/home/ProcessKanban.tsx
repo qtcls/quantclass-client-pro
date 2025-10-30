@@ -47,12 +47,12 @@ export const ProcessKanban = () => {
 
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="flex flex-col gap-1 items-start">
+			<div className="flex flex-col gap-2 items-start">
 				<div className="flex items-center gap-2">
 					<MonitorPlay size={26} />
 					<H3>进程监控</H3>
 				</div>
-				<p className="text-sm text-muted-foreground">监控内核运行状态</p>
+				<p>监控内核运行状态</p>
 			</div>
 
 			<div className="grid  gap-2">

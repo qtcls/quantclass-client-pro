@@ -78,7 +78,6 @@ const Layout: FC = () => {
 	const { refetchLocalVersions } = useLocalVersions()
 
 	// -- Effects
-	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		refetchLocalVersions()
 	}, [pathname])

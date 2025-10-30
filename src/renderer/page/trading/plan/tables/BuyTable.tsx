@@ -11,7 +11,7 @@
 import { DataTable } from "@/renderer/components/ui/data-table"
 import { TradingPlanTableToolbar } from "@/renderer/page/trading/plan"
 import { useBuyColumns } from "@/renderer/page/trading/plan/columns/buy-column"
-import { BuyRoot, BuyTableRef } from "@/renderer/page/trading/plan/types"
+import type { BuyRoot, BuyTableRef } from "@/renderer/page/trading/plan/types"
 import { useQuery } from "@tanstack/react-query"
 import { forwardRef, useImperativeHandle } from "react"
 

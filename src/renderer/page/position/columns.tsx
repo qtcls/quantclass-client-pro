@@ -16,13 +16,13 @@ import {
 	TooltipTrigger,
 } from "@/renderer/components/ui/tooltip"
 import { cn } from "@/renderer/lib/utils"
-import {
+import type {
 	PositionInfoType,
 	PositionStockInfoType,
 	PositionStrategyInfoType,
 } from "@/renderer/page/position/types"
 import { formatCurrency } from "@/renderer/utils/formatCurrency"
-import { ColumnDef } from "@tanstack/react-table"
+import type { ColumnDef } from "@tanstack/react-table"
 import dayjs from "dayjs"
 import { InfoIcon } from "lucide-react"
 

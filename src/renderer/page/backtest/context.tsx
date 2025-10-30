@@ -9,10 +9,11 @@
  */
 
 import { csvFileNameAtom } from "@/renderer/store"
-import { RunResultContextType } from "@/renderer/types/backtest"
+import type { RunResultContextType } from "@/renderer/types/backtest"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
-import { ReactNode, createContext, useContext, useState } from "react"
+import type { ReactNode } from "react"
+import { createContext, useContext, useState } from "react"
 
 function createResultContext(mode: string | undefined) {
 	const Context = createContext<RunResultContextType | undefined>(undefined)

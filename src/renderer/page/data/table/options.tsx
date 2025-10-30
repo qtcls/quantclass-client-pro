@@ -20,7 +20,7 @@ import { showDataSubModalAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { Cross2Icon, ReloadIcon } from "@radix-ui/react-icons"
 import { useMutation } from "@tanstack/react-query"
-import { Table } from "@tanstack/react-table"
+import type { Table } from "@tanstack/react-table"
 import { useUnmount } from "etc-hooks"
 import { useAtom, useAtomValue } from "jotai"
 import { ArrowDownNarrowWideIcon, PlusCircle } from "lucide-react"
@@ -91,7 +91,7 @@ export function DataTableActionOptions<TData>({
 					className="ml-auto h-8 text-foreground"
 					disabled={isFetching}
 					onClick={() => {
-						refresh && refresh()
+						refresh?.()
 						toast.success("数据列表信息刷新成功")
 					}}
 				>
@@ -123,7 +123,7 @@ export function DataTableActionOptions<TData>({
 							setLoading(false)
 						}
 						await minimizeApp("terminal")
-						refresh && refresh()
+						refresh?.()
 					}}
 				>
 					<ArrowDownNarrowWideIcon size={14} className="mr-2" />

@@ -44,7 +44,7 @@ export default function ScheduleControl() {
 				默认都是自动模式，会实时检查数据更新，并且第一时间选股生成交易计划
 			</p>
 			<div className="flex flex-col gap-2">
-				<div className="flex items-center gap-2">
+				<div className="flex items-center">
 					<div className="font-bold">数据模块：</div>
 					<div className="flex items-center gap-2">
 						<Switch
@@ -125,11 +125,9 @@ export default function ScheduleControl() {
 						/>
 					</div>
 				)}
-				<div className="flex items-center">
-					<div className="font-bold">交易模块：</div>
-					<div>
-						无需额外配置，交易时间内，每分钟会检查是否启动。注意，需要手动启动QMT客户端哦
-					</div>
+				<div>
+					<span className="font-bold flex-shrink-0">交易模块：</span>
+					无需额外配置，交易时间内，每分钟会检查是否启动。注意，需要手动启动QMT客户端哦
 				</div>
 			</div>
 		</div>

@@ -66,7 +66,7 @@ const MonitorDialog: FC = () => {
 									{dataName.map((name, index) => (
 										<span
 											key={index}
-											className={`text-sm text-gray-600 ${index == 2 || index == 3 ? "w-2/5" : "w-1/5"}`}
+											className={`text-sm text-gray-600 ${index === 2 || index === 3 ? "w-2/5" : "w-1/5"}`}
 										>
 											{name}
 										</span>

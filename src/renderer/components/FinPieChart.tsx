@@ -8,17 +8,17 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { Label, Pie, PieChart } from "recharts"
-import { selectStgListAtom, totalWeightAtom } from "../store/storage"
-
+import type { ChartConfig } from "@/renderer/components/ui/chart"
 import {
-	ChartConfig,
 	ChartContainer,
 	ChartLegend,
 	ChartLegendContent,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/renderer/components/ui/chart"
+import { selectStgListAtom, totalWeightAtom } from "@/renderer/store/storage"
+import { Label, Pie, PieChart } from "recharts"
+
 // import { useQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { useCallback, useMemo } from "react"
@@ -48,15 +48,19 @@ export function FinPieChart({
 		}
 
 		// 添加选股策略
-		selectStgList
-			// ?.filter((item) => item.enable_real_market)
-			?.filter((item) => item.cap_weight > 0)
-			.forEach((item, index) => {
+		{
+			const filtered =
+				selectStgList
+					// ?.filter((item) => item.enable_real_market)
+					?.filter((item) => item.cap_weight > 0) ?? []
+
+			for (const [index, item] of filtered.entries()) {
 				config[`${item.name}`] = {
 					label: `${item.cap_weight}% ${item.name}`,
 					color: `hsl(var(--chart-${((index + 2) % 10) + 1}))`,
 				}
-			})
+			}
+		}
 
 		return config
 	}, [selectStgList, totalCap, availCap])
@@ -65,10 +69,13 @@ export function FinPieChart({
 		const result: unknown[] = []
 		let total = 0
 
-		selectStgList
-			// ?.filter((item) => item.enable_real_market)
-			?.filter((item) => item.cap_weight > 0)
-			.forEach((item) => {
+		{
+			const filtered =
+				selectStgList
+					// ?.filter((item) => item.enable_real_market)
+					?.filter((item) => item.cap_weight > 0) ?? []
+
+			for (const item of filtered) {
 				total += item.cap_weight
 				result.push({
 					name: `${item.name}`,
@@ -77,14 +84,16 @@ export function FinPieChart({
 						totalCap < 0 ? item.cap_weight : totalCap * (item.cap_weight / 100),
 					fill: chartConfig[`${item.name}`].color,
 				})
-			})
+			}
+		}
 
 		if (total !== totalWeight || totalWeight !== 100) {
+			const key = "可用资金"
 			result.push({
-				name: "可用资金",
+				name: key,
 				cap_weight: 100 - total,
 				amount: availCap < 0 ? 100 - total : availCap,
-				fill: chartConfig["可用资金"].color,
+				fill: chartConfig[key].color,
 			})
 		}
 

@@ -59,8 +59,9 @@ export const RealMarketConfigSchema = z.object({
 	performance_mode: z.enum(["EQUAL", "PERFORMANCE", "ECONOMY"]),
 	reverse_repo_keep: z.union([z.string(), z.number()]).refine(
 		(value) => {
-			const numValue = typeof value === "string" ? parseFloat(value) : value
-			return !isNaN(numValue) && numValue >= 0
+			const numValue =
+				typeof value === "string" ? Number.parseFloat(value) : value
+			return !Number.isNaN(numValue) && numValue >= 0
 		},
 		{ message: "逆回购保留金额必须是一个大于等于0的数字" },
 	),
@@ -138,7 +139,7 @@ export function TradingConfigForm() {
 			const values = form.getValues()
 
 			// -- 处理 start_date，确保保存的是字符串
-			const { date_start: date_start, ...restValues } = values
+			const { date_start, ...restValues } = values
 			const formattedValues = {
 				...restValues,
 				filter_kcb: values.filter_kcb !== "0",

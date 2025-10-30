@@ -116,7 +116,7 @@ export function BacktestSettings() {
 				}))
 				setStoreValue(`${configKey}.${key}`, null)
 
-				toast.success(`选股结束日期已设置为最新的一天`)
+				toast.success("选股结束日期已设置为最新的一天")
 			}
 		}
 
@@ -221,7 +221,7 @@ export function BacktestSettings() {
 								onChange={(e) => {
 									const value = Number(e.target.value)
 									const finalValue =
-										!e.target.value || value < 0 || isNaN(value)
+										!e.target.value || value < 0 || Number.isNaN(value)
 											? 100000
 											: value
 									setBacktestConfig((prev) => ({
@@ -233,7 +233,7 @@ export function BacktestSettings() {
 									if (e.key === "Enter") {
 										const value = Number(e.currentTarget.value)
 										const finalValue =
-											!e.currentTarget.value || value < 0 || isNaN(value)
+											!e.currentTarget.value || value < 0 || Number.isNaN(value)
 												? 100000
 												: value
 										debouncedSetEstimatedFund.run(finalValue)
@@ -286,7 +286,7 @@ export function BacktestSettings() {
 										}))
 										setStoreValue(`${configKey}.end_date`, null)
 
-										toast.success(`选股结束日期已设置为最新的一天`)
+										toast.success("选股结束日期已设置为最新的一天")
 									}}
 								>
 									设为今天
@@ -306,7 +306,7 @@ export function BacktestSettings() {
 							<div className="flex gap-2">
 								<div className="flex items-center gap-1">
 									<Checkbox
-										checked={realMarketConfig.filter_kcb == "1"}
+										checked={realMarketConfig.filter_kcb === "1"}
 										onCheckedChange={(checked) => {
 											const formattedValues = {
 												...realMarketConfig,
@@ -327,7 +327,7 @@ export function BacktestSettings() {
 								</div>
 								<div className="flex items-center gap-1">
 									<Checkbox
-										checked={realMarketConfig.filter_cyb == "1"}
+										checked={realMarketConfig.filter_cyb === "1"}
 										onCheckedChange={(checked) => {
 											const formattedValues = {
 												...realMarketConfig,
@@ -347,7 +347,7 @@ export function BacktestSettings() {
 								</div>
 								<div className="flex items-center gap-1">
 									<Checkbox
-										checked={realMarketConfig.filter_bj == "1"}
+										checked={realMarketConfig.filter_bj === "1"}
 										onCheckedChange={(checked) => {
 											const formattedValues = {
 												...realMarketConfig,

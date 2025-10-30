@@ -16,7 +16,7 @@ import {
 	usePositionStockInfoColumns,
 	usePositionStrategyInfoColumns,
 } from "@/renderer/page/position/columns"
-import {
+import type {
 	PositionStockInfoType,
 	PositionStrategyInfoType,
 } from "@/renderer/page/position/types"

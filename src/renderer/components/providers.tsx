@@ -11,7 +11,7 @@
 import { TooltipProvider } from "@/renderer/components/ui/tooltip"
 import { Provider as JotaiProvider } from "jotai"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
-import { ThemeProviderProps } from "next-themes/dist/types"
+import type { ThemeProviderProps } from "next-themes"
 
 export function ThemesProvider({ children, ...props }: ThemeProviderProps) {
 	return (

@@ -25,23 +25,23 @@ export function SelfStarting() {
 				<Bot size={26} />
 				<H3>开机自启动设置</H3>
 			</div>
-			<div className="flex flex-col xl:flex-row xl:justify-between xl:items-center justify-start items-start space-y-2">
+			<div className="flex flex-col xl:flex-row xl:justify-between xl:items-center justify-start items-start space-y-2 pb-2">
 				<div
-					className="flex items-center"
+					className="flex items-center cursor-pointer"
 					onClick={() => navigate(SETTINGS_PAGE)}
 				>
 					<div>开机自动打开客户端：</div>
 					<div>{isAutoLogin ? "✅" : "🈚️"}</div>
 				</div>
 				<div
-					className="flex items-center"
+					className="flex items-center cursor-pointer"
 					onClick={() => navigate(SETTINGS_PAGE)}
 				>
 					<div>开机启动自动更新数据：</div>
 					<div>{settings.is_auto_launch_update ? "✅" : "🈚️"}</div>
 				</div>
 				<div
-					className="flex items-center"
+					className="flex items-center cursor-pointer"
 					onClick={() => navigate(SETTINGS_PAGE)}
 				>
 					<div>开机启动自动实盘：</div>

@@ -21,7 +21,7 @@ const RouteChangeListener = () => {
 	const location = useLocation()
 	const [{ isLoggedIn }, setUser] = useAtom(userAtom)
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: 需要在路由变化时触发用户信息更新
+	//  需要在路由变化时触发用户信息更新
 	useEffect(() => {
 		// 如果用户未登录，不执行更新逻辑
 		if (!isLoggedIn) {

@@ -19,7 +19,6 @@ import {
 	useBacktestResult,
 	useRealResult,
 } from "@/renderer/page/backtest/context"
-
 import { csvFileNameAtom } from "@/renderer/store"
 import { backtestExecTimeAtom } from "@/renderer/store/backtest"
 import type { LatestResultType, RunResultType } from "@/renderer/types/backtest"

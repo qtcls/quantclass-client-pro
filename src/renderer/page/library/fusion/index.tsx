@@ -7,29 +7,27 @@
  * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
-
+import { ChangeLibrary } from "@/renderer/components/change-library"
 import { Badge } from "@/renderer/components/ui/badge"
+import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { DataTable } from "@/renderer/components/ui/data-table"
-import { Separator } from "@/renderer/components/ui/separator"
-import ImportStrategyButton from "@/renderer/page/library/fusion/import-btn"
-
-import { useFusionManager } from "@/renderer/hooks/useFusionManager"
-import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
-import { cn } from "@/renderer/lib/utils"
-import { SelectStgType, StgGroupType } from "@/renderer/types/strategy"
-import { NumberInput } from "@heroui/number-input"
-import { Plus, Trash2 } from "lucide-react"
-import { useState } from "react"
-import { toast } from "sonner"
-import { RatioIntro } from "../../FAQ/ratioIntro"
-import { Button } from "@/renderer/components/ui/button"
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@/renderer/components/ui/popover"
-import { ChangeLibrary } from "@/renderer/components/change-library"
+import { Separator } from "@/renderer/components/ui/separator"
+import { useFusionManager } from "@/renderer/hooks/useFusionManager"
+import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
+import { cn } from "@/renderer/lib/utils"
+import ImportStrategyButton from "@/renderer/page/library/fusion/import-btn"
+import type { SelectStgType, StgGroupType } from "@/renderer/types/strategy"
+import { NumberInput } from "@heroui/number-input"
+import { Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { RatioIntro } from "../../FAQ/ratioIntro"
 
 // 独立的策略表格组件
 interface StrategyTableProps {
@@ -324,7 +322,7 @@ const FusionStrategyLibrary = () => {
 							</div>
 						)
 						break
-					case "pos":
+					case "pos": {
 						const { strategy_pool } = strategyGroup
 						const isList = strategy_pool.some(
 							(v: SelectStgType | StgGroupType) => v.type === "group",
@@ -384,7 +382,7 @@ const FusionStrategyLibrary = () => {
 							</div>
 						)
 						break
-
+					}
 					default:
 						renderContent = () => (
 							<div className="space-y-2">
@@ -420,7 +418,7 @@ const FusionStrategyLibrary = () => {
 			})}
 			<hr />
 			<RatioIntro />
-			<div className="h-5"></div>
+			<div className="h-5" />
 		</div>
 	)
 }

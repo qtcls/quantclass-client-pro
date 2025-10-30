@@ -20,8 +20,10 @@ import {
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { Eraser } from "lucide-react"
-import { ReactNode, useState } from "react"
-import { ErrorBoundary, FallbackProps } from "react-error-boundary"
+import type { ReactNode } from "react"
+import { useState } from "react"
+import type { FallbackProps } from "react-error-boundary"
+import { ErrorBoundary } from "react-error-boundary"
 import { toast } from "sonner"
 
 const { openUrl } = window.electronAPI
@@ -76,7 +78,7 @@ const ErrorFallback = ({ error }: FallbackProps): JSX.Element => {
 				className="ml-2"
 				onClick={() =>
 					navigator.clipboard.writeText(
-						"```\n" + error.message + "\n" + error.stack + "\n```",
+						`\`\`\`\n${error.message}\n${error.stack}\n\`\`\``,
 					)
 				}
 			>
@@ -105,7 +107,7 @@ const ErrorFallback = ({ error }: FallbackProps): JSX.Element => {
 						<Button
 							onClick={() => {
 								clearAllData()
-								toast.success(`清除成功`)
+								toast.success("清除成功")
 							}}
 						>
 							确定

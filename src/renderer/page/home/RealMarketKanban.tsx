@@ -1,18 +1,6 @@
-/**
- * quantclass-client
- * Copyright (c) 2025 量化小讲堂
- *
- * Licensed under the Business Source License 1.1 (BUSL-1.1).
- * Additional Use Grant: None
- * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
- * See the LICENSE file and https://mariadb.com/bsl11/
- */
-
-import { FinPieChart } from "@/renderer/components/FinPieChart"
 import StatusTimeline from "@/renderer/components/StrategyStatusTimeLine"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
-import { Card, CardContent } from "@/renderer/components/ui/card"
 import {
 	Dialog,
 	DialogContent,

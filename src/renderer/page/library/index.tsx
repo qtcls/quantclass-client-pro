@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { ChangeLibrary } from "@/renderer/components/change-library"
 import { Button } from "@/renderer/components/ui/button"
 import { Input } from "@/renderer/components/ui/input"
 import { H2 } from "@/renderer/components/ui/typography"
@@ -18,7 +19,6 @@ import { useAtom } from "jotai"
 import { Edit } from "lucide-react"
 import { useRef, useState } from "react"
 import { RatioIntro } from "../FAQ/ratioIntro"
-import { ChangeLibrary } from "@/renderer/components/change-library"
 
 export default function StrategyLibrary() {
 	const { setStoreValue } = window.electronAPI

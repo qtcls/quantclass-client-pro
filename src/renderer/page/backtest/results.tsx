@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import StrategyStatusTimeline from "@/renderer/components/StrategyStatusTimeLine"
 import { Button } from "@/renderer/components/ui/button"
 import { DataTable } from "@/renderer/components/ui/data-table"
 import { DataTableColumnHeader } from "@/renderer/components/ui/data-table-column-heder"
@@ -18,16 +19,16 @@ import {
 	useBacktestResult,
 	useRealResult,
 } from "@/renderer/page/backtest/context"
-import { DataTableActionOptionsProps } from "@/renderer/page/data/table/options"
+
 import { csvFileNameAtom } from "@/renderer/store"
 import { backtestExecTimeAtom } from "@/renderer/store/backtest"
-import { LatestResultType, RunResultType } from "@/renderer/types/backtest"
+import type { LatestResultType, RunResultType } from "@/renderer/types/backtest"
 import {
 	openBacktestResultFolder,
 	openRealResultFolder,
 } from "@/renderer/utils"
 import { Tab, Tabs } from "@heroui/tabs"
-import { ColumnDef } from "@tanstack/react-table"
+import type { ColumnDef } from "@tanstack/react-table"
 import { useAtom, useAtomValue } from "jotai"
 import { FolderOpenIcon, Loader2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -51,26 +52,40 @@ export function RunResultTable({ mode }: ResultTableProps) {
 		if (mode === "backtest") {
 			execTime.startTime !== "--:--:--" && refresh()
 		} else {
-			// 实盘模式的刷新逻辑
 			refresh()
-		}
-
-		return () => {
-			setCsvFileName("最新选股结果")
 		}
 	}, [refresh, setCsvFileName, mode, execTime.startTime])
 
+	useEffect(() => {
+		setCsvFileName(mode === "backtest" ? "最新选股结果" : "策略运行状态时间线")
+	}, [mode, setCsvFileName])
+
 	return (
-		<DataTable<RunResultType, unknown>
-			fixedWidth={csvFileName === "最新选股结果"}
-			titlePosition="top"
-			columns={columns}
-			data={data?.data ?? []}
-			enableVirtualization={csvFileName === "选股结果"}
-			loading={loading}
-			pagination={false}
-			actionOptions={(props) => <ToolBar mode={mode} {...props} />}
-		/>
+		<div className="flex flex-col">
+			{csvFileName === "策略运行状态时间线" ? (
+				<>
+					<ToolBar mode={mode} />
+					<div className="mt-2">
+						<StrategyStatusTimeline />
+					</div>
+				</>
+			) : (
+				<DataTable<RunResultType, unknown>
+					fixedWidth={csvFileName === "最新选股结果"}
+					titlePosition="top"
+					columns={columns}
+					data={data?.data ?? []}
+					enableVirtualization={csvFileName === "选股结果"}
+					loading={loading}
+					pagination={false}
+					actionOptions={(props) => (
+						<DataTableToolbar {...props} enableSearch={false}>
+							<ToolBar mode={mode} />
+						</DataTableToolbar>
+					)}
+				/>
+			)}
+		</div>
 	)
 }
 
@@ -350,11 +365,8 @@ export const useColumns = (
 	return columns as ColumnDef<RunResultType>[]
 }
 
-// 修改 ToolBar 组件以支持不同模式
-function ToolBar<T>({
-	mode,
-	...props
-}: DataTableActionOptionsProps<T> & { mode: "backtest" | "real" }) {
+// Tabs 导航组件
+function ToolBar({ mode }: { mode: "backtest" | "real" }) {
 	const [pending, setPending] = useState(false)
 	const [csvFileName, setCsvFileName] = useAtom(csvFileNameAtom)
 	const testTime = useAtomValue(backtestExecTimeAtom)
@@ -362,52 +374,56 @@ function ToolBar<T>({
 		mode === "backtest" ? useBacktestResult() : useRealResult()
 
 	return (
-		<DataTableToolbar {...props} enableSearch={false}>
-			<div className="w-full flex items-center gap-3">
-				<Tabs
-					size="sm"
-					radius="sm"
-					aria-label="Tabs colors"
-					selectedKey={csvFileName}
-					onSelectionChange={(key) => {
-						if (csvFileName === key) return
-						setCsvFileName(key as string)
-						if (mode === "backtest" && testTime.startTime === "--:--:--") {
-							resetData()
-							return
-						}
-						setTimeout(() => {
-							refresh()
-						}, 100)
-					}}
-				>
-					<Tab key="最新选股结果" title="最新选股结果" />
-					<Tab key="选股结果" title="历史选股结果" />
-				</Tabs>
+		<div className="w-full flex items-center gap-3">
+			<Tabs
+				size="sm"
+				radius="sm"
+				aria-label="结果展示"
+				selectedKey={csvFileName}
+				onSelectionChange={(key) => {
+					if (csvFileName === key) return
+					setCsvFileName(key as string)
+					if (mode === "backtest" && testTime.startTime === "--:--:--") {
+						resetData()
+						return
+					}
+					setTimeout(() => {
+						refresh()
+					}, 100)
+				}}
+			>
+				{mode === "real" ? (
+					<Tab key="策略运行状态时间线" title="策略运行状态时间线" />
+				) : (
+					<></>
+				)}
+				<Tab key="最新选股结果" title="最新选股结果" />
 
-				<Button
-					size="sm"
-					variant="outline"
-					className="gap-1"
-					disabled={pending}
-					onClick={async () => {
-						setPending(true)
-						mode === "backtest"
-							? openBacktestResultFolder()
-							: openRealResultFolder()
-						setTimeout(() => {
-							setPending(false)
-						}, 750)
-					}}
-				>
-					{pending ? (
-						<Loader2 size={16} className="animate-spin" />
-					) : (
-						<FolderOpenIcon size={16} />
-					)}
-					打开策略结果文件夹
-				</Button>
-			</div>
-		</DataTableToolbar>
+				<Tab key="选股结果" title="历史选股结果" />
+			</Tabs>
+
+			<Button
+				size="sm"
+				variant="outline"
+				className="gap-1"
+				disabled={pending}
+				onClick={async () => {
+					setPending(true)
+					mode === "backtest"
+						? openBacktestResultFolder()
+						: openRealResultFolder()
+					setTimeout(() => {
+						setPending(false)
+					}, 750)
+				}}
+			>
+				{pending ? (
+					<Loader2 size={16} className="animate-spin" />
+				) : (
+					<FolderOpenIcon size={16} />
+				)}
+				打开策略结果文件夹
+			</Button>
+		</div>
 	)
 }

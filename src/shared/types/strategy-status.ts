@@ -29,6 +29,13 @@ export enum StrategyStatusEnum {
 	PENDING = "pending", // 未到预期时间
 }
 
+export enum StrategyStatusLabelEnum {
+	completed = "已完成",
+	incomplete = "未完成",
+	in_progress = "进行中",
+	pending = "未到预期时间",
+}
+
 export interface StrategyStatusPlan {
 	time: Date | null | [Date, Date] // 单个时间或时间范围
 	timeDes: string

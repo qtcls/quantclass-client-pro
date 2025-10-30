@@ -9,6 +9,7 @@
  */
 
 import { FinPieChart } from "@/renderer/components/FinPieChart"
+import StatusTimeline from "@/renderer/components/StrategyStatusTimeLine"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { Card, CardContent } from "@/renderer/components/ui/card"
@@ -202,9 +203,9 @@ export const RealMarketKanban = () => {
 					</div>
 				</div>
 
-				<div className="flex items-center gap-2"></div>
+				{/* <div className="flex items-center gap-2"></div> */}
 
-				{libraryType !== "pos" && (
+				{/* {libraryType !== "pos" && (
 					<Card className="p-0">
 						<CardContent className="p-2">
 							<FinPieChart
@@ -214,7 +215,9 @@ export const RealMarketKanban = () => {
 							/>
 						</CardContent>
 					</Card>
-				)}
+				)} */}
+
+				<StatusTimeline />
 				<div className="space-y-1">
 					<BuyBlacklist />
 				</div>

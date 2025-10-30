@@ -59,12 +59,12 @@ const Home: FC = () => {
 	return (
 		<div className="h-full flex py-3 gap-4">
 			{/* <div className={cn("grid gap-4 grid-cols-[1fr_2px_1fr]")}> */}
-			<div className="space-y-4 max-w-md min-w-[350px]">
+			<div className="space-y-4 max-w-md min-w-[350px] flex-shrink-0">
 				<DataKanban />
 				<Separator />
 				<ProcessKanban />
 			</div>
-			<div className="w-full space-y-4">
+			<div className="flex-1 min-w-0 space-y-4">
 				<RealMarketKanban />
 				<Separator />
 				<ScheduleControl />

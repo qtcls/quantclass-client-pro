@@ -42,9 +42,11 @@ export interface StrategyStatusPlan {
 }
 
 export interface StrategyStatusStat {
-	time: Date | null | [Date, Date] // 单个时间或时间范围，与 plan 保持一致
+	tag: StrategyStatusTag
+	time: Date | null | [Date, Date]
 	timeDes: string
 	messages: string[]
+	batchId?: string
 }
 
 export interface StrategyStatus {

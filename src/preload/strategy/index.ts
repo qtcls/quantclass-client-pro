@@ -12,5 +12,6 @@ import { ipcRenderer } from "electron"
 
 export const strategyIPC = {
 	// 策略状态可视化
-	getStrategyStatus: () => ipcRenderer.invoke("get-strategy-status"),
+	getStrategyStatus: (date: string) =>
+		ipcRenderer.invoke("get-strategy-status", date),
 }

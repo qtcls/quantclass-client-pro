@@ -10,21 +10,38 @@
 
 import type { StrategyStatus } from "@/shared/types/strategy-status"
 import { atomWithQuery } from "jotai-tanstack-query"
+import { atomWithStorage } from "jotai/utils"
 
 const { getStrategyStatus } = window.electronAPI
 
 /**
- * 策略状态列表 Atom
- * 使用 TanStack Query 管理
+ * 选择的日期 Atom
  */
-export const strategyStatusAtom = atomWithQuery<StrategyStatus[][]>(() => ({
-	queryKey: ["strategy-status"],
-	queryFn: async () => {
-		const result = await getStrategyStatus()
-		if (result.status === "success") {
-			return result.data || []
-		}
-		throw new Error(result.message || "获取策略状态失败")
-	},
-	refetchInterval: 60000, // 每分钟刷新一次
-}))
+export const selectedDateAtom = atomWithStorage<string>(
+	"strategy-status-date",
+	"",
+	undefined,
+	{ getOnInit: true },
+)
+
+/**
+ * 策略状态列表 Atom
+ */
+export const strategyStatusAtom = atomWithQuery<StrategyStatus[][]>((get) => {
+	const selectedDate = get(selectedDateAtom)
+
+	const date = selectedDate || new Date().toISOString().split("T")[0]
+
+	return {
+		queryKey: ["strategy-status", date],
+		queryFn: async () => {
+			const result = await getStrategyStatus(date)
+			if (result.status === "success") {
+				return result.data || []
+			}
+			throw new Error(result.message || "获取策略状态失败")
+		},
+		refetchInterval: 60000, // 每分钟刷新一次
+		refetchOnMount: "always",
+	}
+})

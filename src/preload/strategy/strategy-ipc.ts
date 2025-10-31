@@ -13,10 +13,10 @@ import logger from "@/main/utils/wiston.js"
 import { ipcMain } from "electron"
 
 async function handleGetStrategyStatus() {
-	ipcMain.handle("get-strategy-status", async () => {
+	ipcMain.handle("get-strategy-status", async (_event, date: string) => {
 		try {
-			logger.info("[ipc] get-strategy-status")
-			const statusList = await getStrategyStatusList()
+			logger.info(`[ipc] get-strategy-status for date: ${date}`)
+			const statusList = await getStrategyStatusList(date)
 			return {
 				status: "success",
 				data: statusList,

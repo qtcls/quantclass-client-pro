@@ -113,9 +113,14 @@ function getStrategyTiming(strategy: any): {
 /**
  * 将时间字符串转换为Date对象
  * @param timeStr 时间字符串，如 "0945" (HHMM) 或 "094530" (HHMMSS)
- * @param dayOffset 天数偏移，0为今天，-1为昨天，1为明天
+ * @param date 日期字符串，格式为 YYYY-MM-DD
+ * @param dayOffset 天数偏移，0为当天，-1为前一天，1为后一天
  */
-function parseTimeToDate(timeStr: string, dayOffset = 0): Date | null {
+function parseTimeToDate(
+	timeStr: string,
+	date: string,
+	dayOffset = 0,
+): Date | null {
 	if (!timeStr) {
 		return null
 	}
@@ -137,17 +142,17 @@ function parseTimeToDate(timeStr: string, dayOffset = 0): Date | null {
 		return null
 	}
 
-	const now = new Date()
-	const date = new Date(
-		now.getFullYear(),
-		now.getMonth(),
-		now.getDate() + dayOffset,
+	const base = new Date(date)
+	const result = new Date(
+		base.getFullYear(),
+		base.getMonth(),
+		base.getDate() + dayOffset,
 		hour,
 		minute,
 		second,
 	)
 
-	return date
+	return result
 }
 
 /**
@@ -217,11 +222,11 @@ async function generateSingleStrategyStatus(
 	date: string,
 ): Promise<StrategyStatus[]> {
 	const fuelStats = await readStatsFromJson(date)
-	const qmtDataTime = parseTimeToDate(latestTiming)
+	const qmtDataTime = parseTimeToDate(latestTiming, date)
 	const qmtDataTimeDes = formatTimeDescription(latestTiming)
 
 	// 从卖出时间推算交易计划生成时间（卖出前2分钟）
-	const sellTime = parseTimeToDate(sellTimeStr.replace(/:/g, ""))
+	const sellTime = parseTimeToDate(sellTimeStr.replace(/:/g, ""), date)
 	const tradingPlanTime = sellTime
 		? new Date(sellTime.getTime() - 2 * 60 * 1000)
 		: null
@@ -231,21 +236,21 @@ async function generateSingleStrategyStatus(
 		qmtDataTime && tradingPlanTime ? [qmtDataTime, tradingPlanTime] : null
 
 	// 前一天的时间（股市收盘、数据更新、选股生成都是前一天的事）
-	const marketCloseTime = parseTimeToDate("1500", -1)
+	const marketCloseTime = parseTimeToDate("1500", date, -1)
 	const dataUpdateTimeRange: [Date, Date] = [
-		parseTimeToDate("1600", -1)!,
-		parseTimeToDate("2200", -1)!,
+		parseTimeToDate("1600", date, -1)!,
+		parseTimeToDate("2200", date, -1)!,
 	]
-	const selectStockTime = parseTimeToDate("0000") // 当天0点（实际是前一天晚上的事件完成后）
+	const selectStockTime = parseTimeToDate("0000", date) // 当天0点（实际是前一天晚上的事件完成后）
 
 	// 当天的时间
-	const rocketInitTime = parseTimeToDate("0900")
+	const rocketInitTime = parseTimeToDate("0900", date)
 	const preSellTimeRange: [Date, Date] = [
-		parseTimeToDate("0915")!,
-		parseTimeToDate("0930")!,
+		parseTimeToDate("0915", date)!,
+		parseTimeToDate("0930", date)!,
 	]
 
-	const buyTime = parseTimeToDate(buyTimeStr.replace(/:/g, ""))
+	const buyTime = parseTimeToDate(buyTimeStr.replace(/:/g, ""), date)
 
 	const findStatsByTag = (tag: string) => {
 		return fuelStats.filter((stat) => stat.tag === tag)

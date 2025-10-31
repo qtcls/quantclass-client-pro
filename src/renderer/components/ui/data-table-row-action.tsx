@@ -24,15 +24,15 @@ import { useMutation } from "@tanstack/react-query"
 import { Row } from "@tanstack/react-table"
 import { useAtom, useAtomValue } from "jotai"
 import {
+	AlertCircle,
+	Box,
 	DownloadCloud,
 	FileSliders,
 	ListPlus,
-	AlertCircle,
-	Trash2,
-	Box,
 	RefreshCcwDot,
+	Trash2,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import ButtonTooltip from "./button-tooltip"
 
@@ -46,6 +46,8 @@ const {
 	fetchFuelStatus,
 	loadProductStatus,
 	minimizeApp,
+	onDownloadProgress,
+	removeDownloadProgressListener,
 } = window.electronAPI
 
 interface DataTableRowActionsProps<TData> {
@@ -73,6 +75,7 @@ export function DataTableRowActions<TData>({
 	const { open: openAlert } = useAlertDialog()
 	const { settings, updateSettings } = useSettings()
 	const { removeDataSubscribed } = useDataSubscribed()
+	const [downloadProgress, setDownloadProgress] = useState("")
 
 	// -- Mutations Start
 	const { mutateAsync: updateFullDataAsync, isPending: stepThreeLoading } =
@@ -97,6 +100,32 @@ export function DataTableRowActions<TData>({
 			mutationFn: async (product_name: string) =>
 				await handleExecDownloadZip(product_name),
 		})
+
+	// 监听下载进度
+	useEffect(() => {
+		onDownloadProgress((progress) => {
+			const { product_name, percent, transferred, total, bytesPerSecond } =
+				progress
+			const formattedSpeed =
+				percent >= 100
+					? "已完成"
+					: bytesPerSecond > 0
+						? `${(bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`
+						: "计算中..."
+			const formattedTransferred = `${(transferred / 1024 / 1024).toFixed(
+				2,
+			)} MB`
+			const formattedTotal =
+				total > 0 ? `${(total / 1024 / 1024).toFixed(2)} MB` : "未知大小"
+			const msg = `[下载进度] ${product_name}: ${percent.toFixed(2)}% (${formattedTransferred} / ${formattedTotal}) - ${formattedSpeed}`
+			setDownloadProgress(msg)
+			console.log(msg)
+		})
+
+		return () => {
+			removeDownloadProgressListener()
+		}
+	}, [])
 
 	const { mutateAsync: preprocessData, isPending: preprocessDataLoading } =
 		useMutation({
@@ -359,7 +388,6 @@ export function DataTableRowActions<TData>({
 						<RefreshCcwDot size={14} />
 					</Button>
 				</ButtonTooltip>
-
 				<ButtonTooltip content="取消订阅" delayDuration={0}>
 					<Button
 						variant="outline"
@@ -401,208 +429,6 @@ export function DataTableRowActions<TData>({
 					</Button>
 				</ButtonTooltip>
 			</div>
-			{/* <DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button
-						variant="ghost"
-						className="flex h-8 w-8 p-0 text-muted-foreground data-[state=open]:bg-muted"
-					>
-						<DotsHorizontalIcon className="h-4 w-4" />
-						<span className="sr-only">Open menu</span>
-					</Button>
-				</DropdownMenuTrigger>
-
-				<DropdownMenuContent align="end" className="w-[160px]">
-					<DropdownMenuItem
-						// disabled={task.isAutoUpdate === 0}
-						disabled={isUpdating}
-						className="hover:cursor-pointer"
-						onClick={async () => {
-							try {
-								const fuelStatus = await fetchFuelStatus()
-								if (fuelStatus) {
-									toast.info("已在自动更新，请稍候...")
-									return
-								}
-
-								// -- 如果正在自动更新，先暂停
-								const needResume = isUpdating
-								const needResumeRealTrading = isAutoRocket
-								if (needResume) {
-									await handleTimeTask(true)
-								}
-
-								if (task.name === "coin-binance-spot-swap-preprocess-pkl-1h") {
-									await preprocessData()
-									await refresh()
-
-									// -- 如果之前在自动更新，恢复自动更新
-									if (needResume) {
-										await handleTimeTask(false)
-									}
-
-									if (needResumeRealTrading) {
-										await handleToggleAutoRocket(true)
-									}
-
-									return
-								}
-
-								await fetchFullDataLink({
-									name: task.name,
-									fullData: task.fullData,
-								})
-								const r = await loadProductStatus()
-
-								const currentTimestamp = Date.now() / 1000
-								const expirationTimestamp =
-									r?.[task.name]?.fullDataDownloadExpires ?? 0
-
-								setL(true)
-
-								if (
-									!expirationTimestamp ||
-									currentTimestamp > expirationTimestamp
-								) {
-									toast.error("下载链接已过期，请到网站续费该数据次数", {
-										action: {
-											label: "打开网站",
-											onClick: () => {
-												if (task.fullData !== undefined) {
-													openUrl(
-														`${VITE_BASE_URL}/api/product/data-route/${task.fullData}`,
-													)
-
-													return
-												}
-												let url = `${VITE_BASE_URL}/api/product/data-route/${task.name}`
-
-												if (url.endsWith("-daily")) {
-													url = url.replace("-daily", "")
-												}
-
-												openUrl(url)
-											},
-										},
-									})
-
-									return
-								}
-
-								setStep(1)
-
-								await execDownloadZip(task.name)
-								setStep(2)
-
-								const res = await updateFullDataAsync(task.name)
-
-								if (res.status === "success") {
-									setStep((p) => p + 1)
-									toast.success("全量更新成功")
-									setStep(0)
-									await refresh()
-								}
-
-								// -- 如果之前在自动更新，恢复自动更新
-								if (needResume) {
-									await handleTimeTask(false)
-								}
-
-								if (needResumeRealTrading) {
-									await handleToggleAutoRocket(true)
-								}
-							} catch (e) {
-								toast.error("全量更新失败，请提交日志给助教了解详细信息")
-							}
-						}}
-					>
-						<ListRestart size={14} /> 全量更新
-					</DropdownMenuItem>
-
-					<DropdownMenuItem
-						disabled={
-							task.canAutoUpdate !== 1 ||
-							isUpdating ||
-							task.name === "coin-binance-spot-swap-preprocess-pkl-1h"
-						}
-						className="hover:cursor-pointer"
-						onClick={async () => {
-							const fuelStatus = await fetchFuelStatus()
-							if (fuelStatus) {
-								toast.info("正在自动更新，请稍候...")
-								return
-							}
-
-							const needResume = isUpdating
-
-							await createTerminalWindow()
-							if (needResume) {
-								await handleTimeTask(true)
-							}
-							await updateOneProduct(task.name)
-							await refresh()
-							if (needResume) {
-								await handleTimeTask(false)
-							}
-							await minimizeApp("terminal")
-						}}
-					>
-						<ListPlus size={14} /> 增量更新
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						className="hover:cursor-pointer text-destructive focus:text-destructive"
-						onClick={() => {
-							openAlert({
-								title: "确认取消订阅？",
-								content: (
-									<div className="leading-relaxed">
-										<span>
-											{`将取消订阅「${task.displayName ?? task.name}」的数据。`}
-										</span>
-										<br />
-										<span className="text-destructive font-semibold">
-											⚠️ 此操作不可撤销。
-										</span>
-									</div>
-								),
-								okText: "确认取消",
-								onOk: async () => {
-									try {
-										updateSettings({
-											data_white_list: settings.data_white_list.filter(
-												(key) => key !== task.name,
-											),
-										})
-										removeDataSubscribed(task)
-										toast.success("已取消订阅")
-										await refresh()
-									} catch (e) {
-										toast.error("取消订阅失败")
-									}
-								},
-							})
-						}}
-					>
-						<X size={14} /> 取消订阅
-					</DropdownMenuItem>
-
-					<hr className="my-1" />
-					{isUpdating && (
-						<DropdownMenuItem className="hover:cursor-pointer text-xs">
-							<Loader2 size={12} className="animate-spin text-success" />
-							数据自动同步中
-						</DropdownMenuItem>
-					)}
-					<DropdownMenuItem
-						className="hover:cursor-pointer text-xs"
-						disabled={!isUpdating}
-					>
-						客户端检查更新时间
-						{(row.original as IDataListType)?.lastUpdateTime ?? "--:--:--"}
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu> */}
-
 			<MultiStepLoader
 				task={task}
 				loading={l}
@@ -610,6 +436,7 @@ export function DataTableRowActions<TData>({
 				loadingStates={loadingStates}
 				setCurrentState={setStep}
 				stepOneLoading={stepOneLoading}
+				downloadProgress={downloadProgress}
 			/>
 
 			{/* {l && (

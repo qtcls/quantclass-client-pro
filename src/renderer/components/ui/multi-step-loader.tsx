@@ -150,6 +150,7 @@ export const MultiStepLoader = ({
 	loadingStates,
 	currentState,
 	setCurrentState,
+	downloadProgress,
 }: {
 	task: IDataListType
 	loading?: boolean
@@ -157,6 +158,7 @@ export const MultiStepLoader = ({
 	loadingStates: LoadingState[]
 	currentState: number
 	setCurrentState?: Dispatch<SetStateAction<number>>
+	downloadProgress?: string
 }) => {
 	const isAnyLoading = loadingStates.some((state) => state.loading)
 
@@ -173,11 +175,14 @@ export const MultiStepLoader = ({
 					exit={{
 						opacity: 0,
 					}}
-					className="fixed inset-0 z-[100] top-10 flex h-[calc(100%-2.5rem)] w-full flex-col items-center justify-center backdrop-blur-2xl"
+					className="fixed inset-0 z-[100] top-10 flex h-[calc(100%-2.5rem)] w-full flex-col items-center justify-center backdrop-blur-2xl bg-background"
 				>
 					<div className="relative top-0 flex flex-col items-center justify-center gap-1.5">
 						<div className="text-xl text-foreground">{task.displayName}</div>
 						<div className="text-lg text-muted-foreground">{task.name}</div>
+						<div className="text-sm text-muted-foreground">
+							{downloadProgress}
+						</div>
 					</div>
 
 					<div className="relative h-80">

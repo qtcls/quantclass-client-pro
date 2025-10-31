@@ -31,5 +31,5 @@ export type {
 	StrategyStatusTag,
 	StrategyStatusPlan,
 	StrategyStatusStat,
-} from "@/main/core/strategy.js"
-export { StrategyStatusEnum } from "@/main/core/strategy.js"
+} from "@/main/core/strategy/index.js"
+export { StrategyStatusEnum } from "@/main/core/strategy/index.js"

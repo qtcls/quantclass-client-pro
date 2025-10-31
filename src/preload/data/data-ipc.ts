@@ -21,7 +21,7 @@ import {
 	updateFullProducts,
 	updateProduct,
 } from "@/main/core/product.js"
-import { updateStrategies } from "@/main/core/strategy.js"
+import { updateStrategies } from "@/main/core/strategy/index.js"
 import { execBin } from "@/main/lib/process.js"
 import { isKernalRunning } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"

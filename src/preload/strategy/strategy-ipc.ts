@@ -8,7 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { getStrategyStatusList } from "@/main/core/strategy.js"
+import { getStrategyStatusList } from "@/main/core/strategy/index.js"
 import logger from "@/main/utils/wiston.js"
 import { ipcMain } from "electron"
 

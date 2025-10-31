@@ -8,31 +8,18 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-// import { checkFuelExist } from "@/main/core/runpy.js"
 import { getJsonDataFromFile } from "@/main/core/dataList.js"
-import { execBin } from "@/main/lib/process.js"
 import store, { rStore } from "@/main/store/index.js"
-import { isKernalBusy } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import type {
 	StrategyStatus,
 	StrategyStatusStat,
 } from "@/shared/types/strategy-status.js"
 import { StrategyStatusEnum } from "@/shared/types/strategy-status.js"
-
 import { sortBy } from "lodash-es"
 
-export type {
-	StrategyStatusTag,
-	StrategyStatusPlan,
-	StrategyStatusStat,
-} from "@/shared/types/strategy-status.js"
-export type { StrategyStatus } from "@/shared/types/strategy-status.js"
-export { StrategyStatusEnum } from "@/shared/types/strategy-status.js"
-
-export async function readStatsFromJson(
-	date: string,
-): Promise<StrategyStatusStat[]> {
+// 从 JSON 文件读取 stats 数据
+async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
 	try {
 		const fileName = `fuel-stats-${date}.json`
 		const filePath = ["code", "data", fileName]
@@ -71,7 +58,7 @@ export async function readStatsFromJson(
 	}
 }
 
-// 返回timing和override的最晚时间
+// 获取策略的 timing 和 override 最晚时间
 function getStrategyTiming(strategy: any): {
 	latestTime: string
 	hasTimingOrOverride: boolean
@@ -155,9 +142,7 @@ function parseTimeToDate(
 	return result
 }
 
-/**
- * 将时间字符串（如"0945"）转换为描述（如"09:45"）
- */
+// 将时间字符串（如"0945"）转换为描述（如"09:45"）
 function formatTimeDescription(timeStr: string): string {
 	if (!/^\d{4}$/.test(timeStr)) {
 		return timeStr
@@ -527,32 +512,5 @@ export async function getStrategyStatusList(
 	} catch (error) {
 		logger.error(`[strategy-status] 生成策略状态列表失败: ${error}`)
 		return []
-	}
-}
-
-// 增量更新和定时增量更新
-export async function updateStrategies(strategy?: string, manual = "manual") {
-	try {
-		logger.info(`check pycore exist before update ${strategy}`)
-		// await checkFuelExist()
-		logger.info(`manually update ${strategy}`)
-
-		const isFuelBusy = await isKernalBusy("fuel")
-
-		!isFuelBusy && strategy
-			? await execBin(["one_strategy", strategy], `更新策略-${strategy}`)
-			: await execBin(["all_strategy", manual], "更新全部策略")
-
-		return {
-			status: "success",
-			message: `执行 ${strategy ?? "全部"} 策略数据增量更新`,
-		}
-	} catch (error) {
-		logger.error(error)
-	}
-
-	return {
-		status: "error",
-		message: `执行 ${strategy ?? "全部"} 不成功`,
 	}
 }

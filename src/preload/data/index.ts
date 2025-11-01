@@ -75,4 +75,23 @@ export const dataIPC = {
 	// 导入功能
 	parseCsvFile: (csvfileName = "最新选股结果", mode = "backtest") =>
 		ipcRenderer.invoke("parse-csv-file", csvfileName, mode),
+
+	// 下载进度监听
+	onDownloadProgress: (
+		callback: (progress: {
+			product_name: string
+			transferred: number
+			total: number
+			percent: number
+			bytesPerSecond: number
+		}) => void,
+	) => {
+		ipcRenderer.on("download-progress", (_event, progress) => {
+			console.log("[下载进度]", progress)
+			callback(progress)
+		})
+	},
+	removeDownloadProgressListener: () => {
+		ipcRenderer.removeAllListeners("download-progress")
+	},
 }

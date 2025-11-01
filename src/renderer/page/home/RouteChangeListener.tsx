@@ -10,8 +10,10 @@
 
 import { userAtom } from "@/renderer/store/user"
 import { useAtom } from "jotai"
+import { RESET } from "jotai/utils"
 import { useEffect } from "react"
 import { useLocation } from "react-router"
+import { toast } from "sonner"
 
 const { rendererLog, getUserAccount } = window.electronAPI
 
@@ -31,6 +33,10 @@ const RouteChangeListener = () => {
 				if (userAccount) {
 					setUser(userAccount)
 					rendererLog("info", "[RouteChangeListener] 用户信息已更新")
+				} else {
+					setUser(RESET)
+					toast.dismiss()
+					toast.warning("账户信息异常，请重新登录")
 				}
 			})
 			.catch((error) => {

@@ -38,9 +38,22 @@ async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
 		}
 
 		const stats: StrategyStatusStat[] = data.stats.map((stat: any) => {
+			let time: Date | null | [Date, Date | null] = null
+			if (stat.time) {
+				if (Array.isArray(stat.time)) {
+					// 时间范围 [startTime, endTime]
+					const startTime = new Date(stat.time[0])
+					const endTime = stat.time[1] ? new Date(stat.time[1]) : null
+					time = [startTime, endTime]
+				} else {
+					// 单个时间
+					time = new Date(stat.time)
+				}
+			}
+
 			return {
 				tag: stat.tag || "",
-				time: stat.time ? new Date(stat.time) : null,
+				time,
 				timeDes: stat.timeDes || "",
 				messages: Array.isArray(stat.messages) ? stat.messages : [],
 				...(stat.batchId && { batchId: stat.batchId }),

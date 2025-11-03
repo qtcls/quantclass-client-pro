@@ -205,13 +205,19 @@ async function generateSingleStrategyStatus(
 	sellTimeStr: string,
 	buyTimeStr: string,
 	date: string,
+	isOvernightRebalance: boolean, // 是否隔日换仓
 ): Promise<StrategyStatus[]> {
 	const fuelStats = await readStatsFromJson(date)
 	const qmtDataTime = parseTimeToDate(latestTiming, date)
 	const qmtDataTimeDes = formatTimeDescription(latestTiming)
+	const sellDayOffset = isOvernightRebalance ? -1 : 0
 
 	// 从卖出时间推算交易计划生成时间（卖出前2分钟）
-	const sellTime = parseTimeToDate(sellTimeStr.replace(/:/g, ""), date)
+	const sellTime = parseTimeToDate(
+		sellTimeStr.replace(/:/g, ""),
+		date,
+		sellDayOffset,
+	)
 	const tradingPlanTime = sellTime
 		? new Date(sellTime.getTime() - 2 * 60 * 1000)
 		: null
@@ -340,7 +346,11 @@ async function generateSingleStrategyStatus(
 			),
 			plan: {
 				time: tradingPlanTime,
-				timeDes: tradingPlanTime ? `${sellTimeStr}前2分钟` : "卖出时间前2分钟",
+				timeDes: tradingPlanTime
+					? isOvernightRebalance
+						? `昨日 ${sellTimeStr}前2分钟`
+						: `${sellTimeStr}前2分钟`
+					: "卖出时间前2分钟",
 			},
 			stat: findLatestStatByTag("TRADING_PLAN"),
 			stats: findStatsByTag("TRADING_PLAN"),
@@ -353,7 +363,7 @@ async function generateSingleStrategyStatus(
 			status: determineStatus(sellTime, findLatestStatByTag("SELL")),
 			plan: {
 				time: sellTime,
-				timeDes: sellTimeStr,
+				timeDes: isOvernightRebalance ? `昨日 ${sellTimeStr}` : sellTimeStr,
 			},
 			stat: findLatestStatByTag("SELL"),
 			stats: findStatsByTag("SELL"),
@@ -489,8 +499,13 @@ export async function getStrategyStatusList(
 
 				const { latestTime, hasTimingOrOverride } = getStrategyTiming(strategy)
 
+				// rebalance_time 为 "close-open" 或不存在时，为隔日换仓，其他值则为当日换仓
+				const rebalanceTime = strategy.rebalance_time
+				const isOvernightRebalance =
+					!rebalanceTime || rebalanceTime === "close-open"
+
 				logger.info(
-					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}`,
+					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}`,
 				)
 
 				return await generateSingleStrategyStatus(
@@ -500,6 +515,7 @@ export async function getStrategyStatusList(
 					sellTimeStr,
 					buyTimeStr,
 					date,
+					isOvernightRebalance,
 				)
 			}),
 		)

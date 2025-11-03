@@ -9,6 +9,7 @@
  */
 
 import type { StrategyStatus } from "@/shared/types/strategy-status"
+import dayjs from "dayjs"
 import { atomWithQuery } from "jotai-tanstack-query"
 import { atomWithStorage } from "jotai/utils"
 
@@ -30,7 +31,7 @@ export const selectedDateAtom = atomWithStorage<string>(
 export const strategyStatusAtom = atomWithQuery<StrategyStatus[][]>((get) => {
 	const selectedDate = get(selectedDateAtom)
 
-	const date = selectedDate || new Date().toISOString().split("T")[0]
+	const date = selectedDate || dayjs(new Date()).format("YYYY-MM-DD")
 
 	return {
 		queryKey: ["strategy-status", date],

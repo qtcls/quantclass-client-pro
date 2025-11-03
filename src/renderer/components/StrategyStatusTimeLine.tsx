@@ -21,18 +21,28 @@ import { cn } from "@/renderer/lib/utils"
 import { ValueNoneIcon } from "@radix-ui/react-icons"
 import { CalendarClock, CheckCircle2, Clock, Loader2 } from "lucide-react"
 
-import { strategyStatusAtom } from "@/renderer/store/strategy-status"
+import { Button } from "@/renderer/components/ui/button"
+import DatePicker from "@/renderer/components/ui/date-picker"
+import {
+	selectedDateAtom,
+	strategyStatusAtom,
+} from "@/renderer/store/strategy-status"
 import type { StrategyStatus } from "@/shared/types/strategy-status"
 import {
 	StrategyStatusEnum,
 	StrategyStatusLabelEnum,
 } from "@/shared/types/strategy-status"
-import { format } from "date-fns"
-import { useAtomValue } from "jotai"
+import dayjs from "dayjs"
+import { useAtom, useAtomValue } from "jotai"
+
+import StrategyStatusDesDialog from "@/renderer/components/StrategyStatusDesDialog"
+import type { StrategyStatusDesDialogRef } from "@/renderer/components/StrategyStatusDesDialog"
+import { useRef, useState } from "react"
 
 interface StatusTimeLineItemProps {
 	statusItem: StrategyStatus
 	itemIndex: number
+	onOpenDialog?: (item: StrategyStatus) => void
 }
 
 const mockStrategyStatusData = {
@@ -40,7 +50,7 @@ const mockStrategyStatusData = {
 		[
 			{
 				strategyName: "趋势突破策略",
-				tag: "step-1",
+				tag: "DATA_UPDATE",
 				title: "数据加载",
 				description: "从数据库加载基础行情数据",
 				status: "completed",
@@ -55,6 +65,26 @@ const mockStrategyStatusData = {
 					time: new Date("2025-10-28T10:00:00"),
 					timeDes: "预计 10:00 启动数据加载",
 				},
+				stats: [
+					{
+						time: [
+							new Date("2025-10-28T10:20:00"),
+							new Date("2025-10-28T10:23:00"),
+						],
+						timeDes: "数据成功加载完成1",
+						message: ["数据1", "数据2"],
+						batchId: 2,
+					},
+					{
+						time: [
+							new Date("2025-10-28T10:25:00"),
+							new Date("2025-10-28T10:28:00"),
+						],
+						timeDes: "数据成功加载完成2",
+						message: ["数据1", "数据2"],
+						batchId: 3,
+					},
+				],
 			},
 			{
 				tag: "step-2",
@@ -174,143 +204,176 @@ const statusStyleMap = {
 		"bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-200 border-gray-200 dark:border-gray-700",
 }
 
-function StatusCard({ statusItem }: StatusTimeLineItemProps) {
-	const renderTimeDisplay = (time: Date | Date[] | null | undefined) => {
-		if (Array.isArray(time)) {
-			return (
-				<div className="flex gap-2">
-					<span>{format(time[0], "yyyy-MM-dd HH:mm:ss")}</span>
-					<span>至</span>
-					<span>{format(time[1], "yyyy-MM-dd HH:mm:ss")}</span>
-				</div>
-			)
-		}
-
-		if (time) {
-			return <span>{format(time, "yyyy-MM-dd HH:mm:ss")}</span>
-		}
-
-		return <span className="text-gray-400">--- ---</span>
+function renderTimeDisplay(time: Date | Date[] | null | undefined) {
+	if (Array.isArray(time)) {
+		return (
+			<div className="flex gap-2">
+				<span>{dayjs(time[0]).format("YYYY-MM-DD HH:mm:ss")}</span>
+				<span>至</span>
+				<span>{dayjs(time[1]).format("YYYY-MM-DD HH:mm:ss")}</span>
+			</div>
+		)
 	}
 
+	if (time) {
+		return <span>{dayjs(time).format("YYYY-MM-DD HH:mm:ss")}</span>
+	}
+
+	return <span className="text-gray-400">--- ---</span>
+}
+
+function StatusCard({
+	statusItem,
+	onOpenDialog,
+}: {
+	statusItem: StrategyStatus
+	onOpenDialog?: (item: StrategyStatus) => void
+}) {
+	const openDialog = () => {
+		onOpenDialog?.(statusItem)
+	}
 	return (
-		<Card className="h-[130px] min-w-[180px] max-w-[400px] text-sm shadow-sm">
-			<CardHeader className="px-3 pt-2 pb-1 border-b">
-				<CardTitle className="text-sm font-semibold flex justify-between items-center gap-2">
-					<span className="truncate max-w-[160px]" title={statusItem.title}>
-						{statusItem.title}
-					</span>
-					<Badge
-						variant="outline"
-						className={cn(
-							"text-xs px-2 py-0.5",
-							statusStyleMap[statusItem.status],
+		<>
+			<Card className="min-w-[180px] max-w-[400px] text-sm shadow-sm">
+				<CardHeader className="px-3 pt-2 pb-1 border-b">
+					<CardTitle className="text-sm font-semibold flex justify-between items-center gap-2">
+						<span className="truncate max-w-[160px]" title={statusItem.title}>
+							{statusItem.title}
+						</span>
+						<Badge
+							variant="outline"
+							className={cn(
+								"text-xs px-2 py-0.5",
+								statusStyleMap[statusItem.status],
+							)}
+						>
+							{StrategyStatusLabelEnum[statusItem.status]}
+						</Badge>
+					</CardTitle>
+				</CardHeader>
+
+				<CardContent className="px-3 py-2 text-xs text-muted-foreground flex flex-col gap-1.5">
+					{/* 描述 */}
+					{statusItem.description && (
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<div className="truncate text-xs text-muted-foreground cursor-default">
+										{statusItem.description}
+									</div>
+								</TooltipTrigger>
+								<TooltipContent side="bottom">
+									<p className="max-w-xs">{statusItem.description}</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					)}
+
+					{/* 未到预计时间 */}
+					{statusItem.status === StrategyStatusEnum.PENDING ? (
+						<div className="mt-1 space-y-1.5">
+							<div className="flex items-center group">
+								<div className="w-1 h-1 bg-muted-foreground rounded-full" />
+								<span className="ml-1.5">计划时间：</span>
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-neutral-800/80 px-2 py-1 rounded cursor-default">
+												{renderTimeDisplay(statusItem.plan.time)}
+											</div>
+										</TooltipTrigger>
+										{statusItem.plan.timeDes && (
+											<TooltipContent side="bottom">
+												<p>{statusItem.plan.timeDes}</p>
+											</TooltipContent>
+										)}
+									</Tooltip>
+								</TooltipProvider>
+							</div>
+						</div>
+					) : (
+						<div className="mt-1 space-y-1.5">
+							{/* 实际时间 */}
+							<div className="flex items-center group">
+								<div className="w-1 h-1 bg-gray-500 rounded-full" />
+								<span className="ml-1.5">实际时间：</span>
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-neutral-800/80 px-2 py-0.5 rounded cursor-default">
+												{renderTimeDisplay(statusItem.stat?.time)}
+											</div>
+										</TooltipTrigger>
+										{statusItem.stat?.timeDes && (
+											<TooltipContent>
+												<p>{statusItem.stat.timeDes}</p>
+											</TooltipContent>
+										)}
+									</Tooltip>
+								</TooltipProvider>
+							</div>
+
+							{/* 计划时间 */}
+							<div className="flex items-center group cursor-default">
+								<div className="w-1 h-1 bg-muted-foreground rounded-full" />
+								<span className="ml-1.5">计划时间：</span>
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="px-2">
+												{renderTimeDisplay(statusItem.plan.time)}
+											</div>
+										</TooltipTrigger>
+										{statusItem.plan.timeDes && (
+											<TooltipContent>
+												<p>{statusItem.plan.timeDes}</p>
+											</TooltipContent>
+										)}
+									</Tooltip>
+								</TooltipProvider>
+							</div>
+						</div>
+					)}
+
+					<div className="flex justify-end">
+						{statusItem?.stats && statusItem?.stats.length > 0 ? (
+							<Button
+								size="sm"
+								className="text-xs h-6 text-foreground lg:flex gap-1"
+								variant="outline"
+								onClick={openDialog}
+							>
+								查看详情
+							</Button>
+						) : (
+							<></>
 						)}
-					>
-						{StrategyStatusLabelEnum[statusItem.status]}
-					</Badge>
-				</CardTitle>
-			</CardHeader>
-
-			<CardContent className="px-3 py-2 text-xs text-muted-foreground flex flex-col gap-1.5">
-				{/* 描述 */}
-				{statusItem.description && (
-					<TooltipProvider>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<div className="line-clamp-1 text-xs text-muted-foreground cursor-default flex items-center gap-1">
-									{statusItem.description}
-								</div>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">
-								<p className="max-w-xs">{statusItem.description}</p>
-							</TooltipContent>
-						</Tooltip>
-					</TooltipProvider>
-				)}
-
-				{/* 未到预计时间 */}
-				{statusItem.status === StrategyStatusEnum.PENDING ? (
-					<div className="mt-1 space-y-1.5">
-						<div className="flex items-center group">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
-							<span className="ml-1.5">计划时间：</span>
-							<TooltipProvider>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-neutral-800/80 px-2 py-1 rounded cursor-pointer">
-											{renderTimeDisplay(statusItem.plan.time)}
-										</div>
-									</TooltipTrigger>
-									{statusItem.plan.timeDes && (
-										<TooltipContent side="bottom">
-											<p>{statusItem.plan.timeDes}</p>
-										</TooltipContent>
-									)}
-								</Tooltip>
-							</TooltipProvider>
-						</div>
 					</div>
-				) : (
-					<div className="mt-1 space-y-1.5">
-						{/* 实际时间 */}
-						<div className="flex items-center group">
-							<div className="w-1 h-1 bg-gray-500 rounded-full" />
-							<span className="ml-1.5">实际时间：</span>
-							<TooltipProvider>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-neutral-800/80 px-2 py-0.5 rounded cursor-pointer">
-											{renderTimeDisplay(statusItem.stat?.time)}
-										</div>
-									</TooltipTrigger>
-									{statusItem.stat?.timeDes && (
-										<TooltipContent>
-											<p>{statusItem.stat.timeDes}</p>
-										</TooltipContent>
-									)}
-								</Tooltip>
-							</TooltipProvider>
-						</div>
-
-						{/* 计划时间 */}
-						<div className="flex items-center group cursor-pointer">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
-							<span className="ml-1.5">计划时间：</span>
-							<TooltipProvider>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="px-2">
-											{renderTimeDisplay(statusItem.plan.time)}
-										</div>
-									</TooltipTrigger>
-									{statusItem.plan.timeDes && (
-										<TooltipContent>
-											<p>{statusItem.plan.timeDes}</p>
-										</TooltipContent>
-									)}
-								</Tooltip>
-							</TooltipProvider>
-						</div>
-					</div>
-				)}
-			</CardContent>
-		</Card>
+				</CardContent>
+			</Card>
+		</>
 	)
 }
 
-function TimeLineItem({ statusItem, itemIndex }: StatusTimeLineItemProps) {
+function TimeLineItem({
+	statusItem,
+	itemIndex,
+	onOpenDialog,
+}: StatusTimeLineItemProps) {
 	const isEven = itemIndex % 2 === 0
 	const { icon: Icon, color } = statusIconMap[statusItem.status]
 
 	return (
 		<div className="flex-shrink-0 flex flex-col">
 			{/* 上 */}
-			{isEven ? (
-				<div className="h-[130px]" />
-			) : (
-				<StatusCard statusItem={statusItem} itemIndex={itemIndex} />
-			)}
+			<div className="h-[150px] flex items-end">
+				{isEven ? (
+					<div className="h-[130px]" />
+				) : (
+					<StatusCard statusItem={statusItem} onOpenDialog={onOpenDialog} />
+				)}
+			</div>
+
 			{/* 中 */}
 			<div className="h-[2px] border-t border-dashed border-gray-300 my-4 relative">
 				<div
@@ -319,72 +382,109 @@ function TimeLineItem({ statusItem, itemIndex }: StatusTimeLineItemProps) {
 					{Icon && <Icon className="text-white w-4 h-4" />}
 				</div>
 			</div>
-			{/* 下 */}
-			{isEven ? (
-				<StatusCard statusItem={statusItem} itemIndex={itemIndex} />
-			) : (
-				<div className="h-[130px]" />
-			)}
+			<div className="h-[150px] flex items-start">
+				{/* 下 */}
+				{isEven ? (
+					<StatusCard statusItem={statusItem} onOpenDialog={onOpenDialog} />
+				) : (
+					<div className="h-[130px]" />
+				)}
+			</div>
 		</div>
 	)
 }
 
 export default function StrategyStatusTimeline() {
+	const [selectedDate, setSelectedDate] = useAtom(selectedDateAtom)
 	const strategyStatusData = useAtomValue(strategyStatusAtom)
 	const strategyStatusList: StrategyStatus[][] = strategyStatusData?.data || []
+	const dialogRef = useRef<StrategyStatusDesDialogRef>(null)
+	const [currentDialogItem, setCurrentDialogItem] =
+		useState<StrategyStatus | null>(null)
+
+	// 打开弹窗的方法
+	const openDialogAction = (statusItem: StrategyStatus) => {
+		setCurrentDialogItem(statusItem)
+		dialogRef.current?.open()
+	}
+
+	const formatAndSetDateFn = (date: Date | undefined) => {
+		if (date) {
+			const tempDate = dayjs(date).format("YYYY-MM-DD")
+			setSelectedDate(tempDate)
+		} else {
+			setSelectedDate("")
+		}
+	}
 	// const strategyStatusList: StrategyStatus[][] =
 	// 	mockStrategyStatusData?.data || []
 
-	// console.log("strategyStatusList", mockStrategyStatusData?.data)
+	// console.log("strategyStatusList", strategyStatusList?.data)
 	return (
-		<Card className="w-full">
-			<CardHeader className="border-b px-4 py-3 ">
-				<CardTitle className="pt-0 mt-0 flex flex-row items-center gap-2">
-					<Clock className="w-5 h-5" />
-					策略运行状态时间线
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				{strategyStatusList && strategyStatusList.length > 0 ? (
-					<Accordion type="single" collapsible>
-						{strategyStatusList.map(
-							(strategyItem: StrategyStatus[], strategyIndex: number) => (
-								<AccordionItem
-									key={strategyItem[0].strategyName}
-									value={strategyIndex.toString()}
-								>
-									<AccordionTrigger className="py-3">
-										{strategyIndex + 1}. {strategyItem[0].strategyName}
-									</AccordionTrigger>
-									<AccordionContent>
-										<div
-											key={strategyItem[0].strategyName}
-											className="overflow-x-auto max-w-full"
-										>
-											<div className="flex  flex-nowrap pb-2">
-												{strategyItem.map(
-													(timeLineItem: StrategyStatus, index: number) => (
-														<TimeLineItem
-															key={`${strategyIndex}-${timeLineItem.tag}-${timeLineItem.title}`}
-															statusItem={timeLineItem}
-															itemIndex={index}
-														/>
-													),
-												)}
+		<>
+			<Card className="w-full">
+				<CardHeader className="border-b px-4 py-3 ">
+					<CardTitle className="pt-0 mt-0 flex flex-row justify-between items-center gap-1">
+						<div className="flex items-center gap-2">
+							<Clock className="w-5 h-5" />
+							策略运行状态时间线
+						</div>
+						{/* 时间选择 */}
+						<DatePicker
+							className="w-42 h-8"
+							value={selectedDate ? new Date(selectedDate) : new Date()}
+							onChange={(date) => formatAndSetDateFn(date)}
+						/>
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					{strategyStatusList && strategyStatusList.length > 0 ? (
+						<Accordion type="single" collapsible>
+							{strategyStatusList.map(
+								(strategyItem: StrategyStatus[], strategyIndex: number) => (
+									<AccordionItem
+										key={strategyItem[0].strategyName}
+										value={strategyIndex.toString()}
+									>
+										<AccordionTrigger className="py-3">
+											{strategyIndex + 1}. {strategyItem[0].strategyName}
+										</AccordionTrigger>
+										<AccordionContent>
+											<div
+												key={strategyItem[0].strategyName}
+												className="overflow-x-auto max-w-full"
+											>
+												<div className="flex  flex-nowrap pb-2">
+													{strategyItem.map(
+														(timeLineItem: StrategyStatus, index: number) => (
+															<TimeLineItem
+																key={`${strategyIndex}-${timeLineItem.tag}-${timeLineItem.title}`}
+																statusItem={timeLineItem}
+																itemIndex={index}
+																onOpenDialog={openDialogAction}
+															/>
+														),
+													)}
+												</div>
 											</div>
-										</div>
-									</AccordionContent>
-								</AccordionItem>
-							),
-						)}
-					</Accordion>
-				) : (
-					<div className="flex flex-col gap-1 pt-4 items-center justify-center">
-						<ValueNoneIcon className="h-10 w-10 text-muted-foreground" />
-						<span className="text-sm text-muted-foreground">暂无数据</span>
-					</div>
-				)}
-			</CardContent>
-		</Card>
+										</AccordionContent>
+									</AccordionItem>
+								),
+							)}
+						</Accordion>
+					) : (
+						<div className="flex flex-col gap-1 pt-4 items-center justify-center">
+							<ValueNoneIcon className="h-10 w-10 text-muted-foreground" />
+							<span className="text-sm text-muted-foreground">暂无数据</span>
+						</div>
+					)}
+				</CardContent>
+			</Card>
+
+			<StrategyStatusDesDialog
+				ref={dialogRef}
+				currentItem={currentDialogItem}
+			/>
+		</>
 	)
 }

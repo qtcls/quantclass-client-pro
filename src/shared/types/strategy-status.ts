@@ -46,7 +46,7 @@ export interface StrategyStatusStat {
 	time: Date | null | [Date, Date]
 	timeDes: string
 	messages: string[]
-	batchId?: string
+	batchId?: string //有则是自动增量更新数据  没有则是手动更新
 }
 
 export interface StrategyStatus {

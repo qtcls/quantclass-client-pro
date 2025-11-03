@@ -84,14 +84,15 @@ const StrategyStatusDesDialog = forwardRef<
 												</Tooltip>
 											</TooltipProvider>
 										</div>
-										{stat?.batchId && currentItem.tag === "DATA_UPDATE" && (
-											<Badge
-												variant="outline"
-												className="text-xs flex-shrink-0"
-											>
-												自动增量更新
-											</Badge>
-										)}
+										{stat?.batchId != null &&
+											currentItem.tag === "DATA_UPDATE" && (
+												<Badge
+													variant="outline"
+													className="text-xs flex-shrink-0"
+												>
+													自动增量更新
+												</Badge>
+											)}
 									</div>
 								</CardHeader>
 
@@ -100,31 +101,50 @@ const StrategyStatusDesDialog = forwardRef<
 										<span className=" flex-shrink-0 text-muted-foreground">
 											时间：
 										</span>
-										<div>
-											{Array.isArray(stat.time) ? (
-												<div className="flex items-center gap-2 font-mono">
-													<span className="bg-gray-100 dark:bg-neutral-800/80 px-2 rounded">
-														{dayjs(stat.time[0]).format("YYYY-MM-DD HH:mm:ss")}
-													</span>
-													<span className="text-muted-foreground">至</span>
-													<span className="bg-gray-100 dark:bg-neutral-800/80 px-2 rounded">
-														{dayjs(stat.time[1]).format("YYYY-MM-DD HH:mm:ss")}
-													</span>
-												</div>
-											) : (
-												<span>
-													{dayjs(stat.time!).format("YYYY-MM-DD HH:mm:ss")}
-												</span>
-											)}
-										</div>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<div className="cursor-default">
+														{Array.isArray(stat.time) ? (
+															<div className="flex items-center gap-2 font-mono">
+																<span className="bg-gray-100 dark:bg-neutral-800/80 px-2 rounded">
+																	{dayjs(stat.time[0]).format(
+																		"YYYY-MM-DD HH:mm:ss",
+																	)}
+																</span>
+																<span className="text-muted-foreground">
+																	至
+																</span>
+																<span className="bg-gray-100 dark:bg-neutral-800/80 px-2 rounded">
+																	{dayjs(stat.time[1]).format(
+																		"YYYY-MM-DD HH:mm:ss",
+																	)}
+																</span>
+															</div>
+														) : (
+															<span>
+																{dayjs(stat.time!).format(
+																	"YYYY-MM-DD HH:mm:ss",
+																)}
+															</span>
+														)}
+													</div>
+												</TooltipTrigger>
+												{stat.timeDes && (
+													<TooltipContent>
+														<p>{stat.timeDes}</p>
+													</TooltipContent>
+												)}
+											</Tooltip>
+										</TooltipProvider>
 									</div>
 
 									<div className="flex items-start gap-2 w-full">
 										<span className="flex-shrink-0 text-muted-foreground">
 											描述：
 										</span>
-										<span className="flex-1 min-w-0 whitespace-pre-wrap break-all">
-											{stat.messages || "---"}
+										<span className="flex-1 min-w-0 whitespace-pre-wrap break-all text-muted-foreground ">
+											{stat.messages.join("，") || "---"}
 										</span>
 									</div>
 								</CardContent>

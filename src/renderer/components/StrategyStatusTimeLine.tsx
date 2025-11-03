@@ -72,8 +72,10 @@ const mockStrategyStatusData = {
 							new Date("2025-10-28T10:23:00"),
 						],
 						timeDes: "数据成功加载完成1",
-						message: ["数据1", "数据2"],
-						batchId: 2,
+						messages: [
+							"zzz1daiuahfuwhfuwhuhwfhwfhwhihdajsbasbfabfsbfcscssiiiiiiiiiiiiiiiiiiiiiif",
+							"scsjbjfbjsnksfmkfnkwklblafcbsfw",
+						],
 					},
 					{
 						time: [
@@ -81,7 +83,7 @@ const mockStrategyStatusData = {
 							new Date("2025-10-28T10:28:00"),
 						],
 						timeDes: "数据成功加载完成2",
-						message: ["数据1", "数据2"],
+						messages: ["数据1", "数据2"],
 						batchId: 3,
 					},
 				],
@@ -301,10 +303,10 @@ function StatusCard({
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-neutral-800/80 px-2 py-0.5 rounded cursor-default">
-												{renderTimeDisplay(statusItem.stat?.time)}
+												{renderTimeDisplay(statusItem?.stat?.time)}
 											</div>
 										</TooltipTrigger>
-										{statusItem.stat?.timeDes && (
+										{statusItem?.stat?.timeDes && (
 											<TooltipContent>
 												<p>{statusItem.stat.timeDes}</p>
 											</TooltipContent>

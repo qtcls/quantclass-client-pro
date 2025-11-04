@@ -136,6 +136,7 @@ export function ThemeCustomizer() {
 									<Tooltip key={baseColor.name}>
 										<TooltipTrigger asChild>
 											<button
+												type="button"
 												onClick={() =>
 													setConfig({
 														...config,

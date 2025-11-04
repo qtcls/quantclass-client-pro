@@ -1,3 +1,13 @@
+/**
+ * quantclass-client
+ * Copyright (c) 2025 量化小讲堂
+ *
+ * Licensed under the Business Source License 1.1 (BUSL-1.1).
+ * Additional Use Grant: None
+ * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
+ * See the LICENSE file and https://mariadb.com/bsl11/
+ */
+
 import { Badge } from "@/renderer/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/renderer/components/ui/card"
 import {
@@ -62,7 +72,7 @@ const StrategyStatusDesDialog = forwardRef<
 						</DialogDescription>
 					</DialogHeader>
 
-					<div className="space-y-3 max-h-[60vh] overflow-y-auto">
+					<div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
 						{currentItem?.stats?.map((stat, idx) => (
 							<Card key={idx} className="border text-sm">
 								<CardHeader className="px-3 py-2 border-b">
@@ -75,11 +85,11 @@ const StrategyStatusDesDialog = forwardRef<
 												<Tooltip>
 													<TooltipTrigger asChild>
 														<div className="flex-1 truncate cursor-default">
-															{stat.timeDes}
+															{stat?.timeDes}
 														</div>
 													</TooltipTrigger>
 													<TooltipContent side="bottom">
-														<p className="max-w-xs">{stat.timeDes}</p>
+														<p className="max-w-xs">{stat?.timeDes}</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -97,9 +107,9 @@ const StrategyStatusDesDialog = forwardRef<
 								</CardHeader>
 
 								<CardContent className="px-4 py-2 space-y-2">
-									<div className="flex items-start gap-2">
+									<div className="flex items-start gap-3">
 										<span className=" flex-shrink-0 text-muted-foreground">
-											时间：
+											时间:
 										</span>
 										<TooltipProvider>
 											<Tooltip>
@@ -139,9 +149,9 @@ const StrategyStatusDesDialog = forwardRef<
 										</TooltipProvider>
 									</div>
 
-									<div className="flex items-start gap-2 w-full">
+									<div className="flex items-start gap-3 w-full">
 										<span className="flex-shrink-0 text-muted-foreground">
-											描述：
+											描述:
 										</span>
 										<span className="flex-1 min-w-0 whitespace-pre-wrap break-all text-muted-foreground ">
 											{stat.messages.join("，") || "---"}

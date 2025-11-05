@@ -213,6 +213,7 @@ export function genSelectStrategyDict(
 		], // -- 卖出策略，一笔全卖（夏普说的）
 		risk: [false], // -- 默认为 false，客户端不改
 		intraday_swap: IntradayWap[reb_time] ?? IntradayWap.open, // -- 默认为早盘换仓
+		netting_tag: stg.rebalance_time,
 	}
 }
 
@@ -255,6 +256,7 @@ export function genPosMgmtStrategyDict(
 		], // -- 卖出策略，一笔全卖（夏普说的）
 		risk: [false], // -- 默认为 false，客户端不改
 		intraday_swap: IntradayWap[reb_time] ?? IntradayWap.open, // -- 默认为早盘换仓
+		netting_tag: stg.rebalance_time,
 	}
 }
 

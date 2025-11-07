@@ -34,14 +34,14 @@ export const useHandleTimeTask = () => {
 	const { uuid, apiKey } = useAtomValue(accountKeyAtom)
 	const setIsUpdating = useSetAtom(isUpdatingAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 
 	return async (
 		isPause: boolean,
 		showToast = true,
 		messages: Partial<ToastMessage> = {},
 	) => {
-		if (!check().isValid) return false
+		if (!checkWithToast().isValid) return false
 
 		// if (role === 0) {
 		if (!isMember) {

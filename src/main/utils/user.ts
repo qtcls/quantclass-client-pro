@@ -13,7 +13,7 @@ import type { UserInfo } from "@/shared/types/user.js"
 /**
  * 计算用户权限信息
  * @param user 用户信息
- * @returns 权限对象，包含 isMember, isStock, isCrypto, isBlock, roles
+ * @returns 权限对象，包含 isMember, isStock, isCrypto, isBlock, roles, permissions
  */
 export function calculatePermissions(user: UserInfo | null) {
 	if (!user) {
@@ -28,6 +28,7 @@ export function calculatePermissions(user: UserInfo | null) {
 				stock: { label: "股票", disabled: true },
 				block: { label: "区块链", disabled: true },
 			},
+			permissions: [],
 		}
 	}
 
@@ -35,6 +36,16 @@ export function calculatePermissions(user: UserInfo | null) {
 	const isStock = user.approval?.stock ?? false
 	const isCrypto = user.approval?.crypto ?? false
 	const isBlock = user.approval?.block ?? false
+
+	const permissions: string[] = []
+
+	if (isStock) permissions.push("isStock")
+	if (isCrypto) permissions.push("isCrypto")
+	if (isBlock) permissions.push("isBlock")
+
+	if (user.membershipInfo && Array.isArray(user.membershipInfo)) {
+		permissions.push(...user.membershipInfo)
+	}
 
 	return {
 		isMember,
@@ -47,5 +58,6 @@ export function calculatePermissions(user: UserInfo | null) {
 			stock: { label: "股票", disabled: !isStock },
 			block: { label: "区块链", disabled: !isBlock },
 		},
+		permissions,
 	}
 }

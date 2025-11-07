@@ -60,7 +60,7 @@ import { AboutPage } from "./about"
 export default function SettingsPage() {
 	const [showContributors, setShowContributors] = useState(false)
 	const { isMember } = useAtomValue(userAtom)
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const [isAutoLogin, setIsAutoLogin] = useAtom(isAutoLoginAtom)
 
 	const { VITE_XBX_ENV } = import.meta.env
@@ -96,7 +96,8 @@ export default function SettingsPage() {
 	}
 
 	const handleSetIsAutoLaunchRealTrading = async (value: boolean) => {
-		if (!check({ requireMember: true, onlyIn2025: true }).isValid) return
+		if (!checkWithToast({ requireMember: true, onlyIn2025: true }).isValid)
+			return
 
 		updateSettings({ is_auto_launch_real_trading: value })
 		if (value) {

@@ -55,4 +55,5 @@ export interface UserAccount {
 	isCrypto: boolean
 	isBlock: boolean
 	roles: UserRoles
+	permissions: string[]
 }

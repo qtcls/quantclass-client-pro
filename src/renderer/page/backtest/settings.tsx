@@ -16,6 +16,7 @@ import {
 	DialogContent,
 	DialogFooter,
 	DialogHeader,
+	DialogTitle,
 } from "@/renderer/components/ui/dialog"
 import { Input } from "@/renderer/components/ui/input"
 import {
@@ -201,8 +202,10 @@ export function BacktestSettings() {
 				onOpenChange={(value) => setEditSettings(value)}
 			>
 				<DialogContent className="max-w-xl">
-					<DialogHeader className="border-b">
-						<SettingsGearIcon className="mr-2" /> 回测设置
+					<DialogHeader className="border-b pb-2">
+						<DialogTitle className="flex items-center">
+							<SettingsGearIcon className="mr-2" /> 回测设置
+						</DialogTitle>
 					</DialogHeader>
 					<div className="flex justify-start items-start">
 						<div className="flex items-center w-36 pt-1">

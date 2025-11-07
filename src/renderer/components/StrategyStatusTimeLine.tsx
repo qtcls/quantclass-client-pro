@@ -30,9 +30,11 @@ import {
 	TooltipTrigger,
 } from "@/renderer/components/ui/tooltip"
 import { cn } from "@/renderer/lib/utils"
-import { ValueNoneIcon } from "@radix-ui/react-icons"
+import { ReloadIcon, ValueNoneIcon } from "@radix-ui/react-icons"
 import { CalendarClock, CheckCircle2, Clock, Loader2 } from "lucide-react"
 
+import StrategyStatusDesDialog from "@/renderer/components/StrategyStatusDesDialog"
+import type { StrategyStatusDesDialogRef } from "@/renderer/components/StrategyStatusDesDialog"
 import {
 	selectedDateAtom,
 	strategyStatusAtom,
@@ -43,11 +45,9 @@ import {
 	StrategyStatusLabelEnum,
 } from "@/shared/types/strategy-status"
 import dayjs from "dayjs"
-import { useAtom, useAtomValue } from "jotai"
-
-import StrategyStatusDesDialog from "@/renderer/components/StrategyStatusDesDialog"
-import type { StrategyStatusDesDialogRef } from "@/renderer/components/StrategyStatusDesDialog"
+import { useAtom } from "jotai"
 import { createContext, useContext, useRef, useState } from "react"
+import { toast } from "sonner"
 
 interface StatusTimeLineItemProps {
 	statusItem: StrategyStatus
@@ -80,10 +80,10 @@ const mockStrategyStatusData = {
 							new Date("2025-10-28T10:20:00"),
 							new Date("2025-10-28T10:23:00"),
 						],
-						timeDes: "数据成功加载完成1",
+						timeDes: "永续合约 1 小时数据按币对维度加载完成",
 						messages: [
-							"zzz1daiuahfuwhfuwhuhwfhwfhwhihdajsbasbfabfsbfcscssiiiiiiiiiiiiiiiiiiiiiif",
-							"scsjbjfbjsnksfmkfnkwklblafcbsfw",
+							"成功加载 128 个币对的 1h K 线数据，缺失条数 0",
+							"数据校验通过，时间戳连续性良好",
 						],
 					},
 					{
@@ -91,9 +91,12 @@ const mockStrategyStatusData = {
 							new Date("2025-10-28T10:25:00"),
 							new Date("2025-10-28T10:28:00"),
 						],
-						timeDes: "数据成功加载完成2",
-						messages: ["数据1", "数据2"],
-						batchId: 3,
+						timeDes: "自动增量更新完成",
+						messages: [
+							"增量数据写入 320 条，耗时 410ms",
+							"无重复记录，自动合并成功",
+						],
+						batchId: 102,
 					},
 				],
 			},
@@ -247,7 +250,7 @@ function StatusCard({
 		<Card className="min-w-[180px] max-w-[400px] text-sm shadow-sm">
 			<CardHeader className="px-3 pt-2 pb-1 border-b">
 				<CardTitle className="text-sm font-semibold flex justify-between items-center gap-2">
-					<span className="truncate max-w-[160px]" title={statusItem.title}>
+					<span className="truncate flex-1" title={statusItem.title}>
 						{statusItem.title}
 					</span>
 					<Badge
@@ -405,8 +408,8 @@ const TimeLineContext = createContext<
 
 export default function StrategyStatusTimeline() {
 	const [selectedDate, setSelectedDate] = useAtom(selectedDateAtom)
-	const strategyStatusData = useAtomValue(strategyStatusAtom)
-	const strategyStatusList: StrategyStatus[][] = strategyStatusData?.data || []
+	const [{ data: strategyStatusData, refetch }] = useAtom(strategyStatusAtom)
+	const strategyStatusList: StrategyStatus[][] = strategyStatusData || []
 	const dialogRef = useRef<StrategyStatusDesDialogRef>(null)
 	const [currentDialogItem, setCurrentDialogItem] =
 		useState<StrategyStatus | null>(null)
@@ -428,22 +431,38 @@ export default function StrategyStatusTimeline() {
 	// const strategyStatusList: StrategyStatus[][] =
 	// 	mockStrategyStatusData?.data || []
 
-	// console.log("strategyStatusList", strategyStatusList?.data)
+	// console.log("strategyStatusList", strategyStatusList)
 	return (
 		<TimeLineContext.Provider value={openDialogAction}>
 			<Card className="w-full">
 				<CardHeader className="border-b px-4 py-3 ">
 					<CardTitle className="pt-0 mt-0 flex flex-row justify-between items-center gap-1">
-						<div className="flex items-center gap-2">
+						<div className="flex items-center flex-wrap gap-2 ">
 							<Clock className="w-5 h-5" />
 							策略运行状态时间线
+							<span className="text-xs text-muted-foreground font-medium">
+								( 每分钟自动刷新一次 )
+							</span>
 						</div>
-						{/* 时间选择 */}
-						<DatePicker
-							className="w-42 h-8"
-							value={selectedDate ? new Date(selectedDate) : new Date()}
-							onChange={(date) => formatAndSetDateFn(date)}
-						/>
+						<div className="flex gap-2 flex-wrap justify-end">
+							<DatePicker
+								className="w-42 h-8"
+								value={selectedDate ? new Date(selectedDate) : new Date()}
+								onChange={(date) => formatAndSetDateFn(date)}
+							/>
+							<Button
+								size="sm"
+								className=" h-8"
+								variant="outline"
+								onClick={() => {
+									refetch()
+									toast.success("策略运行状态时间线信息刷新成功")
+								}}
+							>
+								<ReloadIcon className="mr-2 h-4 w-4" />
+								刷新
+							</Button>
+						</div>
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
@@ -463,7 +482,7 @@ export default function StrategyStatusTimeline() {
 												key={strategyItem[0].strategyName}
 												className="overflow-x-auto max-w-full"
 											>
-												<div className="flex  flex-nowrap pb-2">
+												<div className="flex flex-nowrap pb-2">
 													{strategyItem.map(
 														(timeLineItem: StrategyStatus, index: number) => (
 															<TimeLineItem

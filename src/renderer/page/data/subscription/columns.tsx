@@ -10,32 +10,27 @@
 
 import { Checkbox } from "@/renderer/components/ui/checkbox"
 import { TremorBadge } from "@/renderer/components/ui/tremor-badge"
-import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
-import { ISubscribeListType } from "@/renderer/schemas/subscribe-schema"
+import type { ISubscribeListType } from "@/renderer/schemas/subscribe-schema"
 import { userAtom } from "@/renderer/store/user"
-import { ColumnDef, Row } from "@tanstack/react-table"
+import type { ColumnDef, Row } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
 import { useCallback, useMemo } from "react"
-
-const RoleBadge = {
-	fen: <TremorBadge variant="warning">分享会</TremorBadge>,
-	coin: <TremorBadge>B 圈</TremorBadge>,
-	stock: <TremorBadge>股票</TremorBadge>,
-}
 
 export const useGenSubscribeColumns = (): Array<
 	ColumnDef<ISubscribeListType>
 > => {
-	const { user } = useAtomValue(userAtom)
-	const { checkDataListPermission } = usePermissionCheck()
+	const { roles, isMember } = useAtomValue(userAtom)
 
 	const isDisabled = useCallback(
 		(row: Row<ISubscribeListType>) => {
-			const data = row.original
+			if (isMember) return false
 
-			return checkDataListPermission(data.course_access?.[0])
+			const courseType = row.original.course_access?.[0]
+			return courseType
+				? roles[courseType as keyof typeof roles].disabled
+				: true
 		},
-		[user],
+		[isMember, roles],
 	)
 
 	const columns = useMemo(
@@ -43,7 +38,7 @@ export const useGenSubscribeColumns = (): Array<
 			{
 				id: "select",
 				header: ({ table }) =>
-					user?.isMember && (
+					isMember && (
 						<Checkbox
 							onCheckedChange={(value) =>
 								table.toggleAllPageRowsSelected(!!value)
@@ -80,16 +75,19 @@ export const useGenSubscribeColumns = (): Array<
 			},
 			{
 				accessorKey: "course_access",
-				header: () => <div className="text-foreground"></div>,
-				cell: ({ row }) => (
-					<>
-						{
-							RoleBadge[
-								row.original.course_access?.[0] as keyof typeof RoleBadge
-							]
-						}
-					</>
-				),
+				header: () => <div className="text-foreground" />,
+				cell: ({ row }) => {
+					const courseType = row.original.course_access?.[0]
+					const label = courseType
+						? roles[courseType as keyof typeof roles].label
+						: ""
+
+					return (
+						<TremorBadge variant={courseType === "fen" ? "warning" : "default"}>
+							{label}
+						</TremorBadge>
+					)
+				},
 			},
 			{
 				accessorKey: "key",
@@ -101,7 +99,7 @@ export const useGenSubscribeColumns = (): Array<
 				),
 			},
 		],
-		[user],
+		[isMember, isDisabled, roles],
 	)
 
 	return columns

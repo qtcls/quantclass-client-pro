@@ -44,7 +44,7 @@ export const useUserInfoSync = () => {
 			stop()
 		}
 		return () => stop()
-	}, [isLoggedIn])
+	}, [isLoggedIn, start, stop])
 
 	const forceRefresh = async () => {
 		const res = await fetchUserInfo(true)

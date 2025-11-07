@@ -33,12 +33,8 @@ class UserStore {
 
 		// 同时存储用户设置到config.json
 		const store = new Store()
-		if (_WebUserInfo.user?.uuid) {
-			store.set("settings.hid", _WebUserInfo.user.uuid)
-		}
-		if (_WebUserInfo.user?.apiKey) {
-			store.set("settings.api_key", _WebUserInfo.user.apiKey)
-		}
+		store.set("settings.hid", _WebUserInfo?.user?.uuid ?? "")
+		store.set("settings.api_key", _WebUserInfo?.user?.apiKey ?? "")
 	}
 
 	// -- 获取用户信息（带缓存逻辑）

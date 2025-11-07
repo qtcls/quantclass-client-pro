@@ -11,7 +11,7 @@
 	},
 	"linter": {
 		"enabled": true,
-		"include": ["*.ts"],
+		"include": ["**/*.ts", "**/*.tsx"],
 		"ignore": [
 			".pnpm/*",
 			".vscode/*",
@@ -28,7 +28,7 @@
 			},
 			"correctness": {
 				"noUnusedImports": "info",
-				"useExhaustiveDependencies": "off"
+				"useExhaustiveDependencies": "error"
 			},
 			"suspicious": {
 				"noExplicitAny": "off"

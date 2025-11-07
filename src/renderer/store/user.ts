@@ -76,6 +76,12 @@ export const userAtom = atomWithStorage<UserAccount>(
 		isStock: false,
 		isCrypto: false,
 		isBlock: false,
+		roles: {
+			fen: { label: "", disabled: true },
+			coin: { label: "", disabled: true },
+			stock: { label: "", disabled: true },
+			block: { label: "", disabled: true },
+		},
 	},
 	undefined,
 	{ getOnInit: true },

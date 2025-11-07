@@ -26,19 +26,19 @@ import {
 	TRADING_MAIN_PAGE,
 	isWindows,
 } from "@/renderer/constant"
-import { HotkeyItem, useHotkeys } from "@/renderer/hooks/useHotkeys"
-import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
+import { type HotkeyItem, useHotkeys } from "@/renderer/hooks/useHotkeys"
 import { SettingsGearIcon } from "@/renderer/icons/SettingsGearIcon"
 import { QuickCommand } from "@/renderer/layout/QuickCommand"
 import { QuickSearchInput } from "@/renderer/layout/QuickSearchInput"
 import { activeTabAtom } from "@/renderer/store"
+import { userAtom } from "@/renderer/store/user"
 import { useUpdateEffect } from "etc-hooks"
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import {
 	AudioWaveform,
 	GalleryVerticalEnd,
 	KanbanIcon,
-	LucideIcon,
+	type LucideIcon,
 } from "lucide-react"
 import { useState } from "react"
 import { useLocation, useNavigate } from "react-router"
@@ -80,12 +80,19 @@ const TRADING_PLATE: Record<string, PlateConfig> = {
 
 export const _SidebarHeader = () => {
 	const { pathname } = useLocation()
-	const { checkRealTradingRole } = usePermissionCheck()
+	const { isMember } = useAtomValue(userAtom)
 	const navigate = useNavigate()
 	const [isHovered, setIsHovered] = useState<boolean>(false)
 	const [_, setActiveTab] = useAtom(activeTabAtom)
 
-	const Plates = checkRealTradingRole()
+	const { VITE_XBX_ENV } = import.meta.env
+
+	// 实盘交易权限检查
+	const canRealTrading =
+		VITE_XBX_ENV === "development" ||
+		(isMember && isWindows && VITE_XBX_ENV === "production")
+
+	const Plates = canRealTrading
 		? { ...BASE_PLATES, ...TRADING_PLATE }
 		: BASE_PLATES
 

@@ -21,14 +21,12 @@ import { Button } from "@/renderer/components/ui/button"
 import { Label } from "@/renderer/components/ui/label"
 import { Separator } from "@/renderer/components/ui/separator"
 import { Switch } from "@/renderer/components/ui/switch"
+import { isWindows } from "@/renderer/constant"
 import { useAlertDialog } from "@/renderer/context/alert-dialog"
-import {
-	useHandleTimeTask,
-	usePermissionCheck,
-	useToggleAutoRealTrading,
-} from "@/renderer/hooks"
+import { useHandleTimeTask, useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useAppVersions } from "@/renderer/hooks/useAppVersion"
 import { useInvokeUpdateKernal } from "@/renderer/hooks/useInvokeUpdateKernal"
+import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { useRealMarketConfig } from "@/renderer/hooks/useRealMarketConfig"
 import { useSettings } from "@/renderer/hooks/useSettings"
 import { useVersionCheck } from "@/renderer/hooks/useVersionCheck"
@@ -37,7 +35,7 @@ import Contributors from "@/renderer/page/settings/contributors"
 import { isAutoLoginAtom, versionListAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
-import { KernalType } from "@/shared/types"
+import type { KernalType } from "@/shared/types"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
 	Blocks,
@@ -61,9 +59,16 @@ import { AboutPage } from "./about"
 
 export default function SettingsPage() {
 	const [showContributors, setShowContributors] = useState(false)
-	const { user } = useAtomValue(userAtom)
-	const { check, checkRealTradingRole } = usePermissionCheck()
+	const { isMember } = useAtomValue(userAtom)
+	const { check } = usePermissionCheck()
 	const [isAutoLogin, setIsAutoLogin] = useAtom(isAutoLoginAtom)
+
+	const { VITE_XBX_ENV } = import.meta.env
+
+	// 实盘交易权限检查
+	const canRealTrading =
+		VITE_XBX_ENV === "development" ||
+		(isMember && isWindows && VITE_XBX_ENV === "production")
 	const version = useAtomValue(versionsAtom)
 	const setVersionList = useSetAtom(versionListAtom)
 	const { setAutoLaunch, openDataDirectory, killAllKernals, openUrl } =
@@ -199,25 +204,27 @@ export default function SettingsPage() {
 						<div className="text-sm flex items-center gap-1">
 							<Badge className="font-mono h-5">v{version.clientVersion}</Badge>
 							<span>｜</span>
-							<span
-								className="cursor-pointer text-muted-foreground"
+							<button
+								type="button"
+								className="cursor-pointer text-muted-foreground hover:underline"
 								onClick={() => {
 									setVersionList([])
 								}}
 							>
 								客户端更新日志
-							</span>
+							</button>
 							{hasClientUpdate && (
 								<>
 									<span>｜</span>
-									<span
-										className="cursor-pointer text-blue-500 dark:text-blue-400"
+									<button
+										type="button"
+										className="cursor-pointer text-blue-500 dark:text-blue-400 hover:underline"
 										onClick={() => {
 											openUrl(appVersions?.app?.download as string)
 										}}
 									>
 										下载新版
-									</span>
+									</button>
 								</>
 							)}
 						</div>
@@ -234,7 +241,7 @@ export default function SettingsPage() {
 						appVersions={appVersions}
 					/>
 
-					{checkRealTradingRole() && user?.isMember && (
+					{canRealTrading && isMember && (
 						<>
 							{isFusionMode ? (
 								<KernalVersion
@@ -293,9 +300,9 @@ export default function SettingsPage() {
 					variant="outline"
 					size="sm"
 					onClick={async () => {
-						if (!user?.isMember) {
+						if (!isMember) {
 							toast.dismiss()
-							toast.error("请先登录")
+							toast.error("本功能为分享会同学使用")
 							return
 						}
 						await handleUpdateKernals()
@@ -413,7 +420,7 @@ export default function SettingsPage() {
 					/>
 				</div>
 
-				{checkRealTradingRole() && (
+				{canRealTrading && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-1">
 							<Label

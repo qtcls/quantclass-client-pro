@@ -34,6 +34,18 @@ export interface WebUserInfo {
 	isLoggedIn: boolean
 }
 
+export interface RoleInfo {
+	label: string
+	disabled: boolean
+}
+
+export interface UserRoles {
+	fen: RoleInfo
+	coin: RoleInfo
+	stock: RoleInfo
+	block: RoleInfo
+}
+
 export interface UserAccount {
 	isLoggedIn: boolean
 	user: UserAccountInfo | null
@@ -42,4 +54,5 @@ export interface UserAccount {
 	isStock: boolean
 	isCrypto: boolean
 	isBlock: boolean
+	roles: UserRoles
 }

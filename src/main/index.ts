@@ -22,6 +22,7 @@ import { cleanupDB } from "@/main/server/middleware/db.js"
 import {
 	cleanLockFiles,
 	killAllKernalByForce,
+	killAllKernalByName,
 	startServerOnAvailablePort,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
@@ -208,7 +209,7 @@ if (!gotTheLock) {
 	app.on("quit", async (_, exitCode) => {
 		// 在这里添加你的清理或保存操作
 		await cleanLockFiles()
-		await killAllKernalByForce(true)
+		await killAllKernalByName()
 		logger.info(`应用已退出，退出码：${exitCode}`)
 	})
 }

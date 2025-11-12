@@ -1,11 +1,12 @@
+import { Badge } from "@/renderer/components/ui/badge"
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "@/renderer/components/ui/tooltip" // 替换成你实际路径
+} from "@/renderer/components/ui/tooltip"
 import { cn } from "@/renderer/lib/utils"
-import { useTheme } from "next-themes"
+import { ArrowRight } from "lucide-react"
 import { useEffect, useState } from "react"
 
 type Props = {
@@ -17,7 +18,6 @@ type Props = {
 export default function ScaleinTargetsView({ scaleinTargetsValue }: Props) {
 	const [widthPercentList, setWidthPercentList] = useState<number[]>([])
 	const [animated, setAnimated] = useState(false)
-	const { resolvedTheme: mode } = useTheme()
 
 	useEffect(() => {
 		if (!scaleinTargetsValue?.length) return
@@ -33,41 +33,33 @@ export default function ScaleinTargetsView({ scaleinTargetsValue }: Props) {
 		return () => clearTimeout(timer)
 	}, [scaleinTargetsValue])
 
-	// 生成背景色
-	const getBgColor = (index: number) => {
-		const num = mode === "dark" ? 40 : 60
-		const lightness = num - index * 8
-		return `hsl(0 0% ${lightness}%)`
-	}
-
 	return (
 		<div className="space-y-2">
 			{/* 堆叠进度条 */}
 			<div className="h-10 relative">
 				{widthPercentList.map((value, index) => {
-					const bgColor = getBgColor(index)
 					const textInside = value > 10
 
 					return (
 						<div
 							key={`${value}-${index}`}
 							className={cn(
-								"absolute left-0 bottom-0 h-8 rounded-md flex items-center px-2 text-xs text-foreground",
+								"absolute left-0 bottom-0 h-8 rounded-md flex items-center px-2 text-xs text-primary-foreground",
+								"bg-primary/30 border border-primary/60 shadow-sm",
 								"overflow-hidden",
 							)}
 							style={{
 								width: animated ? `${value}%` : "0%",
-								backgroundColor: bgColor,
 								zIndex: widthPercentList.length - index,
 								transition: "width 0.8s ease-in-out",
 								justifyContent: textInside ? "flex-end" : "flex-start",
 							}}
 						>
 							<TooltipProvider key={`${value}-${index}`}>
-								<Tooltip>
+								<Tooltip delayDuration={0}>
 									<TooltipTrigger asChild>
 										<span
-											className="whitespace-nowrap cursor-default text-white"
+											className="whitespace-nowrap cursor-default"
 											style={{
 												marginLeft: textInside ? undefined : 4,
 											}}
@@ -85,14 +77,16 @@ export default function ScaleinTargetsView({ scaleinTargetsValue }: Props) {
 				})}
 			</div>
 
-			<div className="text-sm text-muted-foreground font-mono">
+			<div className="text-sm text-muted-foreground flex items-center gap-1">
 				{widthPercentList.map((value, index) => (
-					<span key={index}>
-						<span className="bg-muted/30 px-1.5 py-0.5 rounded">
+					<>
+						<Badge key={index} variant="secondary">
 							仓位{index + 1}（{value}%）
-						</span>
-						{index !== widthPercentList.length - 1 && " → "}
-					</span>
+						</Badge>
+						{index !== widthPercentList.length - 1 && (
+							<ArrowRight className="size-4" />
+						)}
+					</>
 				))}
 			</div>
 		</div>

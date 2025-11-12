@@ -23,9 +23,10 @@ import type { SelectStgType } from "@/renderer/types/strategy"
 
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
-import { CheckCircledIcon } from "@radix-ui/react-icons"
+import { CheckCircledIcon, InfoCircledIcon } from "@radix-ui/react-icons"
 import type { ColumnDef } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
+import { HelpCircleIcon } from "lucide-react"
 import { totalWeightAtom } from "../store/storage"
 
 export const useGenLibraryColumn = (
@@ -185,20 +186,20 @@ export const useGenLibraryColumn = (
 			// size: 120,
 			cell: ({ row }) => {
 				return (
-					<div className="whitespace-pre-wrap break-words truncate max-w-[260px]">
+					<div className="whitespace-pre-wrap break-words truncate max-w-[260px] hover:bg-muted rounded-md p-1 cursor-pointer">
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<div className="text-xs space-y-1">
 									<div className="truncate">
 										{(row.original as SelectStgType).offset_list &&
 										(row.original as SelectStgType).offset_list.length > 0
-											? (row.original as SelectStgType).offset_list.join(",")
+											? (row.original as SelectStgType).offset_list.join(", ")
 											: "--"}
 									</div>
 									<div className="truncate">
 										{(row.original as SelectStgType)?.scalein_targets?.length
 											? (row.original as SelectStgType)?.scalein_targets?.join(
-													",",
+													"/", // 使用箭头符号表示仓位分配
 												)
 											: "无"}
 									</div>
@@ -209,14 +210,14 @@ export const useGenLibraryColumn = (
 									<div>
 										OFFSET：
 										{(row.original as SelectStgType)?.offset_list?.length
-											? (row.original as SelectStgType).offset_list.join(",")
+											? (row.original as SelectStgType).offset_list.join(", ")
 											: "--"}
 									</div>
 									<div>
 										分批进场目标仓位(offset间仓位分配)：
 										{(row.original as SelectStgType)?.scalein_targets?.length
 											? (row.original as SelectStgType)?.scalein_targets?.join(
-													",",
+													"→", // 使用箭头符号表示仓位分配
 												)
 											: "未配置"}
 									</div>
@@ -229,47 +230,96 @@ export const useGenLibraryColumn = (
 		},
 		{
 			accessorKey: "rebalance_time",
-			header: "换仓时间",
+			header: () => (
+				<div className="flex items-center gap-1">
+					<span>时间</span>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<HelpCircleIcon className="size-4 cursor-pointer" />
+						</TooltipTrigger>
+						<TooltipContent
+							side="top"
+							className="max-w-xs text-xs z-auto"
+							sideOffset={12} // 轻微偏移至上方，避免边界遮挡
+						>
+							<h3 className="font-bold"># 盘中择时时间</h3>
+							<p>
+								当设置“择时开仓”或者“择时离场”的波动率策略后，会根据策略的
+								择时因子列表 计算出最大值，作为计算择时时间。
+							</p>
+						</TooltipContent>
+					</Tooltip>
+				</div>
+			),
 			cell: ({ row }) => {
-				return (
-					<div>
-						{getRebalanceTime(
-							(row.original as SelectStgType).rebalance_time ?? "close-open",
-						)}
-					</div>
+				const signalTime =
+					!(row.original as SelectStgType)?.signal_time ||
+					(row.original as SelectStgType)?.signal_time === "close"
+						? getSignalTime(
+								(row.original as SelectStgType)?.timing,
+								(row.original as SelectStgType)?.override,
+							)
+						: "不适用"
+				const rebalanceTime = getRebalanceTime(
+					(row.original as SelectStgType).rebalance_time ?? "close-open",
 				)
-			},
-		},
-		{
-			accessorKey: "signal_time",
-			header: "计算择时的时间",
-			cell: ({ row }) => {
 				return (
-					<div>
-						{!(row.original as SelectStgType)?.signal_time ||
-						(row.original as SelectStgType)?.signal_time === "close"
-							? getSignalTime(
-									(row.original as SelectStgType)?.timing,
-									(row.original as SelectStgType)?.override,
-								)
-							: "不适用"}
-					</div>
+					<>
+						<div className="flex items-center gap-1">
+							<span>盘中择时：{signalTime}</span>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<InfoCircledIcon className="size-4 cursor-pointer" />
+								</TooltipTrigger>
+								<TooltipContent
+									side="top"
+									className="max-w-xs text-xs"
+									sideOffset={12}
+								>
+									客户端会在{" "}
+									<span className="font-bold">{signalTime}+1分钟 </span>
+									开始获取盘中分钟数据，再计算出择时信号，并更新交易计划。换仓前2分钟生成新的买入卖出计划。
+								</TooltipContent>
+							</Tooltip>
+						</div>
+						<div className="flex items-center gap-1">
+							<span>换仓时间：{rebalanceTime}</span>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<InfoCircledIcon className="size-4 cursor-pointer" />
+								</TooltipTrigger>
+								<TooltipContent
+									side="top"
+									className="max-w-xs text-xs"
+									sideOffset={12}
+								>
+									<p>
+										当日换仓：在{rebalanceTime}的{" "}
+										<span className="font-bold">前1分钟到后10分钟内</span>
+										，生成随机的卖出时间，并随机秒数；同时在卖出时间上加上60-120秒随机间隔，生成买入时间。
+										<hr className="my-1" />
+										隔日换仓：在收盘前10分钟内随机，并随机秒数
+									</p>
+								</TooltipContent>
+							</Tooltip>
+						</div>
+					</>
 				)
 			},
 		},
 		{
 			accessorKey: "timing",
-			header: "择时进场",
-			cell: ({ row }) => {
-				return <div>{(row.original as SelectStgType).timing?.name ?? "无"}</div>
-			},
-		},
-		{
-			accessorKey: "override",
-			header: "择时离场",
+			header: "择时策略",
 			cell: ({ row }) => {
 				return (
-					<div>{(row.original as SelectStgType)?.override?.name ?? "无"}</div>
+					<>
+						<div className="text-nowrap">
+							开仓：{(row.original as SelectStgType).timing?.name ?? "无"}
+						</div>
+						<div className="text-nowrap">
+							离场：{(row.original as SelectStgType)?.override?.name ?? "无"}
+						</div>
+					</>
 				)
 			},
 		},

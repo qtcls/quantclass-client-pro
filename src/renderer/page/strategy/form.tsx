@@ -62,7 +62,7 @@ export function SelectStgForm({
 		defaultValues,
 	})
 	const [saving, setSaving] = useState(false)
-	const [tabValue, setTabValue] = useState("进场") //进场 离场  --择时
+	const [tabValue, setTabValue] = useState("开仓") //开仓 离场  --择时
 
 	// 初始化 signalTime 状态
 	const [signalTime, setSignalTime] = useState<string>()
@@ -531,23 +531,23 @@ export function SelectStgForm({
 							)}
 						/>
 						<hr />
-						<div className="border-1 border-primary p-2 rounded-lg flex flex-col gap-4">
+						<div className="border-1 border-primary p-2 rounded-lg flex flex-col gap-2">
 							<Tabs
 								value={tabValue}
 								onValueChange={(value) => setTabValue(value)}
 							>
 								<TabsList>
-									<TabsTrigger value="进场">择时进场</TabsTrigger>
+									<TabsTrigger value="开仓">择时开仓</TabsTrigger>
 									<TabsTrigger value="离场">择时离场</TabsTrigger>
 								</TabsList>
 							</Tabs>
-							{(tabValue === "进场" && form.getValues("timing")) ||
+							{(tabValue === "开仓" && form.getValues("timing")) ||
 							(tabValue === "离场" && form.getValues("override")) ? (
 								<>
 									<FormField
 										key={`${tabValue}-1`}
 										control={form.control}
-										name={tabValue === "进场" ? "timing" : "override"}
+										name={tabValue === "开仓" ? "timing" : "override"}
 										render={({ field }) => (
 											<FormItem className={cn("flex flex-col px-1")}>
 												<FormLabel className="flex items-center gap-1">
@@ -608,7 +608,7 @@ export function SelectStgForm({
 									<FormField
 										key={`${tabValue}-2`}
 										control={form.control}
-										name={tabValue === "进场" ? "timing" : "override"}
+										name={tabValue === "开仓" ? "timing" : "override"}
 										render={({ field }) => (
 											<FormItem className={cn("flex flex-col px-1")}>
 												<FormLabel className="flex items-center gap-1">
@@ -681,7 +681,7 @@ export function SelectStgForm({
 									<FormField
 										key={`${tabValue}-3`}
 										control={form.control}
-										name={tabValue === "进场" ? "timing" : "override"}
+										name={tabValue === "开仓" ? "timing" : "override"}
 										render={({ field }) => (
 											<FormItem className={cn("px-1")}>
 												<FormLabel className="flex items-center gap-1">

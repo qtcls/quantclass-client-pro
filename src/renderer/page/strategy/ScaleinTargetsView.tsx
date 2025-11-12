@@ -21,12 +21,10 @@ export default function ScaleinTargetsView({ scaleinTargetsValue }: Props) {
 
 	useEffect(() => {
 		if (!scaleinTargetsValue?.length) return
-
 		// 从小到大排序,再计算百分比
 		let sorted: any = [...scaleinTargetsValue].sort((a, b) => a - b)
 		sorted = sorted.map((item: number) => Number((item * 100).toFixed(2)))
 		setWidthPercentList(sorted)
-
 		// 延迟触发动画，让条从0%平滑展开
 		setAnimated(false)
 		const timer = setTimeout(() => setAnimated(true), 50)

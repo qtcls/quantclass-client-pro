@@ -76,7 +76,6 @@ export const useGenLibraryColumn = (
 		if (timing?.factor_list && timing.factor_list.length > 0) {
 			allFactorLists.push(...timing.factor_list)
 		}
-
 		if (override?.factor_list && override.factor_list.length > 0) {
 			allFactorLists.push(...override.factor_list)
 		}
@@ -92,7 +91,7 @@ export const useGenLibraryColumn = (
 			(item): item is string => typeof item === "string" && /^\d+$/.test(item),
 		)
 
-		// 计算全局最大值
+		// 计算最大值
 		const maxTime =
 			numericTimes.length > 0
 				? numericTimes.reduce((max, current) => (current > max ? current : max))

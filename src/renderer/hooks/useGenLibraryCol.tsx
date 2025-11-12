@@ -19,12 +19,12 @@ import {
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { DeleteStrategy } from "@/renderer/page/strategy/delete"
 import StrategyEditDialog from "@/renderer/page/strategy/edit-dialog"
-import { SelectStgType } from "@/renderer/types/strategy"
+import type { SelectStgType } from "@/renderer/types/strategy"
 
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { CheckCircledIcon } from "@radix-ui/react-icons"
-import { ColumnDef } from "@tanstack/react-table"
+import type { ColumnDef } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
 import { totalWeightAtom } from "../store/storage"
 
@@ -66,6 +66,43 @@ export const useGenLibraryColumn = (
 			rebalanceTimeLabel = rebalanceTimeList[index].label
 		}
 		return rebalanceTimeLabel
+	}
+
+	const getSignalTime = (timing: any, override: any): string => {
+		// 从 timing 和 override 的 factor_list 中合并所有因子分钟数据，找出最大值
+		const allFactorLists: any[] = []
+
+		if (timing?.factor_list && timing.factor_list.length > 0) {
+			allFactorLists.push(...timing.factor_list)
+		}
+
+		if (override?.factor_list && override.factor_list.length > 0) {
+			allFactorLists.push(...override.factor_list)
+		}
+
+		// 如果没有任何因子列表，重置为 "close"
+		if (allFactorLists.length === 0) {
+			return "不适用"
+		}
+
+		// 提取所有分钟数据（第 5 个元素）并筛选数字型
+		const timeArr = allFactorLists.map((item) => item[4])
+		const numericTimes = timeArr.filter(
+			(item): item is string => typeof item === "string" && /^\d+$/.test(item),
+		)
+
+		// 计算全局最大值
+		const maxTime =
+			numericTimes.length > 0
+				? numericTimes.reduce((max, current) => (current > max ? current : max))
+				: "不适用"
+
+		const tempTime =
+			maxTime === "不适用"
+				? "不适用"
+				: `${maxTime.slice(0, 2)}:${maxTime.slice(2)}`
+
+		return tempTime
 	}
 
 	return [
@@ -151,16 +188,39 @@ export const useGenLibraryColumn = (
 					<div className="whitespace-pre-wrap break-words truncate max-w-[260px]">
 						<Tooltip>
 							<TooltipTrigger asChild>
-								<div className="truncate">
-									{(row.original as SelectStgType).offset_list &&
-									(row.original as SelectStgType).offset_list.length > 0
-										? (row.original as SelectStgType).offset_list.join(",")
-										: "--"}
+								<div className="text-xs space-y-1">
+									<div className="truncate">
+										{(row.original as SelectStgType).offset_list &&
+										(row.original as SelectStgType).offset_list.length > 0
+											? (row.original as SelectStgType).offset_list.join(",")
+											: "--"}
+									</div>
+									<div className="truncate">
+										{(row.original as SelectStgType)?.scalein_targets?.length
+											? (row.original as SelectStgType)?.scalein_targets?.join(
+													",",
+												)
+											: "无"}
+									</div>
 								</div>
 							</TooltipTrigger>
 							<TooltipContent>
-								{(row.original as SelectStgType).offset_list &&
-									(row.original as SelectStgType).offset_list.join(",")}
+								<div className="text-xs space-y-1">
+									<div>
+										OFFSET：
+										{(row.original as SelectStgType)?.offset_list?.length
+											? (row.original as SelectStgType).offset_list.join(",")
+											: "--"}
+									</div>
+									<div>
+										分批进场目标仓位(offset间仓位分配)：
+										{(row.original as SelectStgType)?.scalein_targets?.length
+											? (row.original as SelectStgType)?.scalein_targets?.join(
+													",",
+												)
+											: "未配置"}
+									</div>
+								</div>
 							</TooltipContent>
 						</Tooltip>
 					</div>
@@ -181,10 +241,36 @@ export const useGenLibraryColumn = (
 			},
 		},
 		{
+			accessorKey: "signal_time",
+			header: "计算择时的时间",
+			cell: ({ row }) => {
+				return (
+					<div>
+						{!(row.original as SelectStgType)?.signal_time ||
+						(row.original as SelectStgType)?.signal_time === "close"
+							? getSignalTime(
+									(row.original as SelectStgType)?.timing,
+									(row.original as SelectStgType)?.override,
+								)
+							: "不适用"}
+					</div>
+				)
+			},
+		},
+		{
 			accessorKey: "timing",
-			header: "择时",
+			header: "择时进场",
 			cell: ({ row }) => {
 				return <div>{(row.original as SelectStgType).timing?.name ?? "无"}</div>
+			},
+		},
+		{
+			accessorKey: "override",
+			header: "择时离场",
+			cell: ({ row }) => {
+				return (
+					<div>{(row.original as SelectStgType)?.override?.name ?? "无"}</div>
+				)
 			},
 		},
 		{

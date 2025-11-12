@@ -24,14 +24,20 @@
 		"rules": {
 			"recommended": true,
 			"style": {
-				"noNonNullAssertion": "off"
+				"noNonNullAssertion": "off",
+				"noUselessElse": "off"
 			},
 			"correctness": {
 				"noUnusedImports": "info",
-				"useExhaustiveDependencies": "error"
+				"useExhaustiveDependencies": "warn"
 			},
 			"suspicious": {
-				"noExplicitAny": "off"
+				"noExplicitAny": "off",
+				"noArrayIndexKey": "off"
+			},
+			"a11y": {
+				"useKeyWithClickEvents": "off",
+				"useButtonType": "warn"
 			}
 		}
 	},

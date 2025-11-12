@@ -11,20 +11,19 @@
 import { Button } from "@/renderer/components/ui/button"
 import { EditIcon } from "@/renderer/icons/EditIcon"
 import { SelectStgForm } from "@/renderer/page/strategy/form"
-import { SelectStgType } from "@/renderer/types/strategy"
+import type { SelectStgType } from "@/renderer/types/strategy"
 
-import { parseToTimeValueWithSecond } from "@/renderer/utils"
-
-import { useFusionManager } from "@/renderer/hooks/useFusionManager"
-import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
-import { useState } from "react"
-import { toast } from "sonner"
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 } from "@/renderer/components/ui/dialog"
+import { useFusionManager } from "@/renderer/hooks/useFusionManager"
+import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
+import { parseToTimeValueWithSecond } from "@/renderer/utils"
+import { useState } from "react"
+import { toast } from "sonner"
 
 export default function StrategyEditDialog({
 	strategy,
@@ -124,6 +123,8 @@ export default function StrategyEditDialog({
 									strategy?.split_order_amount ||
 									Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
 								timing: strategy.timing,
+								override: strategy.override,
+								scalein_targets: strategy.scalein_targets,
 							}}
 							onSave={async (values) => {
 								if (fusionIndex < 0) {

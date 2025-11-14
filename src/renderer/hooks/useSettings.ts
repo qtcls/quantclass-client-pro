@@ -13,12 +13,11 @@ import { useAtom, useSetAtom } from "jotai"
 import { useCallback, useMemo } from "react"
 import { settingsAtom } from "../store/electron"
 import { libraryTypeAtom } from "../store/storage"
-import { useStoreReload } from "../utils/store"
 
 export function useSettings() {
 	const [settings, setSettings] = useAtom(settingsAtom)
 	const setLibraryTypeAtom = useSetAtom(libraryTypeAtom)
-	const reloadSettings = useStoreReload(settingsAtom)
+	const { getStoreValue } = window.electronAPI
 
 	const updateSettings = useCallback(
 		async (newSettings: Partial<SettingsType>) => {
@@ -26,15 +25,14 @@ export function useSettings() {
 				setLibraryTypeAtom(newSettings.libraryType)
 			}
 
-			// 从 config.json 加载最新值，避免用 localStorage 的旧值覆盖
-			const latestSettings = await reloadSettings()
-
-			setSettings(() => ({
+			// 先从 config.json 读取settings的最新值，然后合并新的设置
+			const latestSettings = await getStoreValue("settings")
+			setSettings({
 				...latestSettings,
 				...newSettings,
-			}))
+			})
 		},
-		[setSettings, setLibraryTypeAtom, reloadSettings],
+		[setSettings, setLibraryTypeAtom, getStoreValue],
 	)
 
 	const dataLocation = settings.all_data_path || ""

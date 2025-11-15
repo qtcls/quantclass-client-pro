@@ -35,6 +35,7 @@ import Contributors from "@/renderer/page/settings/contributors"
 import { isAutoLoginAtom, versionListAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
+import type { SettingsType } from "@/renderer/types"
 import type { KernalType } from "@/shared/types"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
@@ -87,10 +88,11 @@ export default function SettingsPage() {
 	}, [settings.is_auto_launch_update])
 
 	const handleSetIsAutoLaunchUpdate = async (value: boolean) => {
-		updateSettings({ is_auto_launch_update: value })
+		const updates: Partial<SettingsType> = { is_auto_launch_update: value }
 		if (!value) {
-			updateSettings({ is_auto_launch_real_trading: false })
+			updates.is_auto_launch_real_trading = false
 		}
+		await updateSettings(updates)
 		toast.dismiss()
 		toast.success(value ? "自动更新已开启" : "自动更新已关闭")
 	}
@@ -99,10 +101,13 @@ export default function SettingsPage() {
 		if (!checkWithToast({ requireMember: true, onlyIn2025: true }).isValid)
 			return
 
-		updateSettings({ is_auto_launch_real_trading: value })
-		if (value) {
-			updateSettings({ is_auto_launch_update: true })
+		const updates: Partial<SettingsType> = {
+			is_auto_launch_real_trading: value,
 		}
+		if (value) {
+			updates.is_auto_launch_update = true
+		}
+		await updateSettings(updates)
 		toast.dismiss()
 		toast.success(value ? "实盘自动启动已开启" : "实盘自动启动已关闭")
 	}

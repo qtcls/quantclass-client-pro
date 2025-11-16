@@ -87,17 +87,17 @@ export default function SettingsPage() {
 		return settings.is_auto_launch_update
 	}, [settings.is_auto_launch_update])
 
-	const handleSetIsAutoLaunchUpdate = async (value: boolean) => {
+	const handleSetIsAutoLaunchUpdate = (value: boolean) => {
 		const updates: Partial<SettingsType> = { is_auto_launch_update: value }
 		if (!value) {
 			updates.is_auto_launch_real_trading = false
 		}
-		await updateSettings(updates)
+		updateSettings(updates)
 		toast.dismiss()
 		toast.success(value ? "自动更新已开启" : "自动更新已关闭")
 	}
 
-	const handleSetIsAutoLaunchRealTrading = async (value: boolean) => {
+	const handleSetIsAutoLaunchRealTrading = (value: boolean) => {
 		if (!checkWithToast({ requireMember: true, onlyIn2025: true }).isValid)
 			return
 
@@ -107,7 +107,7 @@ export default function SettingsPage() {
 		if (value) {
 			updates.is_auto_launch_update = true
 		}
-		await updateSettings(updates)
+		updateSettings(updates)
 		toast.dismiss()
 		toast.success(value ? "实盘自动启动已开启" : "实盘自动启动已关闭")
 	}

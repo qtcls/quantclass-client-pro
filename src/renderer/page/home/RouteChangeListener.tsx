@@ -8,8 +8,9 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { settingsAtom } from "@/renderer/store/electron"
 import { userAtom } from "@/renderer/store/user"
-import { useAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { RESET } from "jotai/utils"
 import { useEffect } from "react"
 import { useLocation } from "react-router"
@@ -20,7 +21,7 @@ const { rendererLog, getUserAccount } = window.electronAPI
 const RouteChangeListener = () => {
 	const location = useLocation()
 	const [{ isLoggedIn }, setUser] = useAtom(userAtom)
-
+	const setSettings = useSetAtom(settingsAtom)
 	// biome-ignore lint/correctness/useExhaustiveDependencies: 需要在路由变化时触发用户信息更新
 	useEffect(() => {
 		// 如果用户未登录，不执行更新逻辑
@@ -36,6 +37,11 @@ const RouteChangeListener = () => {
 					rendererLog("info", "[RouteChangeListener] 用户信息已更新")
 				} else {
 					setUser(RESET)
+					setSettings((prev) => ({
+						...prev,
+						hid: "",
+						api_key: "",
+					}))
 					toast.dismiss()
 					toast.warning("账户信息异常，请重新登录")
 				}

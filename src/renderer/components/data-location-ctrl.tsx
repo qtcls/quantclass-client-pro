@@ -53,7 +53,7 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 				form.setValue("all_data_path", _path, { shouldValidate: true })
 
 				// 更新settings（包含data_white_list）
-				await updateSettings({
+				updateSettings({
 					all_data_path: _path,
 					data_white_list: [],
 				})

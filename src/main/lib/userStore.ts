@@ -30,15 +30,6 @@ class UserStore {
 			lastUpdateTime: Date.now(),
 		}
 		this._userStore.set("userData", dataWithTimestamp)
-
-		// 同时存储用户设置到config.json
-		const store = new Store()
-		if (_WebUserInfo.user?.uuid) {
-			store.set("settings.hid", _WebUserInfo.user.uuid)
-		}
-		if (_WebUserInfo.user?.apiKey) {
-			store.set("settings.api_key", _WebUserInfo.user.apiKey)
-		}
 	}
 
 	// -- 获取用户信息（带缓存逻辑）
@@ -138,9 +129,6 @@ class UserStore {
 				if (response.status === 403) {
 					logger.error("[user] 凭证已过期或无效，清空用户状态")
 					await this.clearWebUserInfo()
-					// 清除config.json中的settings.api_key和settings.hid
-					store.delete("settings.api_key")
-					store.delete("settings.hid")
 					return "AUTH_FAILED"
 				}
 

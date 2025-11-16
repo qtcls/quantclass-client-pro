@@ -8,10 +8,11 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { useAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { RESET } from "jotai/utils"
 import { useEffect } from "react"
 import { toast } from "sonner"
+import { settingsAtom } from "../store/electron"
 import { userInfoMutationAtom } from "../store/mutation"
 import { userAtom } from "../store/user"
 import { useInterval } from "./useInterval"
@@ -24,12 +25,17 @@ const { rendererLog } = window.electronAPI
 export const useUserInfoSync = () => {
 	const [{ user, isLoggedIn }, setUser] = useAtom(userAtom)
 	const [{ mutateAsync: fetchUserInfo }] = useAtom(userInfoMutationAtom)
-
+	const setSettings = useSetAtom(settingsAtom)
 	const { start, stop } = useInterval(async () => {
 		const res = await fetchUserInfo(false)
 		if (res) {
 			setUser(res)
 		} else {
+			setSettings((prev) => ({
+				...prev,
+				hid: "",
+				api_key: "",
+			}))
 			setUser(RESET)
 			toast.dismiss()
 			toast.warning("账户信息异常，请重新登录")
@@ -52,6 +58,11 @@ export const useUserInfoSync = () => {
 			setUser(res)
 		} else {
 			setUser(RESET)
+			setSettings((prev) => ({
+				...prev,
+				hid: "",
+				api_key: "",
+			}))
 			toast.dismiss()
 			toast.warning("账户信息异常，请重新登录")
 		}

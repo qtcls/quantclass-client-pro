@@ -10,6 +10,7 @@
 
 import { useHandleTimeTask } from "@/renderer/hooks"
 import { isUpdatingAtom } from "@/renderer/store"
+import { settingsAtom } from "@/renderer/store/electron"
 import { accountKeyAtom, isLoginAtom } from "@/renderer/store/storage"
 import {
 	generateTimestampSign,
@@ -32,16 +33,19 @@ export const useLogout = () => {
 	const setTimestampSign = useSetAtom(timestampSignAtom)
 	const handleTimeTask = useHandleTimeTask()
 	const setIsLogin = useSetAtom(isLoginAtom)
-	const { deleteStoreValue, clearWebUserInfo } = window.electronAPI
+	const setSettings = useSetAtom(settingsAtom)
+	const { clearWebUserInfo } = window.electronAPI
 	const handleLogout = () => {
 		setIsLogin(false)
 		setUser(RESET)
 		setAccountKey(RESET)
 		setTimestampSign(generateTimestampSign())
 		setNonce(uuidV4())
-		deleteStoreValue("settings.hid")
-		deleteStoreValue("settings.api_key")
-
+		setSettings((prev) => ({
+			...prev,
+			hid: "",
+			api_key: "",
+		}))
 		if (isUpdating) {
 			handleTimeTask(true)
 		}

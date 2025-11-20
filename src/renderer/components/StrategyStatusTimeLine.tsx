@@ -54,140 +54,6 @@ interface StatusTimeLineItemProps {
 	itemIndex: number
 }
 
-const mockStrategyStatusData = {
-	data: [
-		[
-			{
-				strategyName: "趋势突破策略",
-				tag: "DATA_UPDATE",
-				title: "数据加载",
-				description: "从数据库加载基础行情数据",
-				status: "completed",
-				stat: {
-					time: [
-						new Date("2025-10-28T10:20:00"),
-						new Date("2025-10-28T10:23:00"),
-					],
-					timeDes: "数据成功加载完成",
-				},
-				plan: {
-					time: new Date("2025-10-28T10:00:00"),
-					timeDes: "预计 10:00 启动数据加载",
-				},
-				stats: [
-					{
-						time: [
-							new Date("2025-10-28T10:20:00"),
-							new Date("2025-10-28T10:23:00"),
-						],
-						timeDes: "永续合约 1 小时数据按币对维度加载完成",
-						messages: [
-							"成功加载 128 个币对的 1h K 线数据，缺失条数 0",
-							"数据校验通过，时间戳连续性良好",
-						],
-					},
-					{
-						time: [
-							new Date("2025-10-28T10:25:00"),
-							new Date("2025-10-28T10:28:00"),
-						],
-						timeDes: "自动增量更新完成",
-						messages: [
-							"增量数据写入 320 条，耗时 410ms",
-							"无重复记录，自动合并成功",
-						],
-						batchId: 102,
-					},
-				],
-			},
-			{
-				tag: "step-2",
-				title: "特征计算",
-				description: "计算因子特征：均线、成交量波动等",
-				status: "in_progress",
-				stat: {
-					time: new Date("2025-10-28T10:30:00"),
-					timeDes: "正在进行特征计算...",
-				},
-				plan: {
-					time: new Date("2025-10-28T10:25:00"),
-					timeDes: "预计在 10:25 启动计算任务",
-				},
-			},
-			{
-				tag: "step-3",
-				title: "信号生成",
-				description: "根据特征生成交易信号",
-				status: "pending",
-				stat: null,
-				plan: {
-					time: new Date("2025-10-28T11:00:00"),
-					timeDes: "预计 11:00 开始信号计算",
-				},
-			},
-			{
-				tag: "step-4",
-				title: "仓位调整",
-				description: "根据信号调整持仓比例",
-				status: "incomplete",
-				stat: {
-					time: new Date("2025-10-28T11:45:00"),
-					timeDes: "任务执行失败：未能获取账户信息",
-				},
-				plan: {
-					time: new Date("2025-10-28T11:15:00"),
-					timeDes: "原计划 11:15 完成仓位调整",
-				},
-			},
-		],
-		[
-			{
-				strategyName: "波段均值回归",
-				tag: "step-1",
-				title: "参数优化",
-				description: "使用遗传算法优化均值回归参数",
-				status: "completed",
-				stat: {
-					time: new Date("2025-10-27T09:10:00"),
-					timeDes: "优化成功，最佳参数 α=0.82",
-				},
-				plan: {
-					time: new Date("2025-10-27T09:00:00"),
-					timeDes: "预计 09:00 启动优化任务",
-				},
-			},
-			{
-				tag: "step-2",
-				title: "回测验证",
-				description: "对历史数据进行回测验证结果",
-				status: "completed",
-				stat: {
-					time: new Date("2025-10-27T10:20:00"),
-					timeDes: "回测完成，收益率 18.2%",
-				},
-				plan: {
-					time: new Date("2025-10-27T10:00:00"),
-					timeDes: "预计 10:00 启动回测",
-				},
-			},
-			{
-				tag: "step-3",
-				title: "实时监控",
-				description: "监控实时价格与信号偏离",
-				status: "in_progress",
-				stat: {
-					time: new Date("2025-10-28T09:00:00"),
-					timeDes: "系统正在实时监控中...",
-				},
-				plan: {
-					time: new Date("2025-10-28T08:45:00"),
-					timeDes: "预计 08:45 启动监控任务",
-				},
-			},
-		],
-	],
-}
-
 const statusIconMap = {
 	completed: {
 		icon: CheckCircle2,
@@ -414,7 +280,6 @@ export default function StrategyStatusTimeline() {
 	const [currentDialogItem, setCurrentDialogItem] =
 		useState<StrategyStatus | null>(null)
 
-	// 打开弹窗的方法
 	const openDialogAction = (statusItem: StrategyStatus) => {
 		setCurrentDialogItem(statusItem)
 		dialogRef.current?.open()
@@ -428,10 +293,7 @@ export default function StrategyStatusTimeline() {
 			setSelectedDate("")
 		}
 	}
-	// const strategyStatusList: StrategyStatus[][] =
-	// 	mockStrategyStatusData?.data || []
 
-	// console.log("strategyStatusList", strategyStatusList)
 	return (
 		<TimeLineContext.Provider value={openDialogAction}>
 			<Card className="w-full">

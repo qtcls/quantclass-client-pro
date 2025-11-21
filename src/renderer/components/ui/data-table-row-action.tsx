@@ -173,85 +173,86 @@ export function DataTableRowActions<TData>({
 
 	return (
 		<div className="flex items-center gap-2" key={task.name}>
-			<Tooltip delayDuration={0}>
-				<TooltipTrigger asChild>
-					<div className="inline-flex">
-						<Button
-							variant="outline"
-							className="flex h-7 w-7 p-0 text-success hover:text-success hover:border-success"
-							disabled={isIncrementalUpdateDisabled}
-							onClick={() => {
-								openAlert({
-									title: "检查并更新数据",
-									description: task.displayName ?? task.name,
-									content: (
-										<div className="leading-relaxed space-y-3">
-											<div className="flex items-center gap-2">
-												<RefreshCcwDot size={20} className="min-w-8" />
-												客户端根据本地
-												<span className="font-semibold">数据时间</span>
-												，自动判断是否需要更新。
+			{!isIncrementalUpdateDisabled && (
+				<Tooltip delayDuration={0}>
+					<TooltipTrigger asChild>
+						<div className="inline-flex">
+							<Button
+								variant="outline"
+								className="flex h-7 w-7 p-0 text-success hover:text-success hover:border-success"
+								onClick={() => {
+									openAlert({
+										title: "检查并更新数据",
+										description: task.displayName ?? task.name,
+										content: (
+											<div className="leading-relaxed space-y-3">
+												<div className="flex items-center gap-2">
+													<RefreshCcwDot size={20} className="min-w-8" />
+													客户端根据本地
+													<span className="font-semibold">数据时间</span>
+													，自动判断是否需要更新。
+												</div>
+												<div className="flex items-center gap-2">
+													<DownloadCloud size={20} className="min-w-8" />
+													会自动查询缺失日期，并逐日下载增量包。
+												</div>
+												<div className="flex items-center gap-2">
+													<Box size={20} className="min-w-8" />
+													增量数据下载后，会自动解压并合并到本地历史数据。
+												</div>
+												<hr />
+												<div className="text-sm text-warning-600 dark:text-warning-400 leading-relaxed">
+													<span className="font-bold">⚠️ 注意：</span>
+													<ul className="list-disc pl-4 mt-1">
+														<li>
+															数据更新时间与当前数据大小、当前的网速以及处理器性能有关。
+														</li>
+														<li>
+															如缺失天数比较多，则需要等待较长时间，
+															<span className="font-bold">
+																建议直接全量恢复数据
+															</span>
+															。
+														</li>
+													</ul>
+												</div>
 											</div>
-											<div className="flex items-center gap-2">
-												<DownloadCloud size={20} className="min-w-8" />
-												会自动查询缺失日期，并逐日下载增量包。
-											</div>
-											<div className="flex items-center gap-2">
-												<Box size={20} className="min-w-8" />
-												增量数据下载后，会自动解压并合并到本地历史数据。
-											</div>
-											<hr />
-											<div className="text-sm text-warning-600 dark:text-warning-400 leading-relaxed">
-												<span className="font-bold">⚠️ 注意：</span>
-												<ul className="list-disc pl-4 mt-1">
-													<li>
-														数据更新时间与当前数据大小、当前的网速以及处理器性能有关。
-													</li>
-													<li>
-														如缺失天数比较多，则需要等待较长时间，
-														<span className="font-bold">
-															建议直接全量恢复数据
-														</span>
-														。
-													</li>
-												</ul>
-											</div>
-										</div>
-									),
-									okText: "确认增量更新",
-									onOk: async () => {
-										const fuelStatus = await fetchFuelStatus()
-										if (fuelStatus) {
-											toast.info("正在自动更新，请稍候...")
-											return
-										}
+										),
+										okText: "确认增量更新",
+										onOk: async () => {
+											const fuelStatus = await fetchFuelStatus()
+											if (fuelStatus) {
+												toast.info("正在自动更新，请稍候...")
+												return
+											}
 
-										const needResume = isUpdating
+											const needResume = isUpdating
 
-										await createTerminalWindow()
-										if (needResume) {
-											await handleTimeTask(true)
-										}
-										await updateOneProduct(task.name)
-										await refresh()
-										if (needResume) {
-											await handleTimeTask(false)
-										}
-										await minimizeApp("terminal")
-									},
-								})
-							}}
-						>
-							<ListPlus size={14} />
-						</Button>
-					</div>
-				</TooltipTrigger>
-				<TooltipContent sideOffset={8}>
-					{isIncrementalUpdateDisabled
-						? incrementalUpdateDisabledReason
-						: "增量更新"}
-				</TooltipContent>
-			</Tooltip>
+											await createTerminalWindow()
+											if (needResume) {
+												await handleTimeTask(true)
+											}
+											await updateOneProduct(task.name)
+											await refresh()
+											if (needResume) {
+												await handleTimeTask(false)
+											}
+											await minimizeApp("terminal")
+										},
+									})
+								}}
+							>
+								<ListPlus size={14} />
+							</Button>
+						</div>
+					</TooltipTrigger>
+					<TooltipContent sideOffset={8}>
+						{isIncrementalUpdateDisabled
+							? incrementalUpdateDisabledReason
+							: "增量更新"}
+					</TooltipContent>
+				</Tooltip>
+			)}
 			<ButtonTooltip content="全量恢复数据" delayDuration={0}>
 				<Button
 					variant="outline"

@@ -264,7 +264,7 @@ export const useGenLibraryColumn = (
 				)
 				return (
 					<>
-						<div className="flex items-center gap-1">
+						<div className="flex items-center gap-1 text-nowrap">
 							<span>盘中择时：{signalTime}</span>
 							<Tooltip>
 								<TooltipTrigger asChild>

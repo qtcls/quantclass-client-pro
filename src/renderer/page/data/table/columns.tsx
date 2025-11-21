@@ -23,6 +23,7 @@ import { Check, HardDrive, Server, TriangleAlert } from "lucide-react"
 // 	const [year, month, day, hour, minute] = dateTimeString.split("-")
 // 	return `${year}-${month}-${day} ${hour}:${minute}`
 // }
+import { cn } from "@renderer/lib/utils"
 
 export const dataColumns = (
 	refresh: () => Promise<any>,
@@ -38,23 +39,34 @@ export const dataColumns = (
 				row.original?.updateTime !== row.original?.dataTime &&
 				row.original?.canAutoUpdate === 1
 
+			const message = canIncrementalUpdate ? "数据有更新" : "数据已同步"
+
 			return (
 				<div className="flex items-center gap-2">
 					<div className="text-foreground">
 						{row.original?.displayName ?? "--"}
 					</div>
-					{canIncrementalUpdate && (
-						<Tooltip delayDuration={0}>
-							<TooltipTrigger>
-								<div className="flex items-center justify-center w-4 h-4 rounded-full bg-warning/20 text-warning">
+					<Tooltip delayDuration={0}>
+						<TooltipTrigger>
+							<div
+								className={cn(
+									"flex items-center justify-center size-5 rounded-full",
+									canIncrementalUpdate
+										? "bg-warning/20 text-warning"
+										: "bg-success/20 text-success",
+								)}
+							>
+								{canIncrementalUpdate ? (
 									<TriangleAlert size={12} />
-								</div>
-							</TooltipTrigger>
-							<TooltipContent sideOffset={10}>
-								<p>有新数据可增量更新</p>
-							</TooltipContent>
-						</Tooltip>
-					)}
+								) : (
+									<Check size={12} />
+								)}
+							</div>
+						</TooltipTrigger>
+						<TooltipContent sideOffset={10}>
+							<p>{message}</p>
+						</TooltipContent>
+					</Tooltip>
 				</div>
 			)
 		},

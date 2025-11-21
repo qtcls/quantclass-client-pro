@@ -14,8 +14,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/renderer/components/ui/tooltip"
-import { IDataListType } from "@/renderer/schemas/data-schema"
-import { ColumnDef } from "@tanstack/react-table"
+import type { IDataListType } from "@/renderer/schemas/data-schema"
+import type { ColumnDef } from "@tanstack/react-table"
 import { Check, HardDrive, Server, TriangleAlert } from "lucide-react"
 
 // -- 辅助函数：格式化日期时间字符串
@@ -26,14 +26,38 @@ import { Check, HardDrive, Server, TriangleAlert } from "lucide-react"
 
 export const dataColumns = (
 	refresh: () => Promise<any>,
-	isUpdating: boolean,
+	_isUpdating: boolean,
 ): Array<ColumnDef<IDataListType>> => [
 	{
 		accessorKey: "displayName",
 		header: () => <div className="text-foreground">数据名称</div>,
-		// cell: ({ row }) => (
-		// 	<div className="text-muted-foreground">{row.original?.displayName ?? "--"}</div>
-		// ),
+		cell: ({ row }) => {
+			const canIncrementalUpdate =
+				row.original?.updateTime &&
+				row.original?.dataTime &&
+				row.original?.updateTime !== row.original?.dataTime &&
+				row.original?.canAutoUpdate === 1
+
+			return (
+				<div className="flex items-center gap-2">
+					<div className="text-foreground">
+						{row.original?.displayName ?? "--"}
+					</div>
+					{canIncrementalUpdate && (
+						<Tooltip delayDuration={0}>
+							<TooltipTrigger>
+								<div className="flex items-center justify-center w-4 h-4 rounded-full bg-warning/20 text-warning">
+									<TriangleAlert size={12} />
+								</div>
+							</TooltipTrigger>
+							<TooltipContent sideOffset={10}>
+								<p>有新数据可增量更新</p>
+							</TooltipContent>
+						</Tooltip>
+					)}
+				</div>
+			)
+		},
 	},
 	{
 		accessorKey: "name",

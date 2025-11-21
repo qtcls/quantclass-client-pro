@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { DataTableRowActions } from "@/renderer/components/ui/data-table-row-action"
 import {
 	Tooltip,
@@ -16,7 +17,7 @@ import {
 } from "@/renderer/components/ui/tooltip"
 import { IDataListType } from "@/renderer/schemas/data-schema"
 import { ColumnDef } from "@tanstack/react-table"
-import { Check, HardDrive, Server, TriangleAlert } from "lucide-react"
+import { Check, HardDrive, Loader2, Server, TriangleAlert } from "lucide-react"
 
 // -- 辅助函数：格式化日期时间字符串
 // const formatDateTime = (dateTimeString: string): string => {

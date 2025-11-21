@@ -22,11 +22,11 @@ import {
 } from "@/renderer/components/ui/dropdown-menu"
 import { useLogout } from "@/renderer/layout/UserMenu/useLogout"
 import { cn } from "@/renderer/lib/utils"
-import type { UserAccountInfo } from "@/shared/types"
+import { UserInfo } from "@/renderer/types"
 import { LogOut, Sparkles } from "lucide-react"
 
 interface UserMenuContentProps {
-	user: UserAccountInfo | null
+	user: UserInfo | null
 }
 
 export const UserMenuContent = ({ user }: UserMenuContentProps) => {

@@ -11,11 +11,10 @@
 import { Button } from "@/renderer/components/ui/button"
 import { cn } from "@/renderer/lib/utils"
 import { IDataListType } from "@/renderer/schemas/data-schema"
-import { stepAtom } from "@/renderer/store"
 import { AnimatePresence, motion } from "framer-motion"
-import { SetStateAction, useAtomValue } from "jotai"
+import { SetStateAction } from "jotai"
 import { ArrowLeft, ArrowRight, LoaderCircleIcon } from "lucide-react"
-import { Dispatch, ReactNode, useMemo } from "react"
+import { Dispatch, ReactNode } from "react"
 
 const CheckIcon = ({ className }: { className?: string }) => {
 	return (
@@ -83,12 +82,10 @@ const LoaderCore = ({
 						transition={{ duration: 0.5 }}
 					>
 						<div>
-							{/* {!loadingState.loading && index > value && ( */}
-							{index > value && (
+							{!loadingState.loading && index > value && (
 								<CheckIcon className="text-black dark:text-white" />
 							)}
-							{/* {!loadingState.loading && index <= value && ( */}
-							{index < value && (
+							{!loadingState.loading && index <= value && (
 								<CheckFilled
 									className={cn(
 										"text-black dark:text-white",
@@ -97,8 +94,7 @@ const LoaderCore = ({
 									)}
 								/>
 							)}
-							{/* {loadingState.loading && ( */}
-							{value === index && (
+							{loadingState.loading && (
 								<LoaderCircleIcon
 									className={cn(
 										"h-6 w-6 animate-spin text-black dark:text-white",
@@ -110,6 +106,17 @@ const LoaderCore = ({
 						</div>
 
 						<span
+							// onClick={async () => {
+							//   if (isAnyLoading || loadingState.loading) return
+
+							//   if (value !== index && value > index) {
+							//     toast.warning('请先完成当前步骤')
+
+							//     return
+							//   }
+
+							//   await loadingState.action()
+							// }}
 							className={cn(
 								"inline-flex w-36 text-black dark:text-white",
 								value === index && "text-black opacity-100 dark:text-lime-500",
@@ -139,31 +146,23 @@ const LoaderCore = ({
 
 export const MultiStepLoader = ({
 	task,
+	loading,
 	loadingStates,
 	currentState,
 	setCurrentState,
-	downloadProgress,
-	showStepLoader,
 }: {
 	task: IDataListType
+	loading?: boolean
+	stepOneLoading?: boolean
 	loadingStates: LoadingState[]
 	currentState: number
-	setCurrentState: Dispatch<SetStateAction<number>>
-	downloadProgress: string
-	showStepLoader: boolean
+	setCurrentState?: Dispatch<SetStateAction<number>>
 }) => {
-	const step = useAtomValue(stepAtom)
-	const isAnyLoading = useMemo(() => {
-		return loadingStates.some((state) => state.loading)
-	}, [loadingStates])
-
-	if (!showStepLoader) {
-		return null
-	}
+	const isAnyLoading = loadingStates.some((state) => state.loading)
 
 	return (
 		<AnimatePresence mode="wait">
-			{showStepLoader && (
+			{loading && (
 				<motion.div
 					initial={{
 						opacity: 0,
@@ -174,21 +173,11 @@ export const MultiStepLoader = ({
 					exit={{
 						opacity: 0,
 					}}
-					className="fixed inset-0 z-[100] top-10 flex h-[calc(100%-2.5rem)] w-full flex-col items-center justify-center backdrop-blur-2xl bg-background"
+					className="fixed inset-0 z-[100] top-10 flex h-[calc(100%-2.5rem)] w-full flex-col items-center justify-center backdrop-blur-2xl"
 				>
 					<div className="relative top-0 flex flex-col items-center justify-center gap-1.5">
 						<div className="text-xl text-foreground">{task.displayName}</div>
 						<div className="text-lg text-muted-foreground">{task.name}</div>
-						{step === 0 && (
-							<div className="text-sm text-primary animate-pulse">
-								正在从小讲堂获取全量数据下载连接...
-							</div>
-						)}
-						<div className="text-sm text-warning">
-							{step > 1
-								? "[导入数据] 正在解压缩全量数据，和你CPU性能有关，请耐心等待..."
-								: downloadProgress}
-						</div>
 					</div>
 
 					<div className="relative h-80">

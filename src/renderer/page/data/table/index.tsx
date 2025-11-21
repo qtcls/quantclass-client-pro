@@ -9,13 +9,13 @@
  */
 
 import { DataTable } from "@/renderer/components/ui/data-table"
+import { usePermission } from "@/renderer/hooks/useIdentityArray"
+import { isUpdatingAtom } from "@/renderer/store"
 import { useProductList } from "@/renderer/hooks/useProductList"
 import { dataColumns } from "@/renderer/page/data/table/columns"
 import { DataTableActionOptions } from "@/renderer/page/data/table/options"
-import type { ISubscribeListType } from "@/renderer/schemas/subscribe-schema"
-import { isUpdatingAtom } from "@/renderer/store"
-import { userAtom } from "@/renderer/store/user"
-import type { ColumnDef } from "@tanstack/react-table"
+import { ISubscribeListType } from "@/renderer/schemas/subscribe-schema"
+import { ColumnDef } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
 import { type FC, memo } from "react"
 
@@ -25,7 +25,7 @@ const DataList: FC = () => {
 		productList,
 		isUpdating: isProductUpdating,
 	} = useProductList()
-	const { roles, isMember } = useAtomValue(userAtom)
+	const { checkDataListPermission } = usePermission()
 	const isUpdating = useAtomValue(isUpdatingAtom)
 
 	return (
@@ -41,13 +41,9 @@ const DataList: FC = () => {
 				loading={isProductUpdating}
 				actionOptions={DataTableActionOptions}
 				checkboxDisabled={(row) => {
-					if (isMember) return false
-
 					const data = row.original as ISubscribeListType
 					const courseType = data.course_access?.[0]
-					return courseType
-						? roles[courseType as keyof typeof roles].disabled
-						: true
+					return checkDataListPermission(courseType)
 				}}
 				columns={
 					dataColumns(async () => update(), isUpdating) as ColumnDef<unknown>[]

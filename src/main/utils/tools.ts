@@ -297,18 +297,6 @@ export async function isAnyKernalBusy(
 	return false
 }
 
-export const killKernalByName = async (kernal: KernalType) => {
-	const killCommandByName = platform.isWindows
-		? `taskkill /IM ${kernal}.exe /T /F`
-		: `pkill -f ${kernal}`
-	try {
-		execSync(killCommandByName, { stdio: "ignore" })
-		logger.info(`[${kernal}] 所有 ${kernal} 进程已被强制终止`)
-	} catch (e) {
-		logger.error(`[${kernal}] 强制终止 ${kernal} 进程失败: ${e}`)
-	}
-}
-
 /**
  * 强制结束所有 Fuel 进程
  * @param isManual - 是否为手动调用,默认为 false
@@ -354,7 +342,15 @@ export const killKernalByForce = async (
 	}
 	// console.log("33333")
 	if (strictMode) {
-		await killKernalByName(kernal)
+		const killCommandByName = platform.isWindows
+			? `taskkill /IM ${kernal}.exe /T /F`
+			: `pkill -f ${kernal}`
+		try {
+			execSync(killCommandByName, { stdio: "ignore" })
+			logger.info(`[${kernal}] 所有 ${kernal} 进程已被强制终止`)
+		} catch (e) {
+			logger.error(`[${kernal}] 强制终止 ${kernal} 进程失败: ${e}`)
+		}
 	}
 }
 
@@ -366,36 +362,6 @@ export const killAllKernalByForce = async (
 	for (const kernal of kernals) {
 		if (!platform.isWindows && kernal === "rocket") continue
 		await killKernalByForce(kernal, kernal === "rocket" || strictMode) // -- rocket 仅在 Windows 下运行，杀死时候做强杀
-	}
-}
-
-export const killAllKernalByName = async (
-	kernals: KernalType[] = ["fuel", "aqua", "rocket", "zeus"],
-) => {
-	logger.info(`[kill] ${kernals.join(", ")}`)
-	const uniqueKernals = Array.from(new Set(kernals))
-
-	if (platform.isWindows) {
-		const killCommandByNames = [
-			"taskkill",
-			...uniqueKernals.map((kernal) => `/IM ${kernal}.exe`),
-			"/T",
-			"/F",
-		].join(" ")
-		try {
-			execSync(killCommandByNames, { stdio: "ignore" })
-			for (const kernal of uniqueKernals) {
-				logger.info(`[${kernal}] 所有 ${kernal} 进程已被强制终止`)
-			}
-		} catch (error) {
-			logger.error(`[kill] 批量终止内核进程失败: ${error}`)
-		}
-		return
-	}
-
-	for (const kernal of kernals) {
-		await killKernalByName(kernal)
-		logger.info(`[${kernal}] 所有 ${kernal} 进程已被强制终止`)
 	}
 }
 

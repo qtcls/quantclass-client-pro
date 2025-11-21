@@ -39,7 +39,7 @@ dayjs.extend(duration)
 export const BacktestControls = () => {
 	const [{ data }] = useAtom(monitorProcessesQueryAtom)
 	const isRunning = data?.some((item) => item.kernel === "aqua")
-	const { checkWithToast } = usePermissionCheck()
+	const { check } = usePermissionCheck()
 
 	const setBacktestExecTime = useSetAtom(backtestExecTimeAtom)
 	const [open, setOpen] = useState(false)
@@ -102,7 +102,6 @@ export const BacktestControls = () => {
 
 	const { isAutoRocket } = useToggleAutoRealTrading()
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		getStoreValue("schedule.selectModule", []).then((selectModuleTimes) => {
 			setSelectModuleTimes(selectModuleTimes as string[])
@@ -119,7 +118,7 @@ export const BacktestControls = () => {
 						e.stopPropagation()
 						// -- 权限检查
 						if (
-							!checkWithToast({
+							!check({
 								requireMember: true,
 								windowsOnly: true,
 							}).isValid
@@ -137,7 +136,7 @@ export const BacktestControls = () => {
 					e.stopPropagation()
 					// -- 权限检查
 					if (
-						!checkWithToast({
+						!check({
 							requireMember: true,
 							windowsOnly: true,
 						}).isValid

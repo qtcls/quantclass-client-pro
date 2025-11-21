@@ -122,11 +122,8 @@ export const CoreStrategySchema = z.object({
 	offset_list: OffsetListSchema,
 	rebalance_time: RebalanceTimeSchema,
 	factor_list: z.array(z.any()),
-	cross_sections: z.array(z.any()),
 	filter_list: z.array(z.any()),
 	timing: TimingSchema,
-	scalein_targets: z.array(z.number()).optional(),
-	override: TimingSchema, // 提前离场逻辑
 	info: z.any().optional(), // 策略信息，用于存储策略的额外信息
 })
 

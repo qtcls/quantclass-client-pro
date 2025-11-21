@@ -59,9 +59,8 @@ export const RealMarketConfigSchema = z.object({
 	performance_mode: z.enum(["EQUAL", "PERFORMANCE", "ECONOMY"]),
 	reverse_repo_keep: z.union([z.string(), z.number()]).refine(
 		(value) => {
-			const numValue =
-				typeof value === "string" ? Number.parseFloat(value) : value
-			return !Number.isNaN(numValue) && numValue >= 0
+			const numValue = typeof value === "string" ? parseFloat(value) : value
+			return !isNaN(numValue) && numValue >= 0
 		},
 		{ message: "逆回购保留金额必须是一个大于等于0的数字" },
 	),
@@ -73,7 +72,7 @@ export function TradingConfigForm() {
 	const { selectDirectory, createRealTradingDir } = window.electronAPI
 	const { user } = useAtomValue(userAtom)
 	const { data: rocketStatus = false } = useAtomValue(rocketStatusQueryAtom)
-	const { checkWithToast } = usePermissionCheck()
+	const { check } = usePermissionCheck()
 	const [choosing, setChoosing] = useState(false)
 	const [realMarketConfig, setRealMarketConfig] = useAtom(
 		realMarketConfigSchemaAtom,
@@ -110,7 +109,7 @@ export function TradingConfigForm() {
 		try {
 			// -- 权限检查
 			if (
-				!checkWithToast({
+				!check({
 					requireMember: true,
 					windowsOnly: true,
 					onlyIn2025: true,
@@ -139,7 +138,7 @@ export function TradingConfigForm() {
 			const values = form.getValues()
 
 			// -- 处理 start_date，确保保存的是字符串
-			const { date_start, ...restValues } = values
+			const { date_start: date_start, ...restValues } = values
 			const formattedValues = {
 				...restValues,
 				filter_kcb: values.filter_kcb !== "0",
@@ -181,7 +180,6 @@ export function TradingConfigForm() {
 		{ wait: 100 },
 	)
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		form.reset(defaultValues)
 	}, [])
@@ -212,11 +210,6 @@ export function TradingConfigForm() {
 														<p>
 															选择“不过滤”，所有策略都不会过滤，如果需要针对单个策略做过滤，请参考帖子：
 															<span
-																onKeyDown={(e) => {
-																	if (e.key === "Enter" || e.key === " ") {
-																		e.preventDefault()
-																	}
-																}}
 																onClick={() =>
 																	openUrl("https://qtcls.cn/38022")
 																}
@@ -287,11 +280,6 @@ export function TradingConfigForm() {
 														<p>
 															选择“不过滤”，所有策略都不会过滤，如果需要针对单个策略做过滤，请参考帖子：
 															<span
-																onKeyDown={(e) => {
-																	if (e.key === "Enter" || e.key === " ") {
-																		e.preventDefault()
-																	}
-																}}
 																onClick={() =>
 																	openUrl("https://qtcls.cn/38022")
 																}
@@ -544,11 +532,6 @@ export function TradingConfigForm() {
 											机器人配置参考：
 										</span>
 										<span
-											onKeyDown={(e) => {
-												if (e.key === "Enter" || e.key === " ") {
-													e.preventDefault()
-												}
-											}}
 											onClick={() =>
 												openUrl("https://bbs.quantclass.cn/thread/10975")
 											}

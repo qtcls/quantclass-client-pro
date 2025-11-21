@@ -11,8 +11,7 @@
 import { usePermissionCheck } from "@/renderer/hooks"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 import { isUpdatingAtom } from "@/renderer/store"
-import { accountKeyAtom } from "@/renderer/store/storage"
-import { userAtom } from "@/renderer/store/user"
+import { accountKeyAtom, accountRoleAtom } from "@/renderer/store/storage"
 import { useAtomValue, useSetAtom } from "jotai"
 import { toast } from "sonner"
 
@@ -30,21 +29,20 @@ const DEFAULT_MESSAGES: ToastMessage = {
 const { toggleHandler } = window.electronAPI
 
 export const useHandleTimeTask = () => {
-	const { isMember } = useAtomValue(userAtom)
+	const { role } = useAtomValue(accountRoleAtom)
 	const { uuid, apiKey } = useAtomValue(accountKeyAtom)
 	const setIsUpdating = useSetAtom(isUpdatingAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
-	const { checkWithToast } = usePermissionCheck()
+	const { check } = usePermissionCheck()
 
 	return async (
 		isPause: boolean,
 		showToast = true,
 		messages: Partial<ToastMessage> = {},
 	) => {
-		if (!checkWithToast().isValid) return false
+		if (!check().isValid) return false
 
-		// if (role === 0) {
-		if (!isMember) {
+		if (role === 0) {
 			toast.dismiss()
 			toast.warning("该功能为课程同学专属使用")
 			return false

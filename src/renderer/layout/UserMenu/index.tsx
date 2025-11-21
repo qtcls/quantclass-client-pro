@@ -25,10 +25,12 @@ import {
 	DropdownMenuTrigger,
 } from "@/renderer/components/ui/dropdown-menu"
 import { SidebarMenuButton } from "@/renderer/components/ui/sidebar"
+import { usePermission } from "@/renderer/hooks/useIdentityArray"
 import { UserMenuContent } from "@/renderer/layout/UserMenu/UserMenuContent"
 import { getStatusExpires } from "@/renderer/request"
 import { isLoginAtom, statusExpiresAtom } from "@/renderer/store/storage"
 import {
+	checkAccountRoleEffectAtom,
 	generateTimestampSign,
 	macAddressAtom,
 	nonceAtom,
@@ -47,8 +49,9 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 const { VITE_BASE_URL } = import.meta.env
 
 export const UserMenu = () => {
+	const { checkPermission } = usePermission()
 	const [nonce, setNonce] = useAtom(nonceAtom)
-	const [{ user, isLoggedIn, isMember }] = useAtom(userAtom)
+	const [{ user, isLoggedIn }] = useAtom(userAtom)
 	const clientId = useAtomValue(macAddressAtom)
 	const setTimestampSign = useSetAtom(timestampSignAtom)
 	const setStatusExpires = useSetAtom(statusExpiresAtom)
@@ -59,6 +62,7 @@ export const UserMenu = () => {
 
 	// -- Effect Atom
 	useAtom(userAuthEffectAtom)
+	useAtom(checkAccountRoleEffectAtom)
 
 	// -- Dialog 状态
 	const [open, setOpen] = useState(false)
@@ -67,7 +71,6 @@ export const UserMenu = () => {
 	useEffect(() => {
 		if (isLoggedIn) {
 			setOpen(false)
-			setIsLogin(false)
 		}
 	}, [isLoggedIn])
 	// -- 处理认证响应
@@ -78,7 +81,7 @@ export const UserMenu = () => {
 			// const { role } = (await checkAccountRole()).data ?? { role: 0 }
 
 			// -- 如果角色不是分享会，则设置状态过期时间
-			if (!isMember) {
+			if (!checkPermission(["FEN"])) {
 				const res = await getStatusExpires(user.apiKey, user.uuid)
 				if (res.code === 200) {
 					setStatusExpires(res.data.valid_to)

@@ -16,7 +16,7 @@ import {
 } from "@/renderer/components/ui/card"
 import { H3 } from "@/renderer/components/ui/typography"
 // import { H3 } from "@/renderer/components/ui/typography"
-import { isWindows } from "@/renderer/constant"
+import { useRealTradingRole } from "@/renderer/hooks/useRealTradingRole"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
 import { libraryTypeAtom } from "@/renderer/store/storage"
@@ -34,16 +34,10 @@ import { useRef } from "react"
 import { useMemo } from "react"
 
 export const ProcessKanban = () => {
-	const { isMember } = useAtomValue(userAtom)
+	const { user } = useAtomValue(userAtom)
+	const hasRealTradingAccess = useRealTradingRole()
 	const [{ data }] = useAtom(monitorProcessesQueryAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
-
-	const { VITE_XBX_ENV } = import.meta.env
-
-	// 实盘交易权限检查
-	const canRealTrading =
-		VITE_XBX_ENV === "development" ||
-		(isMember && isWindows && VITE_XBX_ENV === "production")
 
 	return (
 		<div className="flex flex-col gap-2">
@@ -57,13 +51,13 @@ export const ProcessKanban = () => {
 
 			<div className="grid  gap-2">
 				<ProcessCard data={data} kernel="fuel" />
-				{canRealTrading && isMember && (
+				{hasRealTradingAccess && user?.isMember && (
 					<ProcessCard
 						data={data}
 						kernel={libraryType === "pos" ? "zeus" : "aqua"}
 					/>
 				)}
-				{canRealTrading && isMember && (
+				{hasRealTradingAccess && user?.isMember && (
 					<ProcessCard data={data} kernel="rocket" />
 				)}
 			</div>
@@ -165,7 +159,7 @@ export const ProcessCard = ({
 				<span>未启用</span>
 			</div>
 		)
-	}, [isRunning, isInitializing, kernel])
+	}, [isRunning, isInitializing, kernel, actionMap])
 	return (
 		<Card className="relative">
 			<div className="absolute right-4 top-4 h-3 w-3">
@@ -173,13 +167,13 @@ export const ProcessCard = ({
 					<>
 						<div
 							className={`absolute h-full w-full rounded-full opacity-75 ${getStatusColor} animate-ping`}
-						/>
+						></div>
 						<div
 							className={`absolute h-full w-full rounded-full ${getStatusColor}`}
-						/>
+						></div>
 					</>
 				) : (
-					<div className={`h-full w-full rounded-full ${getStatusColor}`} />
+					<div className={`h-full w-full rounded-full ${getStatusColor}`}></div>
 				)}
 			</div>
 

@@ -10,20 +10,20 @@
 
 import { Button } from "@/renderer/components/ui/button"
 import { Checkbox } from "@/renderer/components/ui/checkbox"
-import {
-	Dialog,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/renderer/components/ui/dialog"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { DeleteIcon } from "@/renderer/icons/DeleteIcon"
 import { cn } from "@/renderer/lib/utils"
-import type { BaseStrategy } from "@/renderer/types"
+import { BaseStrategy } from "@/renderer/types"
 import { useMutation } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "@/renderer/components/ui/dialog"
 
 interface DeleteStrategyProps<T extends BaseStrategy> {
 	strategy: T

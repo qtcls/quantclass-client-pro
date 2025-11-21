@@ -22,7 +22,6 @@ import { cleanupDB } from "@/main/server/middleware/db.js"
 import {
 	cleanLockFiles,
 	killAllKernalByForce,
-	killAllKernalByName,
 	startServerOnAvailablePort,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
@@ -31,11 +30,11 @@ import { regDataIPC } from "@/preload/data/data-ipc.js"
 import { regFileSysIPC } from "@/preload/file-sys/file-sys-ipc.js"
 import { regStoreIPC } from "@/preload/store/store-ipc.js"
 import { regSystemIPC } from "@/preload/system/system-ipc.js"
-import { regUserIPC } from "@/preload/user/user-ipc.js"
 import { regWindowsIPC } from "@/preload/windows/windows-ipc.js"
 import { is, platform } from "@electron-toolkit/utils"
 import { type Tray, app, ipcMain, powerMonitor, shell } from "electron"
 import log from "electron-log/main.js"
+import { userStore } from "./lib/userStore.js"
 import store from "./store/index.js"
 
 // -- 初始化日志记录器
@@ -104,7 +103,6 @@ if (!gotTheLock) {
 		regFileSysIPC()
 		regDataIPC()
 		regWindowsIPC()
-		regUserIPC()
 
 		// -- 创建主窗口与终端窗口
 		await createWindow()
@@ -163,6 +161,23 @@ if (!gotTheLock) {
 		setupAppLifecycle(tray)
 
 		is.dev && mainWindow?.webContents.openDevTools()
+
+		// -- 监听用户信息同步
+		ipcMain.on("sync-user-state", async (_event, userState) => {
+			logger.info("[user] 信息已同步")
+			await userStore.setUserState(userState)
+		})
+
+		// -- 监听获取用户信息请求
+		ipcMain.handle("get-user-state", async () => {
+			return await userStore.getUserState()
+		})
+
+		// -- 监听清除用户信息请求
+		ipcMain.on("clear-user-state", async () => {
+			logger.info("[user] 信息已清除")
+			await userStore.clearUserState()
+		})
 	})
 
 	// -- 当应用程序激活时
@@ -209,7 +224,7 @@ if (!gotTheLock) {
 	app.on("quit", async (_, exitCode) => {
 		// 在这里添加你的清理或保存操作
 		await cleanLockFiles()
-		await killAllKernalByName()
+		await killAllKernalByForce(true)
 		logger.info(`应用已退出，退出码：${exitCode}`)
 	})
 }

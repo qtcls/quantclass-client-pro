@@ -11,6 +11,29 @@
 export type { SettingsType } from "./settings.js"
 export type { RealMarketConfigType } from "./trading.js"
 
+export interface UserInfo {
+	id: string
+	uuid: string
+	apiKey: string
+	headimgurl: string
+	isMember: boolean
+	// 参加小组信息
+	groupInfo: string[]
+	nickname: string
+	membershipInfo: string[]
+	approval: {
+		block: boolean
+		crypto: boolean
+		stock: boolean
+	}
+}
+
+export interface UserState {
+	token: string
+	user: UserInfo | null
+	isLoggedIn: boolean
+}
+
 // 定义一个基础策略类型
 export interface BaseStrategy {
 	name: string

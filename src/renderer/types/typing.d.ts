@@ -17,7 +17,6 @@ type StoreIPC = typeof import("@/preload/store/index.js").storeIPC
 type DataIPC = typeof import("@/preload/data/index.js").dataIPC
 type EmitterIPC = typeof import("@/preload/emitter/index.js").emitterIPC
 type CoreIPC = typeof import("@/preload/core/index.js").coreIPC
-type UserIPC = typeof import("@/preload/user/index.js").userIPC
 
 // 组合所有IPC类型
 type CustomElectronAPI = SystemIPC &
@@ -25,8 +24,7 @@ type CustomElectronAPI = SystemIPC &
 	StoreIPC &
 	DataIPC &
 	EmitterIPC &
-	CoreIPC &
-	UserIPC
+	CoreIPC
 
 interface Versions {
 	node: () => string

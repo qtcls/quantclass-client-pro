@@ -21,13 +21,16 @@ import { Button } from "@/renderer/components/ui/button"
 import { Label } from "@/renderer/components/ui/label"
 import { Separator } from "@/renderer/components/ui/separator"
 import { Switch } from "@/renderer/components/ui/switch"
-import { isWindows } from "@/renderer/constant"
 import { useAlertDialog } from "@/renderer/context/alert-dialog"
-import { useHandleTimeTask, useToggleAutoRealTrading } from "@/renderer/hooks"
+import {
+	useHandleTimeTask,
+	usePermissionCheck,
+	useToggleAutoRealTrading,
+} from "@/renderer/hooks"
 import { useAppVersions } from "@/renderer/hooks/useAppVersion"
 import { useInvokeUpdateKernal } from "@/renderer/hooks/useInvokeUpdateKernal"
-import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { useRealMarketConfig } from "@/renderer/hooks/useRealMarketConfig"
+import { useRealTradingRole } from "@/renderer/hooks/useRealTradingRole"
 import { useSettings } from "@/renderer/hooks/useSettings"
 import { useVersionCheck } from "@/renderer/hooks/useVersionCheck"
 import { cn } from "@/renderer/lib/utils"
@@ -35,8 +38,7 @@ import Contributors from "@/renderer/page/settings/contributors"
 import { isAutoLoginAtom, versionListAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
-import type { SettingsType } from "@/renderer/types"
-import type { KernalType } from "@/shared/types"
+import { KernalType } from "@/shared/types"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
 	Blocks,
@@ -60,16 +62,10 @@ import { AboutPage } from "./about"
 
 export default function SettingsPage() {
 	const [showContributors, setShowContributors] = useState(false)
-	const { isMember } = useAtomValue(userAtom)
-	const { checkWithToast } = usePermissionCheck()
+	const { user } = useAtomValue(userAtom)
+	const { check } = usePermissionCheck()
+	const hasRealTradingAccess = useRealTradingRole()
 	const [isAutoLogin, setIsAutoLogin] = useAtom(isAutoLoginAtom)
-
-	const { VITE_XBX_ENV } = import.meta.env
-
-	// 实盘交易权限检查
-	const canRealTrading =
-		VITE_XBX_ENV === "development" ||
-		(isMember && isWindows && VITE_XBX_ENV === "production")
 	const version = useAtomValue(versionsAtom)
 	const setVersionList = useSetAtom(versionListAtom)
 	const { setAutoLaunch, openDataDirectory, killAllKernals, openUrl } =
@@ -87,27 +83,22 @@ export default function SettingsPage() {
 		return settings.is_auto_launch_update
 	}, [settings.is_auto_launch_update])
 
-	const handleSetIsAutoLaunchUpdate = (value: boolean) => {
-		const updates: Partial<SettingsType> = { is_auto_launch_update: value }
+	const handleSetIsAutoLaunchUpdate = async (value: boolean) => {
+		updateSettings({ is_auto_launch_update: value })
 		if (!value) {
-			updates.is_auto_launch_real_trading = false
+			updateSettings({ is_auto_launch_real_trading: false })
 		}
-		updateSettings(updates)
 		toast.dismiss()
 		toast.success(value ? "自动更新已开启" : "自动更新已关闭")
 	}
 
-	const handleSetIsAutoLaunchRealTrading = (value: boolean) => {
-		if (!checkWithToast({ requireMember: true, onlyIn2025: true }).isValid)
-			return
+	const handleSetIsAutoLaunchRealTrading = async (value: boolean) => {
+		if (!check({ requireMember: true, onlyIn2025: true }).isValid) return
 
-		const updates: Partial<SettingsType> = {
-			is_auto_launch_real_trading: value,
-		}
+		updateSettings({ is_auto_launch_real_trading: value })
 		if (value) {
-			updates.is_auto_launch_update = true
+			updateSettings({ is_auto_launch_update: true })
 		}
-		updateSettings(updates)
 		toast.dismiss()
 		toast.success(value ? "实盘自动启动已开启" : "实盘自动启动已关闭")
 	}
@@ -210,27 +201,25 @@ export default function SettingsPage() {
 						<div className="text-sm flex items-center gap-1">
 							<Badge className="font-mono h-5">v{version.clientVersion}</Badge>
 							<span>｜</span>
-							<button
-								type="button"
-								className="cursor-pointer text-muted-foreground hover:underline"
+							<span
+								className="cursor-pointer text-muted-foreground"
 								onClick={() => {
 									setVersionList([])
 								}}
 							>
 								客户端更新日志
-							</button>
+							</span>
 							{hasClientUpdate && (
 								<>
 									<span>｜</span>
-									<button
-										type="button"
-										className="cursor-pointer text-blue-500 dark:text-blue-400 hover:underline"
+									<span
+										className="cursor-pointer text-blue-500 dark:text-blue-400"
 										onClick={() => {
 											openUrl(appVersions?.app?.download as string)
 										}}
 									>
 										下载新版
-									</button>
+									</span>
 								</>
 							)}
 						</div>
@@ -247,34 +236,36 @@ export default function SettingsPage() {
 						appVersions={appVersions}
 					/>
 
-					<>
-						{isFusionMode ? (
-							<KernalVersion
-								name="zeus"
-								title="高级选股内核"
-								Icon={SquareFunction}
-								versionKey="zeusVersion"
-								appVersions={appVersions}
-							/>
-						) : (
-							<KernalVersion
-								name="aqua"
-								title="选股内核"
-								Icon={SquareFunction}
-								versionKey="aquaVersion"
-								appVersions={appVersions}
-							/>
-						)}
+					{hasRealTradingAccess && user?.isMember && (
+						<>
+							{isFusionMode ? (
+								<KernalVersion
+									name="zeus"
+									title="高级选股内核"
+									Icon={SquareFunction}
+									versionKey="zeusVersion"
+									appVersions={appVersions}
+								/>
+							) : (
+								<KernalVersion
+									name="aqua"
+									title="选股内核"
+									Icon={SquareFunction}
+									versionKey="aquaVersion"
+									appVersions={appVersions}
+								/>
+							)}
 
-						<KernalVersion
-							name="rocket"
-							title="下单内核"
-							Icon={Blocks}
-							versionKey="rocketVersion"
-							appVersions={appVersions}
-							disabled={window.electron?.process?.platform === "darwin"}
-						/>
-					</>
+							<KernalVersion
+								name="rocket"
+								title="下单内核"
+								Icon={Blocks}
+								versionKey="rocketVersion"
+								appVersions={appVersions}
+								disabled={window.electron?.process?.platform === "darwin"}
+							/>
+						</>
+					)}
 				</div>
 			</div>
 
@@ -282,9 +273,7 @@ export default function SettingsPage() {
 				<Button
 					variant="outline"
 					size="sm"
-					disabled={
-						!isMember || isCheckingAppVersions || isLoadingLocalVersions
-					}
+					disabled={isCheckingAppVersions || isLoadingLocalVersions}
 					onClick={async () => {
 						await refetchAppVersions()
 						await refetchLocalVersions()
@@ -305,11 +294,10 @@ export default function SettingsPage() {
 				<Button
 					variant="outline"
 					size="sm"
-					disabled={!isMember}
 					onClick={async () => {
-						if (!isMember) {
+						if (!user?.isMember) {
 							toast.dismiss()
-							toast.error("本功能为分享会同学使用")
+							toast.error("请先登录")
 							return
 						}
 						await handleUpdateKernals()
@@ -355,16 +343,13 @@ export default function SettingsPage() {
 							数据更新性能，性能越高，数据更新速度越快，但会占用更多性能。
 						</p>
 					</div>
-					<div className={cn(!isMember && "pointer-events-none opacity-50")}>
-						<PerformanceModeSelectTabs
-							name="数据更新"
-							defaultValue={settings.performance_mode || "EQUAL"}
-							onValueChange={(value) => {
-								if (!isMember) return
-								updateSettings({ performance_mode: value })
-							}}
-						/>
-					</div>
+					<PerformanceModeSelectTabs
+						name="数据更新"
+						defaultValue={settings.performance_mode || "EQUAL"}
+						onValueChange={(value) => {
+							updateSettings({ performance_mode: value })
+						}}
+					/>
 				</div>
 
 				<div className="flex items-center justify-between">
@@ -377,16 +362,13 @@ export default function SettingsPage() {
 							选股性能模式，性能越高，选股速度越快，但会占用更多性能。
 						</p>
 					</div>
-					<div className={cn(!isMember && "pointer-events-none opacity-50")}>
-						<PerformanceModeSelectTabs
-							name="选股"
-							defaultValue={realMarketConfig.performance_mode || "EQUAL"}
-							onValueChange={(value) => {
-								if (!isMember) return
-								setPerformanceMode(value)
-							}}
-						/>
-					</div>
+					<PerformanceModeSelectTabs
+						name="选股"
+						defaultValue={realMarketConfig.performance_mode || "EQUAL"}
+						onValueChange={(value) => {
+							setPerformanceMode(value)
+						}}
+					/>
 				</div>
 			</div>
 
@@ -429,12 +411,11 @@ export default function SettingsPage() {
 					<Switch
 						id="is_auto_launch_update"
 						checked={isAutoLaunchUpdate}
-						disabled={!isMember}
 						onCheckedChange={handleSetIsAutoLaunchUpdate}
 					/>
 				</div>
 
-				{canRealTrading && (
+				{hasRealTradingAccess && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-1">
 							<Label
@@ -451,7 +432,6 @@ export default function SettingsPage() {
 						<Switch
 							id="is_auto_launch_real_trading"
 							checked={isAutoLaunchRealTrading}
-							disabled={!isMember}
 							onCheckedChange={handleSetIsAutoLaunchRealTrading}
 						/>
 					</div>

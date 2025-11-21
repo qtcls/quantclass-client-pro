@@ -74,6 +74,3 @@ export const errAlertAtom = atom<boolean>(false)
 export const terminalTabAtom = atom<string>("fuel")
 
 export const realConfigEditModalAtom = atom<boolean>(false) // 实盘配置页面的modal
-
-// 存储每个任务的 step loader 显示状态，key 是任务名称
-export const stepLoaderMapAtom = atom<Record<string, boolean>>({})

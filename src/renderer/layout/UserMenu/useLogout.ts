@@ -9,14 +9,9 @@
  */
 
 import { useHandleTimeTask } from "@/renderer/hooks"
-import { clearUserState } from "@/renderer/ipc/userInfo"
 import { isUpdatingAtom } from "@/renderer/store"
-import {
-	accountKeyAtom,
-	accountRoleAtom,
-	isLoginAtom,
-	userIdentityAtom,
-} from "@/renderer/store/storage"
+import { settingsAtom } from "@/renderer/store/electron"
+import { accountKeyAtom, isLoginAtom } from "@/renderer/store/storage"
 import {
 	generateTimestampSign,
 	nonceAtom,
@@ -34,28 +29,29 @@ export const useLogout = () => {
 	const isUpdating = useAtomValue(isUpdatingAtom)
 	const setUser = useSetAtom(userAtom)
 	const setAccountKey = useSetAtom(accountKeyAtom)
-	const setAccountRole = useSetAtom(accountRoleAtom)
 	const setNonce = useSetAtom(nonceAtom)
 	const setTimestampSign = useSetAtom(timestampSignAtom)
+	const setSettings = useSetAtom(settingsAtom)
 	const handleTimeTask = useHandleTimeTask()
 	const setIsLogin = useSetAtom(isLoginAtom)
-	const setUserIdentity = useSetAtom(userIdentityAtom)
-	const { deleteStoreValue } = window.electronAPI
+	const { clearWebUserInfo } = window.electronAPI
 	const handleLogout = () => {
 		setIsLogin(false)
-		setUserIdentity(RESET)
 		setUser(RESET)
 		setAccountKey(RESET)
-		setAccountRole(RESET)
 		setTimestampSign(generateTimestampSign())
 		setNonce(uuidV4())
-		deleteStoreValue("status")
-		deleteStoreValue("settings.hid")
-		deleteStoreValue("settings.api_key")
+		
+		setSettings((prev) => ({
+			...prev,
+			hid: "",
+			api_key: "",
+		}))
+
 		if (isUpdating) {
 			handleTimeTask(true)
 		}
-		clearUserState()
+		clearWebUserInfo()
 		navigate("/")
 		toast.info("登出成功")
 	}

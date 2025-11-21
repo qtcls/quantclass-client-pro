@@ -51,8 +51,11 @@ const genSelectStgInfo = (strategy: SelectStgType, includeInfo = true) => {
 		select_num: Number.parseInt(String(strategy.select_num)),
 		factor_list: strategy.factor_list,
 		filter_list: strategy.filter_list,
+		cross_sections: strategy.cross_sections ?? [], // -- 截面因子配置
 		rebalance_time: strategy.rebalance_time,
 		timing: strategy.timing ?? null,
+		scalein_targets: strategy.scalein_targets ?? null,
+		override: strategy.override ?? null,
 		...(includeInfo ? { info: strategy.info ?? {} } : {}), // -- 根据参数决定是否包含info字段
 	}
 }

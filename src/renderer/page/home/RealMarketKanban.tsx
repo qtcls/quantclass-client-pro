@@ -46,7 +46,7 @@ const { getStoreValue } = window.electronAPI
 export const RealMarketKanban = () => {
 	// const navigate = useNavigate()
 	const [confirmStartAutoUpdate, setConfirmStartAutoTrading] = useState(false)
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const [showMoney, setShowMoney] = useAtom(showMoneyAtom)
 	const totalWeight = useAtomValue(totalWeightAtom)
 	const isUpdating = useAtomValue(isUpdatingAtom)
@@ -62,9 +62,14 @@ export const RealMarketKanban = () => {
 	const [{ data, refetch }] = useAtom(loadAccountQueryAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		if (
-			check({ requireMember: true, windowsOnly: true, skipToast: true }).isValid
+			checkWithToast({
+				requireMember: true,
+				windowsOnly: true,
+				skipToast: true,
+			}).isValid
 		) {
 			refetch().then(() => {
 				console.log("loadAccountQueryAtom success")
@@ -72,6 +77,7 @@ export const RealMarketKanban = () => {
 		}
 	}, [])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		if (apiKey === "" && uuid === "" && isAutoRocket) {
 			handleToggleAutoRocket(false).then(() => {
@@ -80,6 +86,7 @@ export const RealMarketKanban = () => {
 		}
 	}, [apiKey, uuid])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		getStoreValue("schedule.selectModule", []).then((selectModuleTimes) => {
 			setSelectModuleTimes(selectModuleTimes as string[])
@@ -122,7 +129,7 @@ export const RealMarketKanban = () => {
 						onClick={() => {
 							// -- 权限检查
 							if (
-								!check({
+								!checkWithToast({
 									requireMember: true,
 									windowsOnly: true,
 								}).isValid
@@ -202,7 +209,7 @@ export const RealMarketKanban = () => {
 					</div>
 				</div>
 
-				<div className="flex items-center gap-2"></div>
+				<div className="flex items-center gap-2" />
 
 				{libraryType !== "pos" && (
 					<Card className="p-0">

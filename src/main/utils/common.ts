@@ -11,7 +11,7 @@
 import { exec } from "node:child_process"
 import { existsSync } from "node:fs"
 import fs from "node:fs/promises"
-import { arch } from "node:os"
+// import { arch } from "node:os"
 import path from "node:path"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
@@ -55,11 +55,7 @@ export enum Channels {
  */
 export const getKernalPath = async (kernel: string) => {
 	const codePath = await store.getAllDataPath("code", true)
-	let kernalPath: string = path.join(
-		codePath,
-		platform.isWindows ? kernel : `${kernel}-${arch()}`, // 非Windows系统，需要加上arch()
-		kernel,
-	)
+	let kernalPath: string = path.join(codePath, kernel, kernel)
 
 	if (platform.isWindows) {
 		kernalPath = `${kernalPath}.exe`

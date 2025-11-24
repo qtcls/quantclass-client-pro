@@ -55,6 +55,7 @@ async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
 			return {
 				tag: stat.tag || "",
 				time,
+				timeDes: stat.timeDes || "",
 				messages: Array.isArray(stat.messages) ? stat.messages : [],
 				...(stat.batchId && { batchId: stat.batchId }),
 			}
@@ -163,10 +164,7 @@ function parseTimeToDate(
 function determineStatus(
 	planTime: Date | null,
 	deadlineTime: Date | null,
-	stat?: {
-		time: [Date, Date | null] | null
-		messages: string[]
-	},
+	stat?: StrategyStatusStat,
 	strictMatch = false,
 ): StrategyStatusEnum {
 	// 如果没有计划时间，默认为pending

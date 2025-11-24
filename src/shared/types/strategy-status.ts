@@ -39,6 +39,7 @@ export interface StrategyStatusPlan {
 export interface StrategyStatusStat {
 	tag: StrategyStatusTag
 	time: [Date, Date | null] | null // 实际执行时间范围 [startTime, endTime]，startTime为开始时间，endTime为结束时间（null表示正在进行中）
+	timeDes: string
 	messages: string[]
 	batchId?: string //有则是自动增量更新数据  没有则是手动更新
 }

@@ -38,7 +38,7 @@ async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
 		}
 
 		const stats: StrategyStatusStat[] = data.stats.map((stat: any) => {
-			let time: Date | null | [Date, Date | null] = null
+			let time: [Date, Date | null] | null = null
 			if (stat.time) {
 				if (Array.isArray(stat.time)) {
 					// 时间范围 [startTime, endTime]
@@ -46,15 +46,15 @@ async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
 					const endTime = stat.time[1] ? new Date(stat.time[1]) : null
 					time = [startTime, endTime]
 				} else {
-					// 单个时间
-					time = new Date(stat.time)
+					// 如果是单个时间，转换为时间范围 [time, null]
+					const startTime = new Date(stat.time)
+					time = [startTime, null]
 				}
 			}
 
 			return {
 				tag: stat.tag || "",
 				time,
-				timeDes: stat.timeDes || "",
 				messages: Array.isArray(stat.messages) ? stat.messages : [],
 				...(stat.batchId && { batchId: stat.batchId }),
 			}
@@ -155,22 +155,19 @@ function parseTimeToDate(
 	return result
 }
 
-// 将 Date 对象格式化为时间字符串（如"09:45:30"）
-function formatDateTime(date: Date): string {
-	const hours = date.getHours().toString().padStart(2, "0")
-	const minutes = date.getMinutes().toString().padStart(2, "0")
-	const seconds = date.getSeconds().toString().padStart(2, "0")
-	return `${hours}:${minutes}:${seconds}`
-}
-
 // 根据计划时间和实际执行时间判断状态
+// planTime: 计划时间（单个时间点）
+// stat.time: 实际执行时间范围 [startTime, endTime | null]
+// deadlineTime: 截止时间（下一个状态的计划开始时间）
+// strictMatch: 只有实盘卖出和买入需要严格匹配时间
 function determineStatus(
-	planTime: Date | null | [Date, Date],
+	planTime: Date | null,
+	deadlineTime: Date | null,
 	stat?: {
-		time: Date | null | [Date, Date]
-		timeDes: string
+		time: [Date, Date | null] | null
 		messages: string[]
 	},
+	strictMatch = false,
 ): StrategyStatusEnum {
 	// 如果没有计划时间，默认为pending
 	if (!planTime) {
@@ -179,32 +176,47 @@ function determineStatus(
 
 	const now = new Date()
 
-	const planEndTime = Array.isArray(planTime) ? planTime[1] : planTime
-
 	// 如果还没有实际执行时间（还未开始）
 	if (!stat?.time) {
-		if (now <= planEndTime) {
+		// 如果当前时间还未到计划时间，状态为pending
+		if (now < planTime) {
 			return StrategyStatusEnum.PENDING
 		}
-
-		return StrategyStatusEnum.INCOMPLETE
+		// 如果当前时间已过计划时间但还未执行
+		if (deadlineTime && now > deadlineTime) {
+			return StrategyStatusEnum.INCOMPLETE
+		}
+		return StrategyStatusEnum.PENDING
 	}
 
-	// 有实际执行时间，需要判断是否已完成
-	const statEndTime = Array.isArray(stat.time) ? stat.time[1] : stat.time
+	const [statStartTime, statEndTime] = stat.time
 
-	// 如果 stat 正在进行中（数组类型但没有结束时间）
-	if (Array.isArray(stat.time) && !statEndTime) {
-		if (now <= planEndTime) {
+	// 如果需要严格匹配时间（实盘卖出和买入）
+	if (strictMatch) {
+		// 检查开始时间是否严格等于计划时间
+		if (statStartTime.getTime() === planTime.getTime()) {
+			// 如果已结束，则完成
+			if (statEndTime) {
+				return StrategyStatusEnum.COMPLETED
+			}
+			// 如果未结束，则进行中
 			return StrategyStatusEnum.IN_PROGRESS
 		}
+		// 时间不匹配
+		if (statEndTime) {
+			return StrategyStatusEnum.INCOMPLETE
+		}
+		return StrategyStatusEnum.IN_PROGRESS
+	}
 
+	// 检查是否超过截止时间（除实盘卖出和买入外的其他状态）
+	if (deadlineTime && statStartTime > deadlineTime) {
 		return StrategyStatusEnum.INCOMPLETE
 	}
 
-	// 判断实际结束时间是否超过预期结束时间
-	if (statEndTime && statEndTime > planEndTime) {
-		return StrategyStatusEnum.INCOMPLETE
+	// 如果 stat 正在进行中（没有结束时间）
+	if (!statEndTime) {
+		return StrategyStatusEnum.IN_PROGRESS
 	}
 
 	return StrategyStatusEnum.COMPLETED
@@ -217,15 +229,13 @@ async function generateSingleStrategyStatus(
 	hasTimingOrOverride: boolean,
 	sellTimeStr: string,
 	buyTimeStr: string,
-	buyDuration: number,
 	date: string,
 	isOvernightRebalance: boolean, // 是否隔日换仓
 ): Promise<StrategyStatus[]> {
 	const fuelStats = await readStatsFromJson(date)
 	const qmtDataTime = parseTimeToDate(latestTiming, date)
-	const qmtDataTimeDes = qmtDataTime
-		? formatDateTime(qmtDataTime)
-		: latestTiming
+		? new Date(parseTimeToDate(latestTiming, date)!.getTime() + 60 * 1000)
+		: null
 	const sellDayOffset = isOvernightRebalance ? -1 : 0
 
 	// 从卖出时间推算交易计划生成时间（卖出前2分钟）
@@ -238,38 +248,16 @@ async function generateSingleStrategyStatus(
 		? new Date(sellTime.getTime() - 2 * 60 * 1000)
 		: null
 
-	const tradingPlanTimeRange: [Date, Date] | null =
-		tradingPlanTime && sellTime ? [tradingPlanTime, sellTime] : null
+	// DATA_UPDATE: 前一天16:00，截止时间为前一天22:00
+	// const dataUpdateTime = parseTimeToDate("1600", date, -1)
+	// const dataUpdateDeadline = parseTimeToDate("2200", date, -1)
 
-	// QMT_DATA_FUZZY, QMT_DATA, SINGAL_FUZZY, SIGNAL 的时间范围都是 [qmtDataTime, tradingPlanTime]
-	const qmtToTradingTimeRange: [Date, Date] | null =
-		qmtDataTime && tradingPlanTime ? [qmtDataTime, tradingPlanTime] : null
+	// SELECT_CLOSE: 前一天15:00，截止时间为第二天9:00
+	const selectCloseTime = parseTimeToDate("1500", date, -1)
+	const selectCloseDeadline = parseTimeToDate("0900", date)
 
-	// 前一天的时间（股市收盘、数据更新、选股生成都是前一天的事）
-	const marketCloseTime = parseTimeToDate("1500", date, -1)
-	const dataUpdateTimeRange: [Date, Date] = [
-		parseTimeToDate("1600", date, -1)!,
-		parseTimeToDate("2200", date, -1)!,
-	]
-	const selectStockTimeRange: [Date, Date] = [
-		parseTimeToDate("2200", date, -1)!,
-		parseTimeToDate("0000", date)!,
-	]
-
-	// 当天的时间
-	const rocketInitTime = parseTimeToDate("0900", date)
-	const preSellTimeRange: [Date, Date] = [
-		parseTimeToDate("0915", date)!,
-		parseTimeToDate("0930", date)!,
-	]
-
+	// 当天的买入时间
 	const buyTime = parseTimeToDate(buyTimeStr.replace(/:/g, ""), date)
-	const buyEndTime =
-		buyTime && buyDuration > 0
-			? new Date(buyTime.getTime() + buyDuration * 1000)
-			: buyTime
-	const buyTimeRange: [Date, Date] | null =
-		buyTime && buyEndTime ? [buyTime, buyEndTime] : null
 
 	const findStatsByTag = (tag: string) => {
 		return fuelStats.filter((stat) => stat.tag === tag)
@@ -283,115 +271,124 @@ async function generateSingleStrategyStatus(
 	}
 
 	const statusList: StrategyStatus[] = [
+		// {
+		// 	strategyName,
+		// 	tag: "DATA_UPDATE",
+		// 	title: "历史数据更新",
+		// 	description: "更新历史行情数据",
+		// 	status: determineStatus(
+		// 		dataUpdateTime,
+		// 		dataUpdateDeadline,
+		// 		findLatestStatByTag("DATA_UPDATE"),
+		// 	),
+		// 	plan: {
+		// 		time: dataUpdateTime,
+		// 	},
+		// 	stat: findLatestStatByTag("DATA_UPDATE"),
+		// 	stats: findStatsByTag("DATA_UPDATE"),
+		// },
 		{
 			strategyName,
-			tag: "MARKET_CLOSE",
-			title: "股市收盘",
-			description: "股市收盘时间",
+			tag: "SELECT_CLOSE",
+			title: "选股",
+			description: "基于收盘数据生成选股结果",
 			status: determineStatus(
-				marketCloseTime,
-				findLatestStatByTag("MARKET_CLOSE"),
+				selectCloseTime,
+				selectCloseDeadline,
+				findLatestStatByTag("SELECT_CLOSE"),
 			),
 			plan: {
-				time: marketCloseTime,
-				timeDes: "昨日 15:00",
+				time: selectCloseTime,
 			},
-			stat: findLatestStatByTag("MARKET_CLOSE"),
-			stats: findStatsByTag("MARKET_CLOSE"),
+			stat: findLatestStatByTag("SELECT_CLOSE"),
+			stats: findStatsByTag("SELECT_CLOSE"),
+		},
+	]
+
+	// 只有当存在 timing 或 override 时，添加择时信号状态
+	if (hasTimingOrOverride) {
+		statusList.push(
+			{
+				strategyName,
+				tag: "SELECT_TIMING_SIG0",
+				title: "计算模糊择时信号",
+				description: "计算模糊择时信号",
+				status: determineStatus(
+					qmtDataTime,
+					tradingPlanTime,
+					findLatestStatByTag("SELECT_TIMING_SIG0"),
+				),
+				plan: {
+					time: qmtDataTime,
+				},
+				stat: findLatestStatByTag("SELECT_TIMING_SIG0"),
+				stats: findStatsByTag("SELECT_TIMING_SIG0"),
+			},
+			{
+				strategyName,
+				tag: "SELECT_TIMING_SIG1",
+				title: "计算精确择时信号",
+				description: "计算精确择时信号",
+				status: determineStatus(
+					qmtDataTime,
+					tradingPlanTime,
+					findLatestStatByTag("SELECT_TIMING_SIG1"),
+				),
+				plan: {
+					time: qmtDataTime,
+				},
+				stat: findLatestStatByTag("SELECT_TIMING_SIG1"),
+				stats: findStatsByTag("SELECT_TIMING_SIG1"),
+			},
+		)
+	}
+
+	statusList.push(
+		{
+			strategyName,
+			tag: "TRADE_SELL_PLAN",
+			title: "生成卖出计划",
+			description: "在卖出时间前2分钟生成卖出计划",
+			status: determineStatus(
+				tradingPlanTime,
+				sellTime,
+				findLatestStatByTag("TRADE_SELL_PLAN"),
+			),
+			plan: {
+				time: tradingPlanTime,
+			},
+			stat: findLatestStatByTag("TRADE_SELL_PLAN"),
+			stats: findStatsByTag("TRADE_SELL_PLAN"),
 		},
 		{
 			strategyName,
-			tag: "DATA_UPDATE",
-			title: "历史数据更新",
-			description: "更新历史行情数据",
+			tag: "TRADE_BUY_PLAN",
+			title: "生成买入计划",
+			description: "在卖出时间前2分钟生成买入计划",
 			status: determineStatus(
-				dataUpdateTimeRange,
-				findLatestStatByTag("DATA_UPDATE"),
+				tradingPlanTime,
+				sellTime,
+				findLatestStatByTag("TRADE_BUY_PLAN"),
 			),
 			plan: {
-				time: dataUpdateTimeRange,
-				timeDes: "昨日 16:00～22:00",
+				time: tradingPlanTime,
 			},
-			stat: findLatestStatByTag("DATA_UPDATE"),
-			stats: findStatsByTag("DATA_UPDATE"),
-		},
-		{
-			strategyName,
-			tag: "SELECT_STOCK",
-			title: "生成选股",
-			description: "数据完成更新后，在24:00会强制刷新选股结果",
-			status: determineStatus(
-				selectStockTimeRange,
-				findLatestStatByTag("SELECT_STOCK"),
-			),
-			plan: {
-				time: selectStockTimeRange,
-				timeDes: "22:00-24:00",
-			},
-			stat: findLatestStatByTag("SELECT_STOCK"),
-			stats: findStatsByTag("SELECT_STOCK"),
-		},
-		{
-			strategyName,
-			tag: "ROCKET_INIT",
-			title: "Rocket启动",
-			description: "启动实盘交易引擎",
-			status: determineStatus(
-				rocketInitTime,
-				findLatestStatByTag("ROCKET_INIT"),
-			),
-			plan: {
-				time: rocketInitTime,
-				timeDes: "09:00",
-			},
-			stat: findLatestStatByTag("ROCKET_INIT"),
-			stats: findStatsByTag("ROCKET_INIT"),
-		},
-		{
-			strategyName,
-			tag: "PRE_SELL",
-			title: "集合竞价卖出",
-			description: "在集合竞价期间执行卖出操作（当前有非空卖出计划时）",
-			status: determineStatus(
-				preSellTimeRange,
-				findLatestStatByTag("PRE_SELL"),
-			),
-			plan: {
-				time: preSellTimeRange,
-				timeDes: "09:15-09:30，且当前有非空卖出计划",
-			},
-			stat: findLatestStatByTag("PRE_SELL"),
-			stats: findStatsByTag("PRE_SELL"),
-		},
-		{
-			strategyName,
-			tag: "TRADING_PLAN",
-			title: "生成买入/卖出计划",
-			description: "在卖出时间前2分钟生成交易计划",
-			status: determineStatus(
-				tradingPlanTimeRange,
-				findLatestStatByTag("TRADING_PLAN"),
-			),
-			plan: {
-				time: tradingPlanTimeRange,
-				timeDes: tradingPlanTimeRange
-					? isOvernightRebalance
-						? `昨日 ${sellTimeStr}前2分钟～${sellTimeStr}`
-						: `${sellTimeStr}前2分钟～${sellTimeStr}`
-					: "卖出时间前2分钟",
-			},
-			stat: findLatestStatByTag("TRADING_PLAN"),
-			stats: findStatsByTag("TRADING_PLAN"),
+			stat: findLatestStatByTag("TRADE_BUY_PLAN"),
+			stats: findStatsByTag("TRADE_BUY_PLAN"),
 		},
 		{
 			strategyName,
 			tag: "SELL",
 			title: "实盘卖出",
 			description: "执行实盘卖出操作",
-			status: determineStatus(sellTime, findLatestStatByTag("SELL")),
+			status: determineStatus(
+				sellTime,
+				sellTime,
+				findLatestStatByTag("SELL"),
+				true, // 严格匹配时间
+			),
 			plan: {
 				time: sellTime,
-				timeDes: isOvernightRebalance ? `昨日 ${sellTimeStr}` : sellTimeStr,
 			},
 			stat: findLatestStatByTag("SELL"),
 			stats: findStatsByTag("SELL"),
@@ -401,99 +398,22 @@ async function generateSingleStrategyStatus(
 			tag: "BUY",
 			title: "实盘买入",
 			description: "执行实盘买入操作",
-			status: determineStatus(buyTimeRange, findLatestStatByTag("BUY")),
+			status: determineStatus(
+				buyTime,
+				buyTime,
+				findLatestStatByTag("BUY"),
+				true, // 严格匹配时间
+			),
 			plan: {
-				time: buyTimeRange,
-				timeDes:
-					buyTimeRange && buyDuration > 0 && buyEndTime
-						? `${buyTimeStr}～${formatDateTime(buyEndTime)}`
-						: buyTimeStr,
+				time: buyTime,
 			},
 			stat: findLatestStatByTag("BUY"),
 			stats: findStatsByTag("BUY"),
 		},
-	]
-
-	// 只有当存在 timing 或 override 时，添加这四个可选状态
-	if (hasTimingOrOverride) {
-		statusList.push(
-			{
-				strategyName,
-				tag: "QMT_DATA_FUZZY",
-				title: "获取QMT盘中模糊行情数据",
-				description: `预计在${qmtDataTimeDes}后1-2分钟开始`,
-				status: determineStatus(
-					qmtToTradingTimeRange,
-					findLatestStatByTag("QMT_DATA_FUZZY"),
-				),
-				plan: {
-					time: qmtToTradingTimeRange,
-					timeDes: qmtToTradingTimeRange
-						? `${qmtDataTimeDes}～${tradingPlanTime ? formatDateTime(tradingPlanTime) : "交易计划时间"}`
-						: `09:30-${qmtDataTimeDes}，策略中${qmtDataTimeDes}配置一致，1-2分钟后开始`,
-				},
-				stat: findLatestStatByTag("QMT_DATA_FUZZY"),
-				stats: findStatsByTag("QMT_DATA_FUZZY"),
-			},
-			{
-				strategyName,
-				tag: "QMT_DATA",
-				title: "获取QMT盘中行情数据",
-				description: `预计在${qmtDataTimeDes}后1-2分钟开始`,
-				status: determineStatus(
-					qmtToTradingTimeRange,
-					findLatestStatByTag("QMT_DATA"),
-				),
-				plan: {
-					time: qmtToTradingTimeRange,
-					timeDes: qmtToTradingTimeRange
-						? `${qmtDataTimeDes}～${tradingPlanTime ? formatDateTime(tradingPlanTime) : "交易计划时间"}`
-						: `09:30-${qmtDataTimeDes}，策略中${qmtDataTimeDes}配置一致，1-2分钟后开始`,
-				},
-				stat: findLatestStatByTag("QMT_DATA"),
-				stats: findStatsByTag("QMT_DATA"),
-			},
-			{
-				strategyName,
-				tag: "SINGAL_FUZZY",
-				title: "计算模糊择时信号",
-				description: "在获取到模糊行情数据后进行计算",
-				status: determineStatus(
-					qmtToTradingTimeRange,
-					findLatestStatByTag("SINGAL_FUZZY"),
-				),
-				plan: {
-					time: qmtToTradingTimeRange,
-					timeDes: qmtToTradingTimeRange
-						? `${qmtDataTimeDes}～${tradingPlanTime ? formatDateTime(tradingPlanTime) : "交易计划时间"}`
-						: "在获取到模糊行情数据后，预计需要2-5分钟",
-				},
-				stat: findLatestStatByTag("SINGAL_FUZZY"),
-				stats: findStatsByTag("SINGAL_FUZZY"),
-			},
-			{
-				strategyName,
-				tag: "SIGNAL",
-				title: "计算精确择时信号",
-				description: "在获取到行情数据后进行计算",
-				status: determineStatus(
-					qmtToTradingTimeRange,
-					findLatestStatByTag("SIGNAL"),
-				),
-				plan: {
-					time: qmtToTradingTimeRange,
-					timeDes: qmtToTradingTimeRange
-						? `${qmtDataTimeDes}～${tradingPlanTime ? formatDateTime(tradingPlanTime) : "交易计划时间"}`
-						: "在获取到行情数据后，预计需要2-5分钟",
-				},
-				stat: findLatestStatByTag("SIGNAL"),
-				stats: findStatsByTag("SIGNAL"),
-			},
-		)
-	}
+	)
 
 	return sortBy(statusList, (s) => {
-		const t = Array.isArray(s.plan.time) ? s.plan.time[0] : s.plan.time
+		const t = s.plan.time
 		// time 为 null，排在最后
 		return t ? t.getTime() : Number.POSITIVE_INFINITY
 	})
@@ -527,7 +447,6 @@ export async function getStrategyStatusList(
 
 				const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
 				const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
-				const buyDuration = strategyConfig?.buy?.[4] ?? 0
 
 				const { latestTime, hasTimingOrOverride } = getStrategyTiming(strategy)
 
@@ -546,7 +465,6 @@ export async function getStrategyStatusList(
 					hasTimingOrOverride,
 					sellTimeStr,
 					buyTimeStr,
-					buyDuration,
 					date,
 					isOvernightRebalance,
 				)

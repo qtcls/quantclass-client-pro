@@ -9,16 +9,12 @@
  */
 
 export type StrategyStatusTag =
-	| "MARKET_CLOSE"
 	| "DATA_UPDATE"
-	| "SELECT_STOCK"
-	| "ROCKET_INIT"
-	| "PRE_SELL"
-	| "QMT_DATA_FUZZY"
-	| "QMT_DATA"
-	| "SINGAL_FUZZY"
-	| "SIGNAL"
-	| "TRADING_PLAN"
+	| "SELECT_CLOSE"
+	| "SELECT_TIMING_SIG0"
+	| "SELECT_TIMING_SIG1"
+	| "TRADE_SELL_PLAN"
+	| "TRADE_BUY_PLAN"
 	| "SELL"
 	| "BUY"
 
@@ -37,14 +33,12 @@ export enum StrategyStatusLabelEnum {
 }
 
 export interface StrategyStatusPlan {
-	time: Date | null | [Date, Date] // 单个时间或时间范围
-	timeDes: string
+	time: Date | null
 }
 
 export interface StrategyStatusStat {
 	tag: StrategyStatusTag
-	time: Date | null | [Date, Date]
-	timeDes: string
+	time: [Date, Date | null] | null // 实际执行时间范围 [startTime, endTime]，startTime为开始时间，endTime为结束时间（null表示正在进行中）
 	messages: string[]
 	batchId?: string //有则是自动增量更新数据  没有则是手动更新
 }

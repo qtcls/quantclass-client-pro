@@ -23,6 +23,7 @@ import { sortBy } from "lodash-es"
 async function readStatsFromJson(
 	date: string,
 	kernel: string,
+	strategyRealMarketName?: string,
 ): Promise<StrategyStatusStat[]> {
 	try {
 		const fileName = `${kernel}-stats-${date}.json`
@@ -38,7 +39,15 @@ async function readStatsFromJson(
 			return []
 		}
 
-		const stats: StrategyStatusStat[] = data.stats.map((stat: any) => {
+		// 如果是实盘内核的json，则按策略名筛选出 stats
+		let filteredStats = data.stats
+		if (strategyRealMarketName) {
+			filteredStats = data.stats.filter(
+				(stat: any) => stat.strategy === strategyRealMarketName,
+			)
+		}
+
+		const stats: StrategyStatusStat[] = filteredStats.map((stat: any) => {
 			let time: [Date, Date | null] | null = null
 			if (stat.time) {
 				if (Array.isArray(stat.time)) {
@@ -237,6 +246,7 @@ async function generateSingleStrategyStatus(
 	hasTimingOrOverride: boolean,
 	sellTimeStr: string,
 	buyTimeStr: string,
+	strategyRealMarketName: string,
 	date: string,
 	isOvernightRebalance: boolean, // 是否隔日换仓
 ): Promise<StrategyStatus[]> {
@@ -244,7 +254,11 @@ async function generateSingleStrategyStatus(
 
 	// const fuelStats = await readStatsFromJson(date, "fuel")
 	const selectStats = await readStatsFromJson(date, selectKernel)
-	const rocketStats = await readStatsFromJson(date, "rocket")
+	const rocketStats = await readStatsFromJson(
+		date,
+		"rocket",
+		strategyRealMarketName,
+	)
 
 	const qmtDataTime = parseTimeToDate(latestTiming, date)
 		? new Date(parseTimeToDate(latestTiming, date)!.getTime() + 60 * 1000)
@@ -424,37 +438,37 @@ async function generateSingleStrategyStatus(
 		},
 		{
 			strategyName,
-			tag: "SELL",
+			tag: "TRADE_SELL",
 			title: "实盘卖出",
 			description: "执行实盘卖出操作",
 			status: determineStatus(
 				sellTime,
 				sellTime,
-				findLatestStatByTag(rocketStats, "SELL"),
+				findLatestStatByTag(rocketStats, "TRADE_SELL"),
 				true, // 严格匹配时间
 			),
 			plan: {
 				time: sellTime,
 			},
-			stat: findLatestStatByTag(rocketStats, "SELL"),
-			stats: findStatsByTag(rocketStats, "SELL"),
+			stat: findLatestStatByTag(rocketStats, "TRADE_SELL"),
+			stats: findStatsByTag(rocketStats, "TRADE_SELL"),
 		},
 		{
 			strategyName,
-			tag: "BUY",
+			tag: "TRADE_BUY",
 			title: "实盘买入",
 			description: "执行实盘买入操作",
 			status: determineStatus(
 				buyTime,
 				buyTime,
-				findLatestStatByTag(rocketStats, "BUY"),
+				findLatestStatByTag(rocketStats, "TRADE_BUY"),
 				true, // 严格匹配时间
 			),
 			plan: {
 				time: buyTime,
 			},
-			stat: findLatestStatByTag(rocketStats, "BUY"),
-			stats: findStatsByTag(rocketStats, "BUY"),
+			stat: findLatestStatByTag(rocketStats, "TRADE_BUY"),
+			stats: findStatsByTag(rocketStats, "TRADE_BUY"),
 		},
 	)
 
@@ -493,6 +507,7 @@ export async function getStrategyStatusList(
 
 				const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
 				const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
+				const strategyRealMarketName = strategyConfig?.name ?? ""
 
 				const { latestTime, hasTimingOrOverride } = getStrategyTiming(strategy)
 
@@ -502,7 +517,7 @@ export async function getStrategyStatusList(
 					!rebalanceTime || rebalanceTime === "close-open"
 
 				logger.info(
-					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}`,
+					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, 实盘策略名=${strategyRealMarketName}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}`,
 				)
 
 				return await generateSingleStrategyStatus(
@@ -511,6 +526,7 @@ export async function getStrategyStatusList(
 					hasTimingOrOverride,
 					sellTimeStr,
 					buyTimeStr,
+					strategyRealMarketName,
 					date,
 					isOvernightRebalance,
 				)

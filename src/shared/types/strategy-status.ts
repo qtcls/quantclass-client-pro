@@ -15,8 +15,8 @@ export type StrategyStatusTag =
 	| "SELECT_TIMING_SIG1"
 	| "TRADE_SELL_PLAN"
 	| "TRADE_BUY_PLAN"
-	| "SELL"
-	| "BUY"
+	| "TRADE_SELL"
+	| "TRADE_BUY"
 
 export enum StrategyStatusEnum {
 	COMPLETED = "completed", // 已完成

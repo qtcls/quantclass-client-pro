@@ -19,9 +19,13 @@ import { StrategyStatusEnum } from "@/shared/types/strategy-status.js"
 import { sortBy } from "lodash-es"
 
 // 从 JSON 文件读取 stats 数据
-async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
+// kernel: 'fuel' | 'aqua' | 'zeus' | 'rocket'
+async function readStatsFromJson(
+	date: string,
+	kernel: string,
+): Promise<StrategyStatusStat[]> {
 	try {
-		const fileName = `fuel-stats-${date}.json`
+		const fileName = `${kernel}-stats-${date}.json`
 		const filePath = ["code", "data", fileName]
 
 		const data = await getJsonDataFromFile<{ stats?: any[] }>(
@@ -31,9 +35,6 @@ async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
 		)
 
 		if (!data.stats || !Array.isArray(data.stats)) {
-			logger.warn(
-				`[strategy-stats] 文件 ${filePath.join("/")} 中没有stats字段或格式不正确`,
-			)
 			return []
 		}
 
@@ -46,7 +47,7 @@ async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
 					const endTime = stat.time[1] ? new Date(stat.time[1]) : null
 					time = [startTime, endTime]
 				} else {
-					// 如果是单个时间，转换为时间范围 [time, null]
+					// 如果是单个时间，转换为时间范围 [time, null]（兼容json文件里返回单个时间格式）
 					const startTime = new Date(stat.time)
 					time = [startTime, null]
 				}
@@ -61,15 +62,24 @@ async function readStatsFromJson(date: string): Promise<StrategyStatusStat[]> {
 			}
 		})
 
-		logger.info(
-			`[strategy-stats] 成功从 ${fileName} 读取了 ${stats.length} 条stats记录`,
-		)
-
 		return stats
 	} catch (error) {
-		logger.error(`[strategy-stats] 读取stats文件失败: ${error}`)
 		return []
 	}
+}
+
+async function detectSelectKernel(date: string): Promise<"aqua" | "zeus"> {
+	const aquaPath = ["code", "data", `aqua-stats-${date}.json`]
+	const aquaData = await getJsonDataFromFile<{ stats?: any[] }>(
+		aquaPath,
+		"",
+		{},
+	)
+	if (aquaData.stats && Array.isArray(aquaData.stats)) {
+		return "aqua"
+	}
+
+	return "zeus"
 }
 
 // 获取策略的 timing 和 override 最晚时间
@@ -230,7 +240,12 @@ async function generateSingleStrategyStatus(
 	date: string,
 	isOvernightRebalance: boolean, // 是否隔日换仓
 ): Promise<StrategyStatus[]> {
-	const fuelStats = await readStatsFromJson(date)
+	const selectKernel = await detectSelectKernel(date)
+
+	// const fuelStats = await readStatsFromJson(date, "fuel")
+	const selectStats = await readStatsFromJson(date, selectKernel)
+	const rocketStats = await readStatsFromJson(date, "rocket")
+
 	const qmtDataTime = parseTimeToDate(latestTiming, date)
 		? new Date(parseTimeToDate(latestTiming, date)!.getTime() + 60 * 1000)
 		: null
@@ -257,16 +272,39 @@ async function generateSingleStrategyStatus(
 	// 当天的买入时间
 	const buyTime = parseTimeToDate(buyTimeStr.replace(/:/g, ""), date)
 
-	const findStatsByTag = (tag: string) => {
-		return fuelStats.filter((stat) => stat.tag === tag)
+	const findStatsByTag = (stats: StrategyStatusStat[], tag: string) => {
+		return stats.filter((stat) => stat.tag === tag)
 	}
 
-	const findLatestStatByTag = (tag: string) => {
-		const matchingStats = findStatsByTag(tag)
+	const findLatestStatByTag = (stats: StrategyStatusStat[], tag: string) => {
+		const matchingStats = findStatsByTag(stats, tag)
 		return matchingStats.length > 0
 			? matchingStats[matchingStats.length - 1]
 			: undefined
 	}
+
+	// 整合 SELECT_TIMING_SIG0 的 stats
+	const mergeTimingSig0Stats = () => {
+		const rocketDataStats = findStatsByTag(
+			rocketStats,
+			"SELECT_TIMING_SIG0_DATA",
+		)
+		const selectSigStats = findStatsByTag(selectStats, "SELECT_TIMING_SIG0")
+		return [...rocketDataStats, ...selectSigStats]
+	}
+
+	// 整合 SELECT_TIMING_SIG1 的 stats
+	const mergeTimingSig1Stats = () => {
+		const rocketDataStats = findStatsByTag(
+			rocketStats,
+			"SELECT_TIMING_SIG1_DATA",
+		)
+		const selectSigStats = findStatsByTag(selectStats, "SELECT_TIMING_SIG1")
+		return [...rocketDataStats, ...selectSigStats]
+	}
+
+	const timingSig0Stats = mergeTimingSig0Stats()
+	const timingSig1Stats = mergeTimingSig1Stats()
 
 	const statusList: StrategyStatus[] = [
 		// {
@@ -293,13 +331,13 @@ async function generateSingleStrategyStatus(
 			status: determineStatus(
 				selectCloseTime,
 				selectCloseDeadline,
-				findLatestStatByTag("SELECT_CLOSE"),
+				findLatestStatByTag(selectStats, "SELECT_CLOSE"),
 			),
 			plan: {
 				time: selectCloseTime,
 			},
-			stat: findLatestStatByTag("SELECT_CLOSE"),
-			stats: findStatsByTag("SELECT_CLOSE"),
+			stat: findLatestStatByTag(selectStats, "SELECT_CLOSE"),
+			stats: findStatsByTag(selectStats, "SELECT_CLOSE"),
 		},
 	]
 
@@ -314,13 +352,18 @@ async function generateSingleStrategyStatus(
 				status: determineStatus(
 					qmtDataTime,
 					tradingPlanTime,
-					findLatestStatByTag("SELECT_TIMING_SIG0"),
+					timingSig0Stats.length > 0
+						? timingSig0Stats[timingSig0Stats.length - 1]
+						: undefined,
 				),
 				plan: {
 					time: qmtDataTime,
 				},
-				stat: findLatestStatByTag("SELECT_TIMING_SIG0"),
-				stats: findStatsByTag("SELECT_TIMING_SIG0"),
+				stat:
+					timingSig0Stats.length > 0
+						? timingSig0Stats[timingSig0Stats.length - 1]
+						: undefined,
+				stats: timingSig0Stats,
 			},
 			{
 				strategyName,
@@ -330,13 +373,18 @@ async function generateSingleStrategyStatus(
 				status: determineStatus(
 					qmtDataTime,
 					tradingPlanTime,
-					findLatestStatByTag("SELECT_TIMING_SIG1"),
+					timingSig1Stats.length > 0
+						? timingSig1Stats[timingSig1Stats.length - 1]
+						: undefined,
 				),
 				plan: {
 					time: qmtDataTime,
 				},
-				stat: findLatestStatByTag("SELECT_TIMING_SIG1"),
-				stats: findStatsByTag("SELECT_TIMING_SIG1"),
+				stat:
+					timingSig1Stats.length > 0
+						? timingSig1Stats[timingSig1Stats.length - 1]
+						: undefined,
+				stats: timingSig1Stats,
 			},
 		)
 	}
@@ -350,13 +398,13 @@ async function generateSingleStrategyStatus(
 			status: determineStatus(
 				tradingPlanTime,
 				sellTime,
-				findLatestStatByTag("TRADE_SELL_PLAN"),
+				findLatestStatByTag(rocketStats, "TRADE_SELL_PLAN"),
 			),
 			plan: {
 				time: tradingPlanTime,
 			},
-			stat: findLatestStatByTag("TRADE_SELL_PLAN"),
-			stats: findStatsByTag("TRADE_SELL_PLAN"),
+			stat: findLatestStatByTag(rocketStats, "TRADE_SELL_PLAN"),
+			stats: findStatsByTag(rocketStats, "TRADE_SELL_PLAN"),
 		},
 		{
 			strategyName,
@@ -366,13 +414,13 @@ async function generateSingleStrategyStatus(
 			status: determineStatus(
 				tradingPlanTime,
 				sellTime,
-				findLatestStatByTag("TRADE_BUY_PLAN"),
+				findLatestStatByTag(rocketStats, "TRADE_BUY_PLAN"),
 			),
 			plan: {
 				time: tradingPlanTime,
 			},
-			stat: findLatestStatByTag("TRADE_BUY_PLAN"),
-			stats: findStatsByTag("TRADE_BUY_PLAN"),
+			stat: findLatestStatByTag(rocketStats, "TRADE_BUY_PLAN"),
+			stats: findStatsByTag(rocketStats, "TRADE_BUY_PLAN"),
 		},
 		{
 			strategyName,
@@ -382,14 +430,14 @@ async function generateSingleStrategyStatus(
 			status: determineStatus(
 				sellTime,
 				sellTime,
-				findLatestStatByTag("SELL"),
+				findLatestStatByTag(rocketStats, "SELL"),
 				true, // 严格匹配时间
 			),
 			plan: {
 				time: sellTime,
 			},
-			stat: findLatestStatByTag("SELL"),
-			stats: findStatsByTag("SELL"),
+			stat: findLatestStatByTag(rocketStats, "SELL"),
+			stats: findStatsByTag(rocketStats, "SELL"),
 		},
 		{
 			strategyName,
@@ -399,14 +447,14 @@ async function generateSingleStrategyStatus(
 			status: determineStatus(
 				buyTime,
 				buyTime,
-				findLatestStatByTag("BUY"),
+				findLatestStatByTag(rocketStats, "BUY"),
 				true, // 严格匹配时间
 			),
 			plan: {
 				time: buyTime,
 			},
-			stat: findLatestStatByTag("BUY"),
-			stats: findStatsByTag("BUY"),
+			stat: findLatestStatByTag(rocketStats, "BUY"),
+			stats: findStatsByTag(rocketStats, "BUY"),
 		},
 	)
 

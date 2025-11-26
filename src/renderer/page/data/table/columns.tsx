@@ -23,17 +23,53 @@ import { Check, HardDrive, Server, TriangleAlert } from "lucide-react"
 // 	const [year, month, day, hour, minute] = dateTimeString.split("-")
 // 	return `${year}-${month}-${day} ${hour}:${minute}`
 // }
+import { cn } from "@renderer/lib/utils"
 
 export const dataColumns = (
 	refresh: () => Promise<any>,
-	isUpdating: boolean,
+	_isUpdating: boolean,
 ): Array<ColumnDef<IDataListType>> => [
 	{
 		accessorKey: "displayName",
 		header: () => <div className="text-foreground">数据名称</div>,
-		// cell: ({ row }) => (
-		// 	<div className="text-muted-foreground">{row.original?.displayName ?? "--"}</div>
-		// ),
+		cell: ({ row }) => {
+			const canIncrementalUpdate =
+				row.original?.updateTime &&
+				row.original?.dataTime &&
+				row.original?.updateTime !== row.original?.dataTime &&
+				row.original?.canAutoUpdate === 1
+
+			const message = canIncrementalUpdate ? "数据有更新" : "数据已同步"
+
+			return (
+				<div className="flex items-center gap-2">
+					<Tooltip delayDuration={0}>
+						<TooltipTrigger>
+							<div
+								className={cn(
+									"flex items-center justify-center size-5 rounded-full",
+									canIncrementalUpdate
+										? "bg-warning/20 text-warning"
+										: "bg-success/20 text-success",
+								)}
+							>
+								{canIncrementalUpdate ? (
+									<TriangleAlert size={12} />
+								) : (
+									<Check size={12} />
+								)}
+							</div>
+						</TooltipTrigger>
+						<TooltipContent sideOffset={10}>
+							<p>{message}</p>
+						</TooltipContent>
+					</Tooltip>
+					<div className="text-foreground">
+						{row.original?.displayName ?? "--"}
+					</div>
+				</div>
+			)
+		},
 	},
 	{
 		accessorKey: "name",

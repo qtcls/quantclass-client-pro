@@ -8,7 +8,8 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { readFile, writeFile } from "node:fs/promises"
+import { createWriteStream } from "node:fs"
+import { readFile } from "node:fs/promises"
 // import { checkFuelExist } from "@/main/core/runpy.js"
 import { execBin } from "@/main/lib/process.js"
 import store from "@/main/store/index.js"
@@ -69,7 +70,20 @@ export async function updateFullProducts(
 	}
 }
 
-export async function downloadFullData(product_name: string) {
+export async function downloadFullData(
+	product_name: string,
+	onProgress?: (progress: {
+		transferred: number
+		total: number
+		percent: number
+		bytesPerSecond: number
+	}) => void,
+) {
+	let downloadedBytes = 0
+	const startTime = Date.now()
+	let lastUpdateTime = startTime
+	let lastDownloadedBytes = 0
+
 	try {
 		const file_path = await store.getAllDataPath([
 			"code",
@@ -92,12 +106,87 @@ export async function downloadFullData(product_name: string) {
 			throw new Error(`fetching URL: ${res.statusText}`)
 		}
 
-		const arrayBuffer = await res.arrayBuffer()
-		const buffer = Buffer.from(arrayBuffer)
+		// 获取文件总大小（如果响应头中包含 Content-Length）
+		const totalBytes = res.headers.get("content-length")
+			? Number.parseInt(res.headers.get("content-length")!, 10)
+			: null
 
-		await writeFile(zip_dir_path, buffer)
+		// 使用流式下载避免大文件内存溢出
+		if (!res.body) {
+			throw new Error("响应体不可用")
+		}
+
+		const writeStream = createWriteStream(zip_dir_path)
+		const reader = res.body.getReader()
+
+		try {
+			// 处理写入流完成和错误
+			const writePromise = new Promise<void>((resolve, reject) => {
+				writeStream.on("finish", resolve)
+				writeStream.on("error", reject)
+			})
+
+			// 流式读取并写入，处理背压
+			while (true) {
+				const { done, value } = await reader.read()
+				if (done) {
+					writeStream.end()
+					break
+				}
+
+				// 更新下载字节数
+				downloadedBytes += value.length
+				const now = Date.now()
+
+				// 每 200ms 更新一次进度（避免过于频繁的更新）
+				if (onProgress && now - lastUpdateTime >= 200) {
+					const timeElapsed = (now - lastUpdateTime) / 1000 // 秒
+					const bytesPerSecond =
+						timeElapsed > 0
+							? (downloadedBytes - lastDownloadedBytes) / timeElapsed
+							: 0
+					const percent =
+						totalBytes !== null
+							? Math.min(100, (downloadedBytes / totalBytes) * 100)
+							: 0
+
+					onProgress({
+						transferred: downloadedBytes,
+						total: totalBytes ?? 0,
+						percent,
+						bytesPerSecond,
+					})
+
+					lastUpdateTime = now
+					lastDownloadedBytes = downloadedBytes
+				}
+
+				// 写入数据块，如果缓冲区满则等待 drain 事件
+				const drained = writeStream.write(value)
+				if (!drained) {
+					await new Promise((resolve) => writeStream.once("drain", resolve))
+				}
+			}
+
+			// 发送最终进度（100%）
+			if (onProgress && totalBytes !== null) {
+				onProgress({
+					transferred: downloadedBytes,
+					total: totalBytes,
+					percent: 100,
+					bytesPerSecond: 0,
+				})
+			}
+
+			// 等待写入流完成
+			await writePromise
+		} finally {
+			reader.releaseLock()
+		}
+
 		logger.info(`full data zip 下载完成: ${zip_dir_path}`)
 	} catch (error) {
 		logger.error(`download full data error: ${error}`)
+		throw error
 	}
 }

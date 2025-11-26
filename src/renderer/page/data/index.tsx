@@ -153,7 +153,8 @@ const Data: FC = () => {
 							<span>
 								<span className="font-semibold">更新时间（云端）：</span>
 								<span>
-									量化小讲堂服务器更新本数据的时间。（data update time）
+									本地记录的量化小讲堂服务器更新本数据的时间，当检测到小讲堂服务器的时间和本地存储不一致的时候，就需要更新数据。更新成功后，最新的时间会覆盖本地存储的云端时间。（data
+									update time）
 								</span>
 							</span>
 						</div>
@@ -162,7 +163,10 @@ const Data: FC = () => {
 							<RefreshCcwDot size={16} />
 							<span>
 								<span className="font-semibold">更新时间（本地）：</span>
-								<span>客户端最近一次检查更新的时间。（last update time）</span>
+								<span>
+									客户端最近一次检查更新的时间，自动更新的时候，通常是当前时间一分钟以内。（last
+									update time）
+								</span>
 							</span>
 						</div>
 					</div>

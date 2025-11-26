@@ -40,9 +40,19 @@ async function handleLoadProductStatus() {
 }
 
 async function handleExecDownloadZip() {
-	ipcMain.handle("exec-download-zip", async (_event, product_name: string) => {
+	ipcMain.handle("exec-download-zip", async (event, product_name: string) => {
 		try {
-			return await downloadFullData(product_name)
+			logger.info(`开始下载 ${product_name} 的完整数据`)
+			return await downloadFullData(product_name, (progress) => {
+				// 发送进度更新到渲染进程
+				// logger.info(
+				// 	`[下载进度] ${product_name}: ${progress.percent.toFixed(2)}% (${(progress.transferred / 1024 / 1024).toFixed(2)} MB / ${progress.total > 0 ? (progress.total / 1024 / 1024).toFixed(2) : "?"} MB)`,
+				// )
+				event.sender.send("download-progress", {
+					product_name,
+					...progress,
+				})
+			})
 		} catch (error) {
 			logger.error(`exec-download-zip ${product_name} error: ${error}`)
 			throw new Error("数据 zip 下载失败")

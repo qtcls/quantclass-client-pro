@@ -44,12 +44,17 @@ const { openUrl } = window.electronAPI
 
 const { VITE_XBX_ENV } = import.meta.env
 
+type PermissionCondition =
+	| string
+	| string[]
+	| { conditions: string[]; method: "OR" | "AND" }
+
 /**
  * -- 权限检查 Hook
  * -- 用于检查用户的登录状态、会员权限、系统要求等
  */
 export function usePermissionCheck() {
-	const { isLoggedIn, isMember } = useAtomValue(userAtom)
+	const { isLoggedIn, isMember, permissions } = useAtomValue(userAtom)
 
 	/**
 	 * -- 显示提示信息
@@ -73,9 +78,11 @@ export function usePermissionCheck() {
 	}
 
 	/**
-	 * -- 权限检查函数
+	 * -- 权限检查并显示提示
 	 */
-	const check = (options: PermissionCheckOptions = {}): CheckResult => {
+	const checkWithToast = (
+		options: PermissionCheckOptions = {},
+	): CheckResult => {
 		const {
 			requireMember = false,
 			windowsOnly = false,
@@ -118,5 +125,55 @@ export function usePermissionCheck() {
 		return { isValid: true }
 	}
 
-	return { check }
+	/**
+	 * -- 权限检查（OR 逻辑）
+	 * -- 参数之间是 OR 关系，数组内部是 AND 关系 （可通过对象参数的 method 修改）
+	 */
+	const check = (...conditions: PermissionCondition[]): boolean => {
+		return conditions.some((condition) => {
+			if (typeof condition === "string") {
+				return permissions.includes(condition)
+			}
+
+			if (Array.isArray(condition)) {
+				return condition.every((c) => permissions.includes(c))
+			}
+
+			if (typeof condition === "object" && "conditions" in condition) {
+				if (condition.method === "AND") {
+					return condition.conditions.every((c) => permissions.includes(c))
+				}
+				return condition.conditions.some((c) => permissions.includes(c))
+			}
+
+			return false
+		})
+	}
+
+	/**
+	 * -- 权限检查（AND 逻辑）
+	 * -- 参数之间是 AND 关系，数组内部是 AND 关系（可通过对象参数的 method 修改）
+	 */
+	const checkAll = (...conditions: PermissionCondition[]): boolean => {
+		return conditions.every((condition) => {
+			if (typeof condition === "string") {
+				return permissions.includes(condition)
+			}
+
+			if (Array.isArray(condition)) {
+				return condition.every((c) => permissions.includes(c))
+			}
+
+			if (typeof condition === "object" && "conditions" in condition) {
+				if (condition.method === "OR") {
+					return condition.conditions.some((c) => permissions.includes(c))
+				}
+				return condition.conditions.every((c) => permissions.includes(c))
+			}
+
+			return false
+		})
+	}
+
+	return { checkWithToast, check, checkAll }
 }

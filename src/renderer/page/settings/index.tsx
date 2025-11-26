@@ -35,6 +35,7 @@ import Contributors from "@/renderer/page/settings/contributors"
 import { isAutoLoginAtom, versionListAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
+import type { SettingsType } from "@/renderer/types"
 import type { KernalType } from "@/shared/types"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
@@ -60,7 +61,7 @@ import { AboutPage } from "./about"
 export default function SettingsPage() {
 	const [showContributors, setShowContributors] = useState(false)
 	const { isMember } = useAtomValue(userAtom)
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const [isAutoLogin, setIsAutoLogin] = useAtom(isAutoLoginAtom)
 
 	const { VITE_XBX_ENV } = import.meta.env
@@ -86,22 +87,27 @@ export default function SettingsPage() {
 		return settings.is_auto_launch_update
 	}, [settings.is_auto_launch_update])
 
-	const handleSetIsAutoLaunchUpdate = async (value: boolean) => {
-		updateSettings({ is_auto_launch_update: value })
+	const handleSetIsAutoLaunchUpdate = (value: boolean) => {
+		const updates: Partial<SettingsType> = { is_auto_launch_update: value }
 		if (!value) {
-			updateSettings({ is_auto_launch_real_trading: false })
+			updates.is_auto_launch_real_trading = false
 		}
+		updateSettings(updates)
 		toast.dismiss()
 		toast.success(value ? "自动更新已开启" : "自动更新已关闭")
 	}
 
-	const handleSetIsAutoLaunchRealTrading = async (value: boolean) => {
-		if (!check({ requireMember: true, onlyIn2025: true }).isValid) return
+	const handleSetIsAutoLaunchRealTrading = (value: boolean) => {
+		if (!checkWithToast({ requireMember: true, onlyIn2025: true }).isValid)
+			return
 
-		updateSettings({ is_auto_launch_real_trading: value })
-		if (value) {
-			updateSettings({ is_auto_launch_update: true })
+		const updates: Partial<SettingsType> = {
+			is_auto_launch_real_trading: value,
 		}
+		if (value) {
+			updates.is_auto_launch_update = true
+		}
+		updateSettings(updates)
 		toast.dismiss()
 		toast.success(value ? "实盘自动启动已开启" : "实盘自动启动已关闭")
 	}
@@ -241,36 +247,34 @@ export default function SettingsPage() {
 						appVersions={appVersions}
 					/>
 
-					{canRealTrading && isMember && (
-						<>
-							{isFusionMode ? (
-								<KernalVersion
-									name="zeus"
-									title="高级选股内核"
-									Icon={SquareFunction}
-									versionKey="zeusVersion"
-									appVersions={appVersions}
-								/>
-							) : (
-								<KernalVersion
-									name="aqua"
-									title="选股内核"
-									Icon={SquareFunction}
-									versionKey="aquaVersion"
-									appVersions={appVersions}
-								/>
-							)}
-
+					<>
+						{isFusionMode ? (
 							<KernalVersion
-								name="rocket"
-								title="下单内核"
-								Icon={Blocks}
-								versionKey="rocketVersion"
+								name="zeus"
+								title="高级选股内核"
+								Icon={SquareFunction}
+								versionKey="zeusVersion"
 								appVersions={appVersions}
-								disabled={window.electron?.process?.platform === "darwin"}
 							/>
-						</>
-					)}
+						) : (
+							<KernalVersion
+								name="aqua"
+								title="选股内核"
+								Icon={SquareFunction}
+								versionKey="aquaVersion"
+								appVersions={appVersions}
+							/>
+						)}
+
+						<KernalVersion
+							name="rocket"
+							title="下单内核"
+							Icon={Blocks}
+							versionKey="rocketVersion"
+							appVersions={appVersions}
+							disabled={window.electron?.process?.platform === "darwin"}
+						/>
+					</>
 				</div>
 			</div>
 
@@ -278,7 +282,9 @@ export default function SettingsPage() {
 				<Button
 					variant="outline"
 					size="sm"
-					disabled={isCheckingAppVersions || isLoadingLocalVersions}
+					disabled={
+						!isMember || isCheckingAppVersions || isLoadingLocalVersions
+					}
 					onClick={async () => {
 						await refetchAppVersions()
 						await refetchLocalVersions()
@@ -299,6 +305,7 @@ export default function SettingsPage() {
 				<Button
 					variant="outline"
 					size="sm"
+					disabled={!isMember}
 					onClick={async () => {
 						if (!isMember) {
 							toast.dismiss()
@@ -348,13 +355,16 @@ export default function SettingsPage() {
 							数据更新性能，性能越高，数据更新速度越快，但会占用更多性能。
 						</p>
 					</div>
-					<PerformanceModeSelectTabs
-						name="数据更新"
-						defaultValue={settings.performance_mode || "EQUAL"}
-						onValueChange={(value) => {
-							updateSettings({ performance_mode: value })
-						}}
-					/>
+					<div className={cn(!isMember && "pointer-events-none opacity-50")}>
+						<PerformanceModeSelectTabs
+							name="数据更新"
+							defaultValue={settings.performance_mode || "EQUAL"}
+							onValueChange={(value) => {
+								if (!isMember) return
+								updateSettings({ performance_mode: value })
+							}}
+						/>
+					</div>
 				</div>
 
 				<div className="flex items-center justify-between">
@@ -367,13 +377,16 @@ export default function SettingsPage() {
 							选股性能模式，性能越高，选股速度越快，但会占用更多性能。
 						</p>
 					</div>
-					<PerformanceModeSelectTabs
-						name="选股"
-						defaultValue={realMarketConfig.performance_mode || "EQUAL"}
-						onValueChange={(value) => {
-							setPerformanceMode(value)
-						}}
-					/>
+					<div className={cn(!isMember && "pointer-events-none opacity-50")}>
+						<PerformanceModeSelectTabs
+							name="选股"
+							defaultValue={realMarketConfig.performance_mode || "EQUAL"}
+							onValueChange={(value) => {
+								if (!isMember) return
+								setPerformanceMode(value)
+							}}
+						/>
+					</div>
 				</div>
 			</div>
 
@@ -416,6 +429,7 @@ export default function SettingsPage() {
 					<Switch
 						id="is_auto_launch_update"
 						checked={isAutoLaunchUpdate}
+						disabled={!isMember}
 						onCheckedChange={handleSetIsAutoLaunchUpdate}
 					/>
 				</div>
@@ -437,6 +451,7 @@ export default function SettingsPage() {
 						<Switch
 							id="is_auto_launch_real_trading"
 							checked={isAutoLaunchRealTrading}
+							disabled={!isMember}
 							onCheckedChange={handleSetIsAutoLaunchRealTrading}
 						/>
 					</div>

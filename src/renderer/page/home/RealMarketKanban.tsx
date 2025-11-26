@@ -1,4 +1,15 @@
+/**
+ * quantclass-client
+ * Copyright (c) 2025 量化小讲堂
+ *
+ * Licensed under the Business Source License 1.1 (BUSL-1.1).
+ * Additional Use Grant: None
+ * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
+ * See the LICENSE file and https://mariadb.com/bsl11/
+ */
 import StatusTimeline from "@/renderer/components/StrategyStatusTimeLine"
+
+import { FinPieChart } from "@/renderer/components/FinPieChart"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import {
@@ -35,7 +46,7 @@ const { getStoreValue } = window.electronAPI
 export const RealMarketKanban = () => {
 	// const navigate = useNavigate()
 	const [confirmStartAutoUpdate, setConfirmStartAutoTrading] = useState(false)
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const [showMoney, setShowMoney] = useAtom(showMoneyAtom)
 	const totalWeight = useAtomValue(totalWeightAtom)
 	const isUpdating = useAtomValue(isUpdatingAtom)
@@ -51,9 +62,14 @@ export const RealMarketKanban = () => {
 	const [{ data, refetch }] = useAtom(loadAccountQueryAtom)
 	// const libraryType = useAtomValue(libraryTypeAtom)
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		if (
-			check({ requireMember: true, windowsOnly: true, skipToast: true }).isValid
+			checkWithToast({
+				requireMember: true,
+				windowsOnly: true,
+				skipToast: true,
+			}).isValid
 		) {
 			refetch().then(() => {
 				console.log("loadAccountQueryAtom success")
@@ -61,6 +77,7 @@ export const RealMarketKanban = () => {
 		}
 	}, [])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		if (apiKey === "" && uuid === "" && isAutoRocket) {
 			handleToggleAutoRocket(false).then(() => {
@@ -69,6 +86,7 @@ export const RealMarketKanban = () => {
 		}
 	}, [apiKey, uuid])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		getStoreValue("schedule.selectModule", []).then((selectModuleTimes) => {
 			setSelectModuleTimes(selectModuleTimes as string[])
@@ -111,7 +129,7 @@ export const RealMarketKanban = () => {
 						onClick={() => {
 							// -- 权限检查
 							if (
-								!check({
+								!checkWithToast({
 									requireMember: true,
 									windowsOnly: true,
 								}).isValid

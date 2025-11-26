@@ -124,6 +124,9 @@ export default function StrategyEditDialog({
 									strategy?.split_order_amount ||
 									Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
 								timing: strategy.timing,
+								override: strategy.override,
+								scalein_targets: strategy.scalein_targets,
+								cross_sections: strategy.cross_sections || [],
 							}}
 							onSave={async (values) => {
 								if (fusionIndex < 0) {

@@ -73,7 +73,7 @@ export function TradingConfigForm() {
 	const { selectDirectory, createRealTradingDir } = window.electronAPI
 	const { user } = useAtomValue(userAtom)
 	const { data: rocketStatus = false } = useAtomValue(rocketStatusQueryAtom)
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const [choosing, setChoosing] = useState(false)
 	const [realMarketConfig, setRealMarketConfig] = useAtom(
 		realMarketConfigSchemaAtom,
@@ -110,7 +110,7 @@ export function TradingConfigForm() {
 		try {
 			// -- 权限检查
 			if (
-				!check({
+				!checkWithToast({
 					requireMember: true,
 					windowsOnly: true,
 					onlyIn2025: true,
@@ -181,6 +181,7 @@ export function TradingConfigForm() {
 		{ wait: 100 },
 	)
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		form.reset(defaultValues)
 	}, [])
@@ -211,6 +212,11 @@ export function TradingConfigForm() {
 														<p>
 															选择“不过滤”，所有策略都不会过滤，如果需要针对单个策略做过滤，请参考帖子：
 															<span
+																onKeyDown={(e) => {
+																	if (e.key === "Enter" || e.key === " ") {
+																		e.preventDefault()
+																	}
+																}}
 																onClick={() =>
 																	openUrl("https://qtcls.cn/38022")
 																}
@@ -281,6 +287,11 @@ export function TradingConfigForm() {
 														<p>
 															选择“不过滤”，所有策略都不会过滤，如果需要针对单个策略做过滤，请参考帖子：
 															<span
+																onKeyDown={(e) => {
+																	if (e.key === "Enter" || e.key === " ") {
+																		e.preventDefault()
+																	}
+																}}
 																onClick={() =>
 																	openUrl("https://qtcls.cn/38022")
 																}
@@ -533,6 +544,11 @@ export function TradingConfigForm() {
 											机器人配置参考：
 										</span>
 										<span
+											onKeyDown={(e) => {
+												if (e.key === "Enter" || e.key === " ") {
+													e.preventDefault()
+												}
+											}}
 											onClick={() =>
 												openUrl("https://bbs.quantclass.cn/thread/10975")
 											}

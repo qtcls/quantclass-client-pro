@@ -233,7 +233,7 @@ function StatusCard({
 								<TooltipTrigger asChild>
 									<div className="font-semibold text-gray-800 dark:text-gray-200 py-0.5 rounded cursor-default">
 										{statusItem.tag === "SELECT_CLOSE"
-											? "开盘后"
+											? "收盘后，开盘前"
 											: statusItem.plan.time
 												? dayjs(statusItem.plan.time).format("HH:mm:ss")
 												: "--- ---"}
@@ -515,7 +515,9 @@ export default function StrategyStatusTimeline() {
 			return
 		}
 
-		const selected = dayjs(selectedDate)
+		const selected = dayjs(
+			selectedDate || new Date(new Date().getTime() + 9 * 60 * 60 * 1000),
+		)
 
 		const preClose = {
 			strategyName: "",
@@ -782,11 +784,11 @@ export default function StrategyStatusTimeline() {
 									>
 										<AccordionTrigger className="py-3">
 											<div className="flex items-center gap-4">
-												<span>
+												<span className="flex-shrink-0">
 													{strategyIndex + 1}. {strategyItem[0].strategyName}
 												</span>
-												{summaryList.length > 0 ? (
-													<div className="flex items-center gap-2">
+												{summaryList.length > 0 && (
+													<div className="flex-1 min-w-0 flex items-center gap-2 ">
 														{/* 总统状态 */}
 														<Badge
 															variant="outline"
@@ -804,22 +806,14 @@ export default function StrategyStatusTimeline() {
 															}
 														</Badge>
 														{/* 描述title */}
-														{summaryList[strategyIndex].descList.length > 0 ? (
-															<div className="flex gap-2 text-xs">
+														{summaryList[strategyIndex].descList.length > 0 && (
+															<div className="flex-1 min-w-0 text-xs truncate text-muted-foreground">
 																(
-																{summaryList[strategyIndex].descList.map(
-																	(item, itemIndex) => (
-																		<span key={itemIndex}>{item}</span>
-																	),
-																)}
+																{summaryList[strategyIndex].descList.join(", ")}
 																)
 															</div>
-														) : (
-															<></>
 														)}
 													</div>
-												) : (
-													<></>
 												)}
 											</div>
 										</AccordionTrigger>

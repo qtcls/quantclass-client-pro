@@ -20,7 +20,7 @@ import { isUpdatingAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import {
 	accountKeyAtom,
-	libraryTypeAtom,
+	// libraryTypeAtom,
 	showMoneyAtom,
 	totalWeightAtom,
 } from "@/renderer/store/storage"
@@ -49,7 +49,7 @@ export const RealMarketKanban = () => {
 	// const setActiveTab = useSetAtom(realTradingTabAtom)
 
 	const [{ data, refetch }] = useAtom(loadAccountQueryAtom)
-	const libraryType = useAtomValue(libraryTypeAtom)
+	// const libraryType = useAtomValue(libraryTypeAtom)
 
 	useEffect(() => {
 		if (

@@ -21,7 +21,7 @@ import type {
 	SellTableRef,
 } from "@/renderer/page/trading/plan/types"
 import { ReloadIcon } from "@radix-ui/react-icons"
-import { CircleHelpIcon } from "lucide-react"
+import { CircleHelpIcon, NotepadText } from "lucide-react"
 import { useRef, useState } from "react"
 
 export default function TradingPlan() {
@@ -31,6 +31,10 @@ export default function TradingPlan() {
 
 	return (
 		<div className="flex flex-col h-full">
+			<div className="flex items-center gap-2 text-lg font-bold mb-2">
+				<NotepadText />
+				交易计划
+			</div>
 			<p className="text-muted-foreground mb-2 text-sm">
 				交易计划生成后，不会立即生成买入卖出计划。需要等到交易时间，才会自动加载计划并生成。
 			</p>

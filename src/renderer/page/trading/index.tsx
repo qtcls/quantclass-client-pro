@@ -18,11 +18,13 @@ export default function TradingPage() {
 			<div className="h-full flex-1 flex-col md:flex pt-3">
 				<TradingControl />
 				<hr className="my-4" />
-				<div>
-					<BuyBlacklist />
+				<div id="buy-black-list">
+					<BuyBlacklist titleSize="medium" />
 				</div>
 				<hr className="my-4" />
-				<TradingPlan />
+				<div id="trading-plan">
+					<TradingPlan />
+				</div>
 			</div>
 		</>
 	)

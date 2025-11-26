@@ -56,12 +56,12 @@ export function RunResultTable({ mode }: ResultTableProps) {
 	}, [refresh, setCsvFileName, mode, execTime.startTime])
 
 	useEffect(() => {
-		setCsvFileName(mode === "backtest" ? "最新选股结果" : "策略运行状态时间线")
+		setCsvFileName(mode === "backtest" ? "最新选股结果" : "策略实盘状态")
 	}, [mode, setCsvFileName])
 
 	return (
 		<div className="flex flex-col">
-			{csvFileName === "策略运行状态时间线" ? (
+			{csvFileName === "策略实盘状态" ? (
 				<>
 					<ToolBar mode={mode} />
 					<div className="mt-2">
@@ -392,7 +392,7 @@ function ToolBar({ mode }: { mode: "backtest" | "real" }) {
 				}}
 			>
 				{mode === "real" ? (
-					<Tab key="策略运行状态时间线" title="策略运行状态时间线" />
+					<Tab key="策略实盘状态" title="策略实盘状态" />
 				) : (
 					<></>
 				)}

@@ -71,6 +71,12 @@ interface StatusTimeLineItemProps {
 	strategyItemLength: number
 }
 
+interface SummaryItem {
+	strategyName: string
+	overallStatus: StrategyStatusEnum
+	descList: string[]
+}
+
 const statusIconMap = {
 	completed: {
 		icon: CheckCircle2,
@@ -440,6 +446,8 @@ export default function StrategyStatusTimeline() {
 	const scrollRefs = useRef<(HTMLDivElement | null)[]>([])
 	const [canScrollList, setCanScrollList] = useState<boolean[]>([])
 	const [openItem, setOpenItem] = useState<string | undefined>(undefined)
+	const [isCurrentDay, setIsCurrentDay] = useState<boolean>(false)
+	const [summaryList, setSummaryList] = useState<SummaryItem[]>([])
 
 	useEffect(() => {
 		const timer = setInterval(() => setCurrentTime(dayjs()), 60_000)
@@ -558,6 +566,50 @@ export default function StrategyStatusTimeline() {
 			},
 		}
 
+		// 根据strategyStatusData获取每个策略的简要状态信息
+		// 1.如果全部是已完成 则该策略状态status:"completed"是已完成 descList:[]
+		// 2.如果有进行中的  则该策略状态status:"in_progress"是进行中 descList:[进行中的title1，...]
+		// 3.如果没有进行中  有异常的 则该策略状态status:"incomplete"有异常 descList:[]
+		// 4.如果全是未到预期时间 则该策略状态status:"pending"是进行中 descList:[]
+
+		// 计算每个策略的汇总状态
+		const tempSummaryList = strategyStatusData.map((strategyItem) => {
+			const statuses = strategyItem.map((i) => i.status)
+
+			const hasInProgress = statuses.includes(StrategyStatusEnum.IN_PROGRESS)
+			const hasIncomplete = statuses.includes(StrategyStatusEnum.INCOMPLETE)
+			const allCompleted = statuses.every(
+				(s) => s === StrategyStatusEnum.COMPLETED,
+			)
+			const allPending = statuses.every((s) => s === StrategyStatusEnum.PENDING)
+
+			let overallStatus: StrategyStatusEnum
+			let descList: string[] = []
+
+			if (allCompleted) {
+				overallStatus = StrategyStatusEnum.COMPLETED
+			} else if (hasInProgress) {
+				overallStatus = StrategyStatusEnum.IN_PROGRESS
+				descList = strategyItem
+					.filter((i) => i.status === StrategyStatusEnum.IN_PROGRESS)
+					.map((i) => i.title)
+			} else if (hasIncomplete) {
+				overallStatus = StrategyStatusEnum.INCOMPLETE
+			} else if (allPending) {
+				overallStatus = StrategyStatusEnum.PENDING
+			} else {
+				overallStatus = StrategyStatusEnum.PENDING
+			}
+
+			return {
+				strategyName: strategyItem[0]?.strategyName ?? "",
+				overallStatus,
+				descList,
+			}
+		})
+
+		setSummaryList(tempSummaryList)
+
 		// 生成最终列表
 		const result = strategyStatusData.map((item: StrategyStatus[]) => {
 			const strategyName = item[0]?.strategyName || ""
@@ -631,18 +683,37 @@ export default function StrategyStatusTimeline() {
 		setStrategyStatusList(result)
 	}, [strategyStatusData, selectedDate])
 
+	useEffect(() => {
+		if (selectedDate === undefined) {
+			setIsCurrentDay(true)
+			return
+		}
+
+		if (
+			selectedDate ===
+			dayjs(new Date(new Date().getTime() + 9 * 60 * 60 * 1000)).format(
+				"YYYY-MM-DD",
+			)
+		) {
+			setIsCurrentDay(true)
+			return
+		}
+
+		setIsCurrentDay(false)
+	}, [selectedDate])
+
 	const handleOpen = (value: string | undefined) => {
 		setOpenItem(value)
 	}
 
 	const scrollLeft = (i: number) => {
 		const el = scrollRefs.current[i]
-		el?.scrollBy({ left: -300, behavior: "smooth" })
+		el?.scrollBy({ left: -200, behavior: "smooth" })
 	}
 
 	const scrollRight = (i: number) => {
 		const el = scrollRefs.current[i]
-		el?.scrollBy({ left: 300, behavior: "smooth" })
+		el?.scrollBy({ left: 200, behavior: "smooth" })
 	}
 
 	return (
@@ -652,7 +723,8 @@ export default function StrategyStatusTimeline() {
 					<CardTitle className="pt-0 mt-0 flex flex-row justify-between items-center gap-1">
 						<div className="flex items-center flex-wrap gap-2">
 							<Clock className="w-5 h-5" />
-							策略运行状态时间线
+							策略实盘状态
+							<Badge variant="info">测试版</Badge>
 							<span className="text-xs text-muted-foreground font-medium">
 								( 每分钟自动刷新一次 )
 							</span>
@@ -661,11 +733,11 @@ export default function StrategyStatusTimeline() {
 							<Button
 								size="sm"
 								className="h-8"
-								variant="outline"
+								variant={isCurrentDay ? "default" : "outline"}
 								onClick={() => {
 									refetch()
 									setSelectedDate(undefined)
-									toast.success("策略运行状态时间线信息刷新成功")
+									toast.success("策略实盘状态信息刷新成功")
 								}}
 							>
 								今天
@@ -685,7 +757,7 @@ export default function StrategyStatusTimeline() {
 								variant="outline"
 								onClick={() => {
 									refetch()
-									toast.success("策略运行状态时间线信息刷新成功")
+									toast.success("策略实盘状态信息刷新成功")
 								}}
 							>
 								<ReloadIcon className="mr-2 h-4 w-4" />
@@ -709,7 +781,47 @@ export default function StrategyStatusTimeline() {
 										value={strategyIndex.toString()}
 									>
 										<AccordionTrigger className="py-3">
-											{strategyIndex + 1}. {strategyItem[0].strategyName}
+											<div className="flex items-center gap-4">
+												<span>
+													{strategyIndex + 1}. {strategyItem[0].strategyName}
+												</span>
+												{summaryList.length > 0 ? (
+													<div className="flex items-center gap-2">
+														{/* 总统状态 */}
+														<Badge
+															variant="outline"
+															className={cn(
+																"text-xs px-2 py-0.5",
+																statusStyleMap[
+																	summaryList[strategyIndex].overallStatus
+																],
+															)}
+														>
+															{
+																StrategyStatusLabelEnum[
+																	summaryList[strategyIndex].overallStatus
+																]
+															}
+														</Badge>
+														{/* 描述title */}
+														{summaryList[strategyIndex].descList.length > 0 ? (
+															<div className="flex gap-2 text-xs">
+																(
+																{summaryList[strategyIndex].descList.map(
+																	(item, itemIndex) => (
+																		<span key={itemIndex}>{item}</span>
+																	),
+																)}
+																)
+															</div>
+														) : (
+															<></>
+														)}
+													</div>
+												) : (
+													<></>
+												)}
+											</div>
 										</AccordionTrigger>
 										<AccordionContent>
 											<div className="relative">
@@ -719,7 +831,7 @@ export default function StrategyStatusTimeline() {
 														variant="outline"
 														onClick={() => scrollLeft(strategyIndex)}
 														className="w-10 h-10 absolute left-0 z-20
-    bg-white/80 dark:bg-neutral-700 shadow rounded-full p-1 hover:bg-white dark:hover:bg-neutral-600 opacity-70
+     bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70 
     top-[calc(50%-20px-8px)]"
 													>
 														<ChevronLeft />
@@ -779,7 +891,7 @@ export default function StrategyStatusTimeline() {
 														variant="outline"
 														onClick={() => scrollRight(strategyIndex)}
 														className="w-10 h-10 absolute right-0 top-[calc(50%-20px-8px)] z-20 
-      bg-white/80 dark:bg-neutral-700 shadow rounded-full p-1 hover:bg-white dark:hover:bg-neutral-600 opacity-70"
+     bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70 "
 													>
 														<ChevronRight />
 													</Button>

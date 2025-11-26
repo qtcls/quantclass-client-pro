@@ -41,7 +41,7 @@ export const useLogout = () => {
 		setAccountKey(RESET)
 		setTimestampSign(generateTimestampSign())
 		setNonce(uuidV4())
-		
+
 		setSettings((prev) => ({
 			...prev,
 			hid: "",

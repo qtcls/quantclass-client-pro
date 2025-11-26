@@ -8,8 +8,6 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 import StatusTimeline from "@/renderer/components/StrategyStatusTimeLine"
-
-import { FinPieChart } from "@/renderer/components/FinPieChart"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import {

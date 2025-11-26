@@ -186,7 +186,7 @@ function StatusCard({
 	}
 	return (
 		<Card
-			className={`max-w-[280px] flex flex-col w-fit text-sm shadow-sm ${cardStyleMap[statusItem.status]}`}
+			className={`max-w-[280px] flex flex-col w-fit text-sm shadow-lg ${cardStyleMap[statusItem.status]}`}
 		>
 			<CardHeader className="px-3 pt-2 pb-1 border-b">
 				<CardTitle className="text-sm font-semibold flex justify-between items-center gap-2">

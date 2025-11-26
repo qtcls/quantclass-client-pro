@@ -216,17 +216,14 @@ function determineStatus(
 			if (statEndTime) {
 				return StrategyStatusEnum.COMPLETED
 			}
-			// 如果未结束，则进行中
+
 			return StrategyStatusEnum.IN_PROGRESS
 		}
-		// 时间不匹配
-		if (statEndTime) {
-			return StrategyStatusEnum.INCOMPLETE
-		}
-		return StrategyStatusEnum.IN_PROGRESS
+
+		return StrategyStatusEnum.INCOMPLETE
 	}
 
-	// 检查是否超过截止时间（除实盘卖出和买入外的其他状态）
+	// 检查开始时间是否超过截止时间（除实盘卖出和买入外的其他状态）
 	if (deadlineTime && statStartTime > deadlineTime) {
 		return StrategyStatusEnum.INCOMPLETE
 	}
@@ -234,6 +231,11 @@ function determineStatus(
 	// 如果 stat 正在进行中（没有结束时间）
 	if (!statEndTime) {
 		return StrategyStatusEnum.IN_PROGRESS
+	}
+
+	// 检查结束时间是否超过截止时间（除实盘卖出和买入外的其他状态）
+	if (deadlineTime && statEndTime > deadlineTime) {
+		return StrategyStatusEnum.INCOMPLETE
 	}
 
 	return StrategyStatusEnum.COMPLETED

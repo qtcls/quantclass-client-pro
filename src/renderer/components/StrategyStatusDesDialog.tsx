@@ -60,7 +60,7 @@ const StrategyStatusDesDialog = forwardRef<
 
 		return (
 			<Dialog open={dialogIsOpen} onOpenChange={setDialogIsOpen}>
-				<DialogContent className="max-w-lg">
+				<DialogContent className="max-w-lg ">
 					<DialogHeader>
 						<DialogTitle>执行详情</DialogTitle>
 						<DialogDescription className="pt-2">
@@ -74,8 +74,8 @@ const StrategyStatusDesDialog = forwardRef<
 
 					<div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
 						{currentItem?.stats?.map((stat, idx) => (
-							<Card key={idx} className="border text-sm">
-								<CardHeader className="px-3 py-2 border-b">
+							<Card key={idx} className="border text-sm ">
+								<CardHeader className="px-2 py-2 border-b">
 									<div className="flex items-center justify-between gap-2">
 										<div className="flex-1 flex items-center gap-2">
 											<Badge variant="outline" className="px-2">
@@ -84,12 +84,12 @@ const StrategyStatusDesDialog = forwardRef<
 											<TooltipProvider>
 												<Tooltip>
 													<TooltipTrigger asChild>
-														<div className="flex-1 truncate cursor-default">
+														<div className="flex-1 truncate cursor-default text-muted-foreground font-bold text-xs">
 															{stat?.timeDes}
 														</div>
 													</TooltipTrigger>
 													<TooltipContent side="bottom">
-														<p className="max-w-xs">{stat?.timeDes}</p>
+														<p className="max-w-xs ">{stat?.timeDes}</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -106,8 +106,8 @@ const StrategyStatusDesDialog = forwardRef<
 									</div>
 								</CardHeader>
 
-								<CardContent className="px-4 py-2 space-y-2">
-									<div className="flex items-start gap-3">
+								<CardContent className="px-3 py-2 space-y-2 max-h-[200px] overflow-y-auto">
+									<div className="flex items-center gap-3">
 										<span className=" flex-shrink-0 text-muted-foreground">
 											时间:
 										</span>
@@ -116,26 +116,32 @@ const StrategyStatusDesDialog = forwardRef<
 												<TooltipTrigger asChild>
 													<div className="cursor-default">
 														{Array.isArray(stat.time) ? (
-															<div className="flex items-center gap-2 font-mono">
-																<span className="bg-gray-100 dark:bg-neutral-800/80 px-2 rounded">
-																	{dayjs(stat.time[0]).format(
-																		"YYYY-MM-DD HH:mm:ss",
-																	)}
+															<div className="flex items-center gap-1.5">
+																<span className="bg-gray-100 dark:bg-neutral-800/80 px-2 rounded py-0.5 text-[12px] font-bold">
+																	{stat.time[0]
+																		? dayjs(stat.time[0]).format(
+																				"YYYY-MM-DD HH:mm:ss",
+																			)
+																		: "--- ---"}
 																</span>
-																<span className="text-muted-foreground">
+																<span className="text-muted-foreground text-xs">
 																	至
 																</span>
-																<span className="bg-gray-100 dark:bg-neutral-800/80 px-2 rounded">
-																	{dayjs(stat.time[1]).format(
-																		"YYYY-MM-DD HH:mm:ss",
-																	)}
+																<span className="bg-gray-100 dark:bg-neutral-800/80 px-2 rounded py-0.5 text-[12px] font-bold">
+																	{stat.time[1]
+																		? dayjs(stat.time[1]).format(
+																				"YYYY-MM-DD HH:mm:ss",
+																			)
+																		: "--- ---"}
 																</span>
 															</div>
 														) : (
 															<span>
-																{dayjs(stat.time!).format(
-																	"YYYY-MM-DD HH:mm:ss",
-																)}
+																{stat.time
+																	? dayjs(stat.time).format(
+																			"YYYY-MM-DD HH:mm:ss",
+																		)
+																	: "--- ---"}
 															</span>
 														)}
 													</div>
@@ -149,12 +155,12 @@ const StrategyStatusDesDialog = forwardRef<
 										</TooltipProvider>
 									</div>
 
-									<div className="flex items-start gap-3 w-full">
+									<div className="flex items-baseline gap-3 w-full">
 										<span className="flex-shrink-0 text-muted-foreground">
 											描述:
 										</span>
-										<span className="flex-1 min-w-0 whitespace-pre-wrap break-all text-muted-foreground ">
-											{stat.messages.join("，") || "---"}
+										<span className="flex-1 min-w-0 whitespace-pre-wrap break-all text-muted-foreground text-xs">
+											{stat.messages.join("，") || "无"}
 										</span>
 									</div>
 								</CardContent>

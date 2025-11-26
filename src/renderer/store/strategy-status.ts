@@ -10,20 +10,15 @@
 
 import type { StrategyStatus } from "@/shared/types/strategy-status"
 import dayjs from "dayjs"
+import { atom } from "jotai"
 import { atomWithQuery } from "jotai-tanstack-query"
-import { atomWithStorage } from "jotai/utils"
 
 const { getStrategyStatus } = window.electronAPI
 
 /**
  * 选择的日期 Atom
  */
-export const selectedDateAtom = atomWithStorage<string>(
-	"strategy-status-date",
-	"",
-	undefined,
-	{ getOnInit: true },
-)
+export const selectedDateAtom = atom<string | undefined>()
 
 /**
  * 策略状态列表 Atom
@@ -31,7 +26,11 @@ export const selectedDateAtom = atomWithStorage<string>(
 export const strategyStatusAtom = atomWithQuery<StrategyStatus[][]>((get) => {
 	const selectedDate = get(selectedDateAtom)
 
-	const date = selectedDate || dayjs(new Date()).format("YYYY-MM-DD")
+	const date =
+		selectedDate ||
+		dayjs(new Date(new Date().getTime() + 9 * 60 * 60 * 1000)).format(
+			"YYYY-MM-DD",
+		)
 
 	return {
 		queryKey: ["strategy-status", date],

@@ -19,17 +19,17 @@ export type StrategyStatusTag =
 	| "TRADE_BUY"
 
 export enum StrategyStatusEnum {
-	COMPLETED = "completed", // 已完成
-	INCOMPLETE = "incomplete", // 未完成（超过预期时间但未完成）
-	IN_PROGRESS = "in_progress", // 进行中（在预期时间范围内）
-	PENDING = "pending", // 未到预期时间
+	COMPLETED = "completed", // 已完成 3
+	INCOMPLETE = "incomplete", // 未完成（超过预期时间但未完成）2
+	IN_PROGRESS = "in_progress", // 进行中（在预期时间范围内）1
+	PENDING = "pending", // 未到预期时间 0
 }
 
 export enum StrategyStatusLabelEnum {
 	completed = "已完成",
-	incomplete = "未完成",
+	incomplete = "异常",
 	in_progress = "进行中",
-	pending = "未到预期时间",
+	pending = "未开始",
 }
 
 export interface StrategyStatusPlan {

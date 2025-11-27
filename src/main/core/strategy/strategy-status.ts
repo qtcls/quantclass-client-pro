@@ -81,7 +81,12 @@ async function readStatsFromJson(
 }
 
 async function detectSelectKernel(date: string): Promise<"aqua" | "zeus"> {
-	const aquaPath = ["code", "data", `aqua-stats-${date}.json`]
+	const aquaPath = [
+		"real_trading",
+		"data",
+		"ui_status",
+		`aqua-stats-${date}.json`,
+	]
 	const aquaData = await getJsonDataFromFile<{ stats?: any[] }>(
 		aquaPath,
 		"",

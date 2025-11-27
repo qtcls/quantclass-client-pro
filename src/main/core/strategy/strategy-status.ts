@@ -23,11 +23,14 @@ import { sortBy } from "lodash-es"
 async function readStatsFromJson(
 	date: string,
 	kernel: string,
-	strategyRealMarketName?: string,
+	strategyName?: string,
 ): Promise<StrategyStatusStat[]> {
 	try {
 		const fileName = `${kernel}-stats-${date}.json`
-		const filePath = ["code", "data", fileName]
+		const filePath =
+			kernel === "rocket"
+				? ["real_trading", "rocket", "data", "ui_status", fileName]
+				: ["real_trading", "data", "ui_status", fileName]
 
 		const data = await getJsonDataFromFile<{ stats?: any[] }>(
 			filePath,
@@ -41,9 +44,9 @@ async function readStatsFromJson(
 
 		// 如果是实盘内核的json，则按策略名筛选出 stats
 		let filteredStats = data.stats
-		if (strategyRealMarketName) {
+		if (strategyName) {
 			filteredStats = data.stats.filter(
-				(stat: any) => stat.strategy === strategyRealMarketName,
+				(stat: any) => stat.strategy === strategyName,
 			)
 		}
 
@@ -248,23 +251,16 @@ async function generateSingleStrategyStatus(
 	hasTimingOrOverride: boolean,
 	sellTimeStr: string,
 	buyTimeStr: string,
-	strategyRealMarketName: string,
 	date: string,
 	isOvernightRebalance: boolean, // 是否隔日换仓
+	isStrategyPool = false, // 是否为 pos 类型策略
 ): Promise<StrategyStatus[]> {
 	const selectKernel = await detectSelectKernel(date)
 
 	// const fuelStats = await readStatsFromJson(date, "fuel")
 	const selectStats = await readStatsFromJson(date, selectKernel)
-	const rocketStats = await readStatsFromJson(
-		date,
-		"rocket",
-		strategyRealMarketName,
-	)
+	const rocketStats = await readStatsFromJson(date, "rocket", strategyName)
 
-	const qmtDataTime = parseTimeToDate(latestTiming, date)
-		? new Date(parseTimeToDate(latestTiming, date)!.getTime() + 60 * 1000)
-		: null
 	const sellDayOffset = isOvernightRebalance ? -1 : 0
 
 	// 从卖出时间推算交易计划生成时间（卖出前2分钟）
@@ -276,6 +272,12 @@ async function generateSingleStrategyStatus(
 	const tradingPlanTime = sellTime
 		? new Date(sellTime.getTime() - 2 * 60 * 1000)
 		: null
+
+	const qmtDataTime = isStrategyPool
+		? tradingPlanTime
+		: parseTimeToDate(latestTiming, date)
+			? new Date(parseTimeToDate(latestTiming, date)!.getTime() + 80 * 1000)
+			: null
 
 	// DATA_UPDATE: 前一天16:00，截止时间为前一天22:00
 	// const dataUpdateTime = parseTimeToDate("1600", date, -1)
@@ -380,6 +382,7 @@ async function generateSingleStrategyStatus(
 						? timingSig0Stats[timingSig0Stats.length - 1]
 						: undefined,
 				stats: timingSig0Stats,
+				isStrategyPool,
 			},
 			{
 				strategyName,
@@ -401,6 +404,7 @@ async function generateSingleStrategyStatus(
 						? timingSig1Stats[timingSig1Stats.length - 1]
 						: undefined,
 				stats: timingSig1Stats,
+				isStrategyPool,
 			},
 		)
 	}
@@ -483,9 +487,30 @@ async function generateSingleStrategyStatus(
 
 /**
  * 生成策略状态列表（二维数组）
- * 根据 config.json 中的 strategy_list 为每个策略生成状态
+ * 根据 libraryType 选择对应的状态列表函数
  */
 export async function getStrategyStatusList(
+	date: string,
+): Promise<StrategyStatus[][]> {
+	try {
+		const libraryType = (await store.getValue(
+			"settings.libraryType",
+			"select",
+		)) as string
+
+		if (libraryType === "pos") {
+			return await getStrategyStatusListForPos(date)
+		}
+
+		return await getStrategyStatusListForSelect(date)
+	} catch (error) {
+		logger.error(`[strategy-status] 生成策略状态列表失败: ${error}`)
+		return []
+	}
+}
+
+// 选股模式状态列表函数
+async function getStrategyStatusListForSelect(
 	date: string,
 ): Promise<StrategyStatus[][]> {
 	try {
@@ -505,11 +530,10 @@ export async function getStrategyStatusList(
 				const strategyKey = `strategy_${index}`
 				const strategyConfig = rStore.get(strategyKey) as any
 
-				const strategyName = strategy.name
+				const strategyName = strategyConfig?.name ?? ""
 
 				const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
 				const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
-				const strategyRealMarketName = strategyConfig?.name ?? ""
 
 				const { latestTime, hasTimingOrOverride } = getStrategyTiming(strategy)
 
@@ -519,7 +543,7 @@ export async function getStrategyStatusList(
 					!rebalanceTime || rebalanceTime === "close-open"
 
 				logger.info(
-					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, 实盘策略名=${strategyRealMarketName}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}`,
+					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}`,
 				)
 
 				return await generateSingleStrategyStatus(
@@ -528,9 +552,9 @@ export async function getStrategyStatusList(
 					hasTimingOrOverride,
 					sellTimeStr,
 					buyTimeStr,
-					strategyRealMarketName,
 					date,
 					isOvernightRebalance,
+					false,
 				)
 			}),
 		)
@@ -541,7 +565,197 @@ export async function getStrategyStatusList(
 
 		return result
 	} catch (error) {
-		logger.error(`[strategy-status] 生成策略状态列表失败: ${error}`)
+		logger.error(`[strategy-status] 生成select策略状态列表失败: ${error}`)
+		return []
+	}
+}
+
+// 仓管模式状态列表函数
+async function getStrategyStatusListForPos(
+	date: string,
+): Promise<StrategyStatus[][]> {
+	try {
+		const posMgmtStrategies = (await store.getValue(
+			"pos_mgmt.strategies",
+			[],
+		)) as any[]
+
+		if (posMgmtStrategies.length === 0) {
+			logger.warn("[strategy-status] pos_mgmt.strategies 为空")
+			return []
+		}
+
+		// 通过 strategyName 去real_market_25.json筛选对应策略
+		const findStrategyConfigByName = (strategyName: string): any => {
+			for (const [, config] of Object.entries(rStore.store)) {
+				if ((config as any)?.name === strategyName) {
+					return config
+				}
+			}
+			return null
+		}
+
+		interface PosStrategy {
+			name: string
+			latestTime: string
+			hasTimingOrOverride: boolean
+			sellTimeStr: string
+			buyTimeStr: string
+			rebalanceTime: string
+			isOvernightRebalance: boolean
+			isStrategyPool?: boolean
+		}
+
+		const posStrategies: PosStrategy[] = []
+
+		for (let index = 0; index < posMgmtStrategies.length; index++) {
+			const strategy = posMgmtStrategies[index]
+			const strategyName = `X${index + 1}-${strategy.name}`
+
+			const type: "pos" | "group" | "select" =
+				strategy.strategy_pool && Array.isArray(strategy.strategy_pool)
+					? "pos"
+					: strategy.strategy_list && Array.isArray(strategy.strategy_list)
+						? "group"
+						: "select"
+
+			if (type === "pos") {
+				// pos 类型：只生成一个元素
+				const strategyConfig = findStrategyConfigByName(strategyName)
+
+				const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
+				const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
+
+				// 检查 strategy_pool 中是否有任何子策略包含 timing 或 override
+				let posHasTimingOrOverride = false
+				const strategyPool = strategy.strategy_pool || []
+				for (const poolItem of strategyPool) {
+					// poolItem 可能是 group 或 select
+					if (poolItem.strategy_list && Array.isArray(poolItem.strategy_list)) {
+						// 是 group，检查其子策略
+						for (const subStg of poolItem.strategy_list) {
+							const { hasTimingOrOverride } = getStrategyTiming(subStg)
+							if (hasTimingOrOverride) {
+								posHasTimingOrOverride = true
+								break
+							}
+						}
+					} else {
+						// 是 select
+						const { hasTimingOrOverride } = getStrategyTiming(poolItem)
+						if (hasTimingOrOverride) {
+							posHasTimingOrOverride = true
+							break
+						}
+					}
+					if (posHasTimingOrOverride) break
+				}
+
+				const rebalanceTime = strategy.rebalance_time
+				const isOvernightRebalance =
+					!rebalanceTime || rebalanceTime === "close-open"
+
+				posStrategies.push({
+					name: strategyName,
+					latestTime: "",
+					hasTimingOrOverride: posHasTimingOrOverride,
+					sellTimeStr,
+					buyTimeStr,
+					rebalanceTime,
+					isOvernightRebalance,
+					isStrategyPool: true, // 标记为 pos 类型
+				})
+
+				logger.info(
+					`[strategy-status] pos策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, posHasTimingOrOverride=${posHasTimingOrOverride}, isStrategyPool=true`,
+				)
+			} else if (type === "group") {
+				// group 类型：展开 strategy_list
+				const subStrategies = strategy.strategy_list
+
+				for (let index0 = 0; index0 < subStrategies.length; index0++) {
+					const subStrategy = subStrategies[index0]
+
+					const dictKey =
+						subStrategies.length > 1
+							? `${strategyName}#${index0}.${subStrategy.name}`
+							: strategyName
+
+					const strategyConfig = findStrategyConfigByName(dictKey)
+
+					const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
+					const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
+
+					const { latestTime, hasTimingOrOverride } =
+						getStrategyTiming(subStrategy)
+
+					posStrategies.push({
+						name: dictKey,
+						latestTime,
+						hasTimingOrOverride,
+						sellTimeStr,
+						buyTimeStr,
+						rebalanceTime: subStrategy.rebalance_time,
+						isOvernightRebalance:
+							!subStrategy.rebalance_time ||
+							subStrategy.rebalance_time === "close-open",
+					})
+
+					logger.info(
+						`[strategy-status] group子策略 ${index}.${index0}(${dictKey}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}`,
+					)
+				}
+			} else {
+				// select 类型：单个策略
+				const strategyConfig = findStrategyConfigByName(strategyName)
+
+				const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
+				const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
+
+				const { latestTime, hasTimingOrOverride } = getStrategyTiming(strategy)
+				const rebalanceTime = strategy.rebalance_time
+				const isOvernightRebalance =
+					!rebalanceTime || rebalanceTime === "close-open"
+
+				posStrategies.push({
+					name: strategyName,
+					latestTime,
+					hasTimingOrOverride,
+					sellTimeStr,
+					buyTimeStr,
+					rebalanceTime,
+					isOvernightRebalance,
+				})
+
+				logger.info(
+					`[strategy-status] select策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}`,
+				)
+			}
+		}
+
+		// 为每个策略生成状态
+		const result: StrategyStatus[][] = await Promise.all(
+			posStrategies.map(async (posStrategy) => {
+				return await generateSingleStrategyStatus(
+					posStrategy.name,
+					posStrategy.latestTime,
+					posStrategy.hasTimingOrOverride,
+					posStrategy.sellTimeStr,
+					posStrategy.buyTimeStr,
+					date,
+					posStrategy.isOvernightRebalance,
+					posStrategy.isStrategyPool ?? false,
+				)
+			}),
+		)
+
+		logger.info(
+			`[strategy-status] 生成了 ${posStrategies.length} 个仓位管理策略的状态列表`,
+		)
+
+		return result
+	} catch (error) {
+		logger.error(`[strategy-status] 生成pos策略状态列表失败: ${error}`)
 		return []
 	}
 }

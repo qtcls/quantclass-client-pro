@@ -53,4 +53,5 @@ export interface StrategyStatus {
 	plan: StrategyStatusPlan
 	stat?: StrategyStatusStat
 	stats?: StrategyStatusStat[]
+	isStrategyPool?: boolean
 }

@@ -232,11 +232,24 @@ function StatusCard({
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<div className="font-semibold text-gray-800 dark:text-gray-200 py-0.5 rounded cursor-default">
-										{statusItem.tag === "SELECT_CLOSE"
-											? "收盘后，开盘前"
-											: statusItem.plan.time
-												? dayjs(statusItem.plan.time).format("HH:mm:ss")
-												: "--- ---"}
+										{statusItem.tag === "SELECT_CLOSE" ? (
+											"收盘后，开盘前"
+										) : (statusItem.tag === "SELECT_TIMING_SIG0" ||
+												statusItem.tag === "SELECT_TIMING_SIG1") &&
+											statusItem.isStrategyPool ? (
+											<div className="flex gap-2">
+												<span>开盘后</span>至
+												<span>
+													{statusItem.plan.time
+														? dayjs(statusItem.plan.time).format("HH:mm:ss")
+														: "--- ---"}
+												</span>
+											</div>
+										) : statusItem.plan.time ? (
+											dayjs(statusItem.plan.time).format("HH:mm:ss")
+										) : (
+											"--- ---"
+										)}
 									</div>
 								</TooltipTrigger>
 

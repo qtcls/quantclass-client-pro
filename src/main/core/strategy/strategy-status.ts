@@ -11,6 +11,7 @@
 import { getJsonDataFromFile } from "@/main/core/dataList.js"
 import store, { rStore } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
+import { ROCKET_STATS_PATH, SELECT_STATS_PATH } from "@/main/vars.js"
 import type {
 	StrategyStatus,
 	StrategyStatusStat,
@@ -29,8 +30,8 @@ async function readStatsFromJson(
 		const fileName = `${kernel}-stats-${date}.json`
 		const filePath =
 			kernel === "rocket"
-				? ["real_trading", "rocket", "data", "ui_status", fileName]
-				: ["real_trading", "data", "ui_status", fileName]
+				? [...ROCKET_STATS_PATH, fileName]
+				: [...SELECT_STATS_PATH, fileName]
 
 		const data = await getJsonDataFromFile<{ stats?: any[] }>(
 			filePath,
@@ -81,12 +82,7 @@ async function readStatsFromJson(
 }
 
 async function detectSelectKernel(date: string): Promise<"aqua" | "zeus"> {
-	const aquaPath = [
-		"real_trading",
-		"data",
-		"ui_status",
-		`aqua-stats-${date}.json`,
-	]
+	const aquaPath = [...SELECT_STATS_PATH, `aqua-stats-${date}.json`]
 	const aquaData = await getJsonDataFromFile<{ stats?: any[] }>(
 		aquaPath,
 		"",

@@ -159,9 +159,25 @@ const StrategyStatusDesDialog = forwardRef<
 										<span className="flex-shrink-0 text-muted-foreground">
 											描述:
 										</span>
-										<span className="flex-1 min-w-0 whitespace-pre-wrap break-all text-muted-foreground text-xs">
-											{stat.messages.join("，") || "无"}
-										</span>
+										<div className="flex-1 min-w-0 space-y-1">
+											{stat.messages.length > 0 ? (
+												stat.messages.map((msg, msgIdx) => (
+													<div
+														key={msgIdx}
+														className="flex items-start gap-2 text-muted-foreground text-xs"
+													>
+														<span className="flex-shrink-0 mt-1 w-1 h-1 rounded-full bg-muted-foreground/50" />
+														<span className="flex-1 whitespace-pre-wrap break-all">
+															{msg}
+														</span>
+													</div>
+												))
+											) : (
+												<span className="text-muted-foreground text-xs">
+													无
+												</span>
+											)}
+										</div>
 									</div>
 								</CardContent>
 							</Card>

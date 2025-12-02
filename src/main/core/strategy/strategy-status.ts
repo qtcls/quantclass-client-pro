@@ -43,11 +43,13 @@ async function readStatsFromJson(
 			return []
 		}
 
-		// 如果是实盘内核的json，则按策略名筛选出 stats
+		// 按策略名筛选出 stats
+		// SELECT_CLOSE 这个tag始终包含，其他tag按策略名筛选
 		let filteredStats = data.stats
 		if (strategyName) {
 			filteredStats = data.stats.filter(
-				(stat: any) => stat.strategy === strategyName,
+				(stat: any) =>
+					stat.tag === "SELECT_CLOSE" || stat.strategy === strategyName,
 			)
 		}
 
@@ -212,18 +214,24 @@ function determineStatus(
 
 	const [statStartTime, statEndTime] = stat.time
 
-	// 如果需要严格匹配时间（实盘卖出和买入）
+	// 如果是实盘卖出和买入
 	if (strictMatch) {
-		// 检查开始时间是否严格等于计划时间
-		if (statStartTime.getTime() === planTime.getTime()) {
-			// 如果已结束，则完成
-			if (statEndTime) {
-				return StrategyStatusEnum.COMPLETED
+		if (statStartTime.getTime() <= planTime.getTime()) {
+			// 如果还未结束，则进行中
+			if (!statEndTime) {
+				return StrategyStatusEnum.IN_PROGRESS
 			}
 
-			return StrategyStatusEnum.IN_PROGRESS
+			// 如果已结束，检查结束时间是否超过计划时间20分钟
+			const twentyMinutesInMs = 20 * 60 * 1000
+			if (statEndTime.getTime() > planTime.getTime() + twentyMinutesInMs) {
+				return StrategyStatusEnum.INCOMPLETE
+			}
+
+			return StrategyStatusEnum.COMPLETED
 		}
 
+		// 如果开始时间晚于计划时间，则异常
 		return StrategyStatusEnum.INCOMPLETE
 	}
 
@@ -259,7 +267,7 @@ async function generateSingleStrategyStatus(
 	const selectKernel = await detectSelectKernel(date)
 
 	// const fuelStats = await readStatsFromJson(date, "fuel")
-	const selectStats = await readStatsFromJson(date, selectKernel)
+	const selectStats = await readStatsFromJson(date, selectKernel, strategyName)
 	const rocketStats = await readStatsFromJson(date, "rocket", strategyName)
 
 	const sellDayOffset = isOvernightRebalance ? -1 : 0

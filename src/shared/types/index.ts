@@ -16,3 +16,11 @@ export type {
 
 // 内核相关类型
 export type { KernalType } from "./kernal.js"
+
+// 用户相关类型
+export type {
+	UserInfo,
+	WebUserInfo,
+	UserAccount,
+	UserAccountInfo,
+} from "./user.js"

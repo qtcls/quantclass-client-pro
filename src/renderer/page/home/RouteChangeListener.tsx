@@ -8,37 +8,48 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import {
-	collectUserInfo,
-	generatePermissionSet,
-} from "@/renderer/hooks/useIdentityArray"
-import { userIdentityAtom } from "@/renderer/store/storage"
-import { useInfoAtom, userInfoTtlAtom } from "@/renderer/store/user"
+import { settingsAtom } from "@/renderer/store/electron"
+import { userAtom } from "@/renderer/store/user"
 import { useAtom, useSetAtom } from "jotai"
+import { RESET } from "jotai/utils"
 import { useEffect } from "react"
 import { useLocation } from "react-router"
+import { toast } from "sonner"
+
+const { rendererLog, getUserAccount } = window.electronAPI
+
 const RouteChangeListener = () => {
 	const location = useLocation()
-	const [{ data, refetch }] = useAtom(useInfoAtom)
-	const setUserIdentity = useSetAtom(userIdentityAtom)
-	const [ttl, setTtl] = useAtom(userInfoTtlAtom)
-
+	const [{ isLoggedIn }, setUser] = useAtom(userAtom)
+	const setSettings = useSetAtom(settingsAtom)
+	// biome-ignore lint/correctness/useExhaustiveDependencies: 需要在路由变化时触发用户信息更新
 	useEffect(() => {
-		if (data) {
-			setUserIdentity(generatePermissionSet(collectUserInfo(data))) // 存储用户身份标识
+		// 如果用户未登录，不执行更新逻辑
+		if (!isLoggedIn) {
+			return
 		}
 
-		const now = Date.now()
-
-		if (refetch && now > ttl) {
-			refetch()
-			const randomGap =
-				Math.floor(Math.random() * 1000 * 60 * 5) + 31 * 1000 * 60 // 随机过期时间
-			setTtl(now + randomGap) // 随机过期时间
-		} else {
-			console.log("info valid sec.", (ttl - now) / 1000)
-		}
-	}, [location, refetch, data]) // 依赖于 location，每次路由变化时都会触发 refetch
+		// 每次路由变化都通过 IPC 获取用户信息（带缓存逻辑）
+		getUserAccount()
+			.then((userAccount) => {
+				if (userAccount) {
+					setUser(userAccount)
+					rendererLog("info", "[RouteChangeListener] 用户信息已更新")
+				} else {
+					setUser(RESET)
+					setSettings((prev) => ({
+						...prev,
+						hid: "",
+						api_key: "",
+					}))
+					toast.dismiss()
+					toast.warning("账户信息异常，请重新登录")
+				}
+			})
+			.catch((error) => {
+				rendererLog("error", `[RouteChangeListener] 获取用户信息失败: ${error}`)
+			})
+	}, [location, isLoggedIn]) // 每次路由变化时触发更新
 
 	return null
 }

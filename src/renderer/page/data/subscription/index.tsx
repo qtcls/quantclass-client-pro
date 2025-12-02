@@ -10,22 +10,23 @@
 
 import { DataTable } from "@/renderer/components/ui/data-table"
 import { useDataSubscribed } from "@/renderer/hooks/useDataSubscribed"
-import { usePermission } from "@/renderer/hooks/useIdentityArray"
 import { useProductList } from "@/renderer/hooks/useProductList"
 import {
 	transSubscribeData,
 	useGenSubscribeColumns,
 } from "@/renderer/page/data/subscription/columns"
 import { DataTableActionOptions } from "@/renderer/page/data/subscription/options"
-import { ISubscribeListType } from "@/renderer/schemas/subscribe-schema"
+import type { ISubscribeListType } from "@/renderer/schemas/subscribe-schema"
 import { rowSelectionAtom } from "@/renderer/store"
-import { ColumnDef } from "@tanstack/react-table"
-import { useSetAtom } from "jotai"
-import { FC, memo, useEffect, useMemo } from "react"
+import { userAtom } from "@/renderer/store/user"
+import type { ColumnDef } from "@tanstack/react-table"
+import { useAtomValue, useSetAtom } from "jotai"
+import { memo, useEffect, useMemo } from "react"
+import type { FC } from "react"
 
 const DataSubscriptionTable: FC = () => {
 	const subscribeColumns = useGenSubscribeColumns()
-	const { checkDataListPermission } = usePermission()
+	const { roles, isMember } = useAtomValue(userAtom)
 	const setRowSelection = useSetAtom(rowSelectionAtom)
 	const { dataSubscribedNameList } = useDataSubscribed()
 	const { apiProductList, update, isUpdating } = useProductList()
@@ -60,9 +61,13 @@ const DataSubscriptionTable: FC = () => {
 			loading={isUpdating}
 			actionOptions={DataTableActionOptions}
 			checkboxDisabled={(row) => {
+				if (isMember) return false
+
 				const data = row.original as ISubscribeListType
 				const courseType = data.course_access?.[0]
-				return checkDataListPermission(courseType)
+				return courseType
+					? roles[courseType as keyof typeof roles].disabled
+					: true
 			}}
 			// @ts-ignore
 			getRowId={(row: { key: string }) => row.key}

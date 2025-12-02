@@ -10,9 +10,10 @@
 
 import { Button } from "@/renderer/components/ui/button"
 import { Input } from "@/renderer/components/ui/input"
-import { useDataSubscribed } from "@/renderer/hooks/useDataSubscribed"
 import { cn } from "@/renderer/lib/utils"
+import { dataSubscribedAtom } from "@/renderer/store/electron"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useAtom } from "jotai"
 import { ArrowUp, FolderOpen, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
@@ -32,8 +33,8 @@ type DataLocationFormData = z.infer<typeof dataLocationSchema>
 export function DataLocationCtrl({ className }: { className?: string }) {
 	const [pending, setPending] = useState(false) // 等待IPC调用，有时候windows这个IPC比较慢
 	const [choosing, setChoosing] = useState(false) // 是否正在选择文件夹
-	const { setDataLocation, dataLocation } = useSettings()
-	const { resetDataSubscribed } = useDataSubscribed()
+	const { updateSettings, dataLocation } = useSettings()
+	const [, setDataSubscribed] = useAtom(dataSubscribedAtom)
 	const form = useForm<DataLocationFormData>({
 		mode: "onChange",
 		resolver: zodResolver(dataLocationSchema),
@@ -50,9 +51,16 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 			const _path = await selectDirectory()
 			if (_path) {
 				form.setValue("all_data_path", _path, { shouldValidate: true })
-				setDataLocation(_path)
 
-				resetDataSubscribed()
+				// 更新settings（包含data_white_list）
+				updateSettings({
+					all_data_path: _path,
+					data_white_list: [],
+				})
+
+				// 清空本地数据订阅状态
+				setDataSubscribed([])
+
 				// await startServer()
 				toast.success("路径配置成功")
 			}

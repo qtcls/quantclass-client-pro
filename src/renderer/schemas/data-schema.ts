@@ -22,4 +22,5 @@ export interface IDataListType {
 	fullDataDownloadExpires?: number | null
 	isAutoUpdate: 0 | 1
 	canAutoUpdate?: 0 | 1
+	updateTime?: string | null
 }

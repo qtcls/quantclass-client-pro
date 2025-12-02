@@ -14,6 +14,7 @@ import { dataIPC } from "./data/index.js"
 import { emitterIPC } from "./emitter/index.js"
 import { fileSysIPC } from "./file-sys/index.js"
 import { storeIPC } from "./store/index.js"
+import { userIPC } from "./user/index.js"
 
 import { electronAPI } from "@electron-toolkit/preload"
 import { coreIPC } from "./core/index.js"
@@ -31,6 +32,7 @@ if (process.contextIsolated) {
 			...fileSysIPC,
 			...emitterIPC,
 			...systemIPC,
+			...userIPC,
 		})
 	} catch (error) {
 		console.error(error)

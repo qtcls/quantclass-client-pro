@@ -39,14 +39,15 @@ import {
 	SelectValue,
 } from "@/renderer/components/ui/select"
 import { usePermissionCheck, useStrategyOptions } from "@/renderer/hooks"
-import { DataTableActionOptionsProps } from "@/renderer/page/data/table/options"
+import type { DataTableActionOptionsProps } from "@/renderer/page/data/table/options"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ReloadIcon } from "@radix-ui/react-icons"
 import { useMutation } from "@tanstack/react-query"
 import { useUnmount } from "etc-hooks"
 import { compact } from "lodash-es"
 import { ArrowDownNarrowWideIcon, Edit3Icon } from "lucide-react"
-import { FC, useEffect, useState } from "react"
+import type { FC } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -73,7 +74,7 @@ export function StrategyTableActionOptions<TData>(
 	props: StrategyTableActionOptionsProps<TData>,
 ) {
 	const { refresh } = props
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const { mutateAsync: updateStrategies, isPending: loading } = useMutation({
 		mutationKey: ["update-strategies"],
 		mutationFn: async () => await handleUpdateStrategies(),
@@ -97,7 +98,7 @@ export function StrategyTableActionOptions<TData>(
 				className="h-8 text-foreground lg:flex"
 				onClick={async () => {
 					// -- 权限检查
-					if (!check({ requireMember: true }).isValid) {
+					if (!checkWithToast({ requireMember: true }).isValid) {
 						return
 					}
 
@@ -132,7 +133,7 @@ export function StrategyTableActionOptions<TData>(
 
 const AddStrategyDialog: FC<{ refresh: () => void }> = ({ refresh }) => {
 	const [open, setOpen] = useState(false)
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const form = useForm<z.infer<typeof StrategyModalSchema>>({
 		mode: "onSubmit",
 		resolver: zodResolver(StrategyModalSchema),
@@ -193,6 +194,7 @@ const AddStrategyDialog: FC<{ refresh: () => void }> = ({ refresh }) => {
 		await handleSubmit(data)
 	}
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		reset()
 	}, [open])
@@ -208,7 +210,7 @@ const AddStrategyDialog: FC<{ refresh: () => void }> = ({ refresh }) => {
 				variant="outline"
 				onClick={() => {
 					// -- 权限检查
-					if (!check({ requireMember: true }).isValid) {
+					if (!checkWithToast({ requireMember: true }).isValid) {
 						return
 					}
 					setOpen(true)

@@ -12,44 +12,20 @@ import { postUserAction } from "@/renderer/request"
 import { accountKeyAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { versionsAtom } from "@/renderer/store/versions"
+import type { UserAccount } from "@/shared/types/user"
 import { atomWithMutation } from "jotai-tanstack-query"
-import { syncUserState } from "../ipc/userInfo"
-import type { UserInfo } from "../types"
 
-const { VITE_BASE_URL } = import.meta.env
-const { rendererLog } = window.electronAPI
+const { rendererLog, getUserAccount } = window.electronAPI
 
-export const userInfoMutationAtom = atomWithMutation(() => ({
+export const userInfoMutationAtom = atomWithMutation<
+	UserAccount | null,
+	boolean
+>(() => ({
 	mutationKey: ["user-info"],
-	mutationFn: async (token: string) => {
-		const res = await fetch(`${VITE_BASE_URL}/user/info`, {
-			method: "POST",
-			headers: {
-				authorization: token,
-			},
-		})
-
-		return ((await res.json()) as UserInfo | null) ?? null
-	},
-	onSuccess(data) {
-		syncUserState({
-			user: {
-				id: data?.id ?? "",
-				uuid: data?.uuid ?? "",
-				apiKey: data?.apiKey ?? "",
-				headimgurl: data?.headimgurl ?? "",
-				isMember: data?.isMember ?? false,
-				nickname: data?.nickname ?? "",
-				approval: data?.approval ?? {
-					block: false,
-					crypto: false,
-					stock: false,
-				},
-				membershipInfo: data?.membershipInfo ?? [],
-				groupInfo: data?.groupInfo ?? [],
-			},
-			isLoggedIn: true,
-		})
+	mutationFn: async (isForce = false) => {
+		// 使用 getUserAccount 接口，带缓存逻辑
+		const userAccount = await getUserAccount(isForce)
+		return userAccount
 	},
 }))
 

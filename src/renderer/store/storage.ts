@@ -7,7 +7,6 @@
  * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
-
 import type { RealMarketConfigSchema } from "@/renderer/page/trading/config-form"
 import type { SelectStgType } from "@/renderer/types/strategy"
 import { atom } from "jotai"
@@ -114,10 +113,10 @@ export const accountKeyAtom = atomWithStorage<{
 // 0: 路人
 // 1: 基础课程学生
 // 2: 分享会学生
-export const accountRoleAtom = atomWithStorage<{
-	msg: string
-	role: 0 | 1 | 2
-}>("accountRole", { msg: "NONE", role: 0 }, undefined, { getOnInit: true })
+// export const accountRoleAtom = atomWithStorage<{
+// 	msg: string
+// 	role: 0 | 1 | 2
+// }>("accountRole", { msg: "NONE", role: 0 }, undefined, { getOnInit: true })
 
 export const isAutoLoginAtom = atomWithStorage<boolean>(
 	"isAutoLogin",
@@ -133,13 +132,6 @@ export const isAutoLoginAtom = atomWithStorage<boolean>(
 // 	{ getOnInit: true },
 // )
 
-// 用户身份标识数组
-export const userIdentityAtom = atomWithStorage<string[]>(
-	"userIdentity", // 存储的键名
-	[], // 默认值
-	undefined, // 可选的存储选项
-	{ getOnInit: true }, // 初始化时从存储中获取值
-)
 export const realMarketConfigSchemaAtom = atomWithStorage<
 	Partial<z.infer<typeof RealMarketConfigSchema>>
 >(

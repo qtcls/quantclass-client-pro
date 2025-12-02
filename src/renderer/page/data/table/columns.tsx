@@ -8,33 +8,68 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { DataTableRowActions } from "@/renderer/components/ui/data-table-row-action"
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/renderer/components/ui/tooltip"
-import { IDataListType } from "@/renderer/schemas/data-schema"
-import { ColumnDef } from "@tanstack/react-table"
-import { Check, HardDrive, Loader2, Server, TriangleAlert } from "lucide-react"
+import type { IDataListType } from "@/renderer/schemas/data-schema"
+import type { ColumnDef } from "@tanstack/react-table"
+import { Check, HardDrive, Server, TriangleAlert } from "lucide-react"
 
 // -- 辅助函数：格式化日期时间字符串
 // const formatDateTime = (dateTimeString: string): string => {
 // 	const [year, month, day, hour, minute] = dateTimeString.split("-")
 // 	return `${year}-${month}-${day} ${hour}:${minute}`
 // }
+import { cn } from "@renderer/lib/utils"
 
 export const dataColumns = (
 	refresh: () => Promise<any>,
-	isUpdating: boolean,
+	_isUpdating: boolean,
 ): Array<ColumnDef<IDataListType>> => [
 	{
 		accessorKey: "displayName",
 		header: () => <div className="text-foreground">数据名称</div>,
-		// cell: ({ row }) => (
-		// 	<div className="text-muted-foreground">{row.original?.displayName ?? "--"}</div>
-		// ),
+		cell: ({ row }) => {
+			const canIncrementalUpdate =
+				row.original?.updateTime &&
+				row.original?.dataTime &&
+				row.original?.updateTime !== row.original?.dataTime &&
+				row.original?.canAutoUpdate === 1
+
+			const message = canIncrementalUpdate ? "数据有更新" : "数据已同步"
+
+			return (
+				<div className="flex items-center gap-2">
+					<Tooltip delayDuration={0}>
+						<TooltipTrigger>
+							<div
+								className={cn(
+									"flex items-center justify-center size-5 rounded-full",
+									canIncrementalUpdate
+										? "bg-warning/20 text-warning"
+										: "bg-success/20 text-success",
+								)}
+							>
+								{canIncrementalUpdate ? (
+									<TriangleAlert size={12} />
+								) : (
+									<Check size={12} />
+								)}
+							</div>
+						</TooltipTrigger>
+						<TooltipContent sideOffset={10}>
+							<p>{message}</p>
+						</TooltipContent>
+					</Tooltip>
+					<div className="text-foreground">
+						{row.original?.displayName ?? "--"}
+					</div>
+				</div>
+			)
+		},
 	},
 	{
 		accessorKey: "name",

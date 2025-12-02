@@ -30,7 +30,6 @@ export const useLoadingStates = (
 		stepTwoLoading: boolean
 		stepThreeLoading: boolean
 	},
-	setL: React.Dispatch<React.SetStateAction<boolean>>,
 	fullRunAsync: (name: string) => Promise<{
 		status: string
 		message: string
@@ -95,7 +94,6 @@ export const useLoadingStates = (
 			actionText: "关闭",
 			action: async () => {
 				setStep(0)
-				setL(false)
 				refresh()
 			},
 		},

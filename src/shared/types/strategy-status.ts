@@ -11,14 +11,14 @@
 export type StrategyStatusTag =
 	| "DATA_UPDATE"
 	| "SELECT_CLOSE"
-	| "PRE_SELL"
+	| "TRADE_PRE_SELL"
 	| "SELECT_TIMING_SIG0"
 	| "SELECT_TIMING_SIG1"
 	| "TRADE_SELL_PLAN"
 	| "TRADE_BUY_PLAN"
 	| "TRADE_SELL"
 	| "TRADE_BUY"
-	| "TRADE_REVERSE_REPO"
+	| "REVERSE_REPO"
 
 export enum StrategyStatusEnum {
 	COMPLETED = "completed", // 已完成 3

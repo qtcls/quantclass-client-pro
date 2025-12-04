@@ -379,19 +379,19 @@ async function generateSingleStrategyStatus(
 		},
 		{
 			strategyName,
-			tag: "PRE_SELL",
+			tag: "TRADE_PRE_SELL",
 			title: "集合竞价卖出",
 			description: "集合竞价卖出",
 			status: determineStatus(
 				preSellTime,
 				preSellDeadline,
-				findLatestStatByTag(rocketStats, "PRE_SELL"),
+				findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
 			),
 			plan: {
 				time: preSellTime,
 			},
-			stat: findLatestStatByTag(rocketStats, "PRE_SELL"),
-			stats: findStatsByTag(rocketStats, "PRE_SELL"),
+			stat: findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
+			stats: findStatsByTag(rocketStats, "TRADE_PRE_SELL"),
 		},
 	]
 
@@ -514,19 +514,19 @@ async function generateSingleStrategyStatus(
 		},
 		{
 			strategyName,
-			tag: "TRADE_REVERSE_REPO",
+			tag: "REVERSE_REPO",
 			title: "收盘后",
 			description: "下单逆回购",
 			status: determineStatus(
 				tradeReverseRepoTime,
 				tradeReverseRepoDeadline,
-				findLatestStatByTag(rocketStats, "TRADE_REVERSE_REPO"),
+				findLatestStatByTag(rocketStats, "REVERSE_REPO"),
 			),
 			plan: {
 				time: tradeReverseRepoTime,
 			},
-			stat: findLatestStatByTag(rocketStats, "TRADE_REVERSE_REPO"),
-			stats: findStatsByTag(rocketStats, "TRADE_REVERSE_REPO"),
+			stat: findLatestStatByTag(rocketStats, "REVERSE_REPO"),
+			stats: findStatsByTag(rocketStats, "REVERSE_REPO"),
 		},
 	)
 

@@ -644,10 +644,8 @@ export default function StrategyStatusTimeline() {
 				strategyName,
 			})
 
-			// 在 TRADE_REVERSE_REPO 之前插入收盘
-			const reverseRepoIndex = list.findIndex(
-				(i) => i.tag === "TRADE_REVERSE_REPO",
-			)
+			// 在 REVERSE_REPO 之前插入收盘
+			const reverseRepoIndex = list.findIndex((i) => i.tag === "REVERSE_REPO")
 			list.splice(reverseRepoIndex, 0, {
 				...nextClose,
 				strategyName,

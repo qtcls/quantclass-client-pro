@@ -529,20 +529,20 @@ export default function StrategyStatusTimeline() {
 		}
 
 		const selected = dayjs(
-			selectedDate || new Date(new Date().getTime() + 9 * 60 * 60 * 1000),
+			selectedDate || new Date(new Date().getTime() + 8.5 * 60 * 60 * 1000),
 		)
 
 		const preClose = {
 			strategyName: "",
 			tag: "preClose" as StrategyStatusTag,
-			title: "收盘",
+			title: "收盘后",
 			description: "",
 			status: "pending" as StrategyStatusEnum,
 			plan: {
 				time: selected
 					.subtract(1, "day")
 					.set("hour", 15)
-					.set("minute", 1)
+					.set("minute", 31)
 					.set("second", 0)
 					.set("millisecond", 0)
 					.toDate(),
@@ -644,8 +644,11 @@ export default function StrategyStatusTimeline() {
 				strategyName,
 			})
 
-			// 尾部：当天收盘
-			list.push({
+			// 在 TRADE_REVERSE_REPO 之前插入收盘
+			const reverseRepoIndex = list.findIndex(
+				(i) => i.tag === "TRADE_REVERSE_REPO",
+			)
+			list.splice(reverseRepoIndex, 0, {
 				...nextClose,
 				strategyName,
 			})
@@ -706,7 +709,7 @@ export default function StrategyStatusTimeline() {
 
 		if (
 			selectedDate ===
-			dayjs(new Date(new Date().getTime() + 9 * 60 * 60 * 1000)).format(
+			dayjs(new Date(new Date().getTime() + 8.5 * 60 * 60 * 1000)).format(
 				"YYYY-MM-DD",
 			)
 		) {
@@ -762,7 +765,7 @@ export default function StrategyStatusTimeline() {
 								value={
 									selectedDate
 										? new Date(selectedDate)
-										: new Date(new Date().getTime() + 9 * 60 * 60 * 1000)
+										: new Date(new Date().getTime() + 8.5 * 60 * 60 * 1000)
 								}
 								onChange={(date) => formatAndSetDateFn(date)}
 							/>

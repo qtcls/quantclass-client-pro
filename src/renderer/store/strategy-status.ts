@@ -28,7 +28,7 @@ export const strategyStatusAtom = atomWithQuery<StrategyStatus[][]>((get) => {
 
 	const date =
 		selectedDate ||
-		dayjs(new Date(new Date().getTime() + 9 * 60 * 60 * 1000)).format(
+		dayjs(new Date(new Date().getTime() + 8.5 * 60 * 60 * 1000)).format(
 			"YYYY-MM-DD",
 		)
 

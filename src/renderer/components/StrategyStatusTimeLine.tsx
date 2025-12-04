@@ -680,7 +680,7 @@ export default function StrategyStatusTimeline() {
 					nextItem?.title.includes("生成买入计划")
 				) {
 					const mergedItem = {
-						...currentItem,
+						...nextItem,
 						title: "生成交易计划",
 						description: "在卖出时间前2分钟生成交易计划",
 					}

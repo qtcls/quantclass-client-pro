@@ -57,10 +57,13 @@ async function readStatsFromJson(
 			let time: [Date, Date | null] | null = null
 			if (stat.time) {
 				if (Array.isArray(stat.time)) {
-					// 时间范围 [startTime, endTime]
-					const startTime = new Date(stat.time[0])
-					const endTime = stat.time[1] ? new Date(stat.time[1]) : null
-					time = [startTime, endTime]
+					if (stat.time[0]) {
+						// 时间范围 [startTime, endTime]
+						// 如果 stat.time[0] 为 null（[null, null]），time 返回 null
+						const startTime = new Date(stat.time[0])
+						const endTime = stat.time[1] ? new Date(stat.time[1]) : null
+						time = [startTime, endTime]
+					}
 				} else {
 					// 如果是单个时间，转换为时间范围 [time, null]（兼容json文件里返回单个时间格式）
 					const startTime = new Date(stat.time)
@@ -199,13 +202,18 @@ function determineStatus(
 
 	const now = new Date()
 
-	// 如果还没有实际执行时间（还未开始）
+	// 如果还没有实际执行开始时间（还未开始）
 	if (!stat?.time) {
-		// 如果当前时间还未到计划时间，状态为pending
-		if (now < planTime) {
+		// 如果是实盘卖出和买入，检查是否超过计划时间20分钟
+		if (strictMatch) {
+			const twentyMinutesInMs = 20 * 60 * 1000
+			if (now.getTime() > planTime.getTime() + twentyMinutesInMs) {
+				return StrategyStatusEnum.INCOMPLETE
+			}
 			return StrategyStatusEnum.PENDING
 		}
-		// 如果当前时间已过计划时间但还未执行
+
+		// 检查当前时间是否超过截止时间（除实盘卖出和买入外的其他状态）
 		if (deadlineTime && now > deadlineTime) {
 			return StrategyStatusEnum.INCOMPLETE
 		}
@@ -216,23 +224,18 @@ function determineStatus(
 
 	// 如果是实盘卖出和买入
 	if (strictMatch) {
-		if (statStartTime.getTime() <= planTime.getTime()) {
-			// 如果还未结束，则进行中
-			if (!statEndTime) {
-				return StrategyStatusEnum.IN_PROGRESS
-			}
-
-			// 如果已结束，检查结束时间是否超过计划时间20分钟
-			const twentyMinutesInMs = 20 * 60 * 1000
-			if (statEndTime.getTime() > planTime.getTime() + twentyMinutesInMs) {
-				return StrategyStatusEnum.INCOMPLETE
-			}
-
+		// 如果有结束时间，返回已完成
+		if (statEndTime) {
 			return StrategyStatusEnum.COMPLETED
 		}
 
-		// 如果开始时间晚于计划时间，则异常
-		return StrategyStatusEnum.INCOMPLETE
+		// 如果还未结束，检查是否超时（超过计划时间20分钟）
+		const twentyMinutesInMs = 20 * 60 * 1000
+		if (now.getTime() > planTime.getTime() + twentyMinutesInMs) {
+			return StrategyStatusEnum.INCOMPLETE
+		}
+		// 如果没有结束时间且未超时，返回进行中
+		return StrategyStatusEnum.IN_PROGRESS
 	}
 
 	// 检查开始时间是否超过截止时间（除实盘卖出和买入外的其他状态）

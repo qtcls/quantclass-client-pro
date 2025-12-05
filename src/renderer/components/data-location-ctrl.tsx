@@ -20,6 +20,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 import { useSettings } from "../hooks/useSettings"
+import { DataPathChangeDialog } from "./DataPathChangeDialog"
 import ButtonTooltip from "./ui/button-tooltip"
 
 const { selectDirectory, openDataDirectory } = window.electronAPI
@@ -33,6 +34,7 @@ type DataLocationFormData = z.infer<typeof dataLocationSchema>
 export function DataLocationCtrl({ className }: { className?: string }) {
 	const [pending, setPending] = useState(false) // 等待IPC调用，有时候windows这个IPC比较慢
 	const [choosing, setChoosing] = useState(false) // 是否正在选择文件夹
+	const [showWarningDialog, setShowWarningDialog] = useState(false)
 	const { updateSettings, dataLocation } = useSettings()
 	const [, setDataSubscribed] = useAtom(dataSubscribedAtom)
 	const form = useForm<DataLocationFormData>({
@@ -43,6 +45,16 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 	useEffect(() => {
 		form.setValue("all_data_path", dataLocation)
 	}, [dataLocation])
+
+	const handleButtonClick = () => {
+		// 已有路径，显示警告弹窗
+		if (dataLocation) {
+			setShowWarningDialog(true)
+		} else {
+			// 没有路径，选择文件夹
+			handleFolderSelect()
+		}
+	}
 
 	const handleFolderSelect = async () => {
 		if (choosing) return
@@ -68,6 +80,15 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 			setChoosing(false)
 		}
 	}
+
+	const handleConfirm = () => {
+		setShowWarningDialog(false)
+		handleFolderSelect()
+	}
+
+	const handleCancel = () => {
+		setShowWarningDialog(false)
+	}
 	return (
 		<>
 			<div className={cn("relative", className)}>
@@ -82,7 +103,7 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 					className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 flex items-center justify-center" // 按钮的高度和输入框一致
 					disabled={choosing}
 					size="sm"
-					onClick={handleFolderSelect}
+					onClick={handleButtonClick}
 				>
 					{dataLocation ? "更改" : "选择"}
 				</Button>
@@ -114,6 +135,14 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 					</Button>
 				</ButtonTooltip>
 			)}
+
+			<DataPathChangeDialog
+				open={showWarningDialog}
+				onOpenChange={setShowWarningDialog}
+				currentPath={dataLocation}
+				onConfirm={handleConfirm}
+				onCancel={handleCancel}
+			/>
 		</>
 	)
 }

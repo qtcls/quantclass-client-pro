@@ -44,12 +44,14 @@ async function readStatsFromJson(
 		}
 
 		// 按策略名筛选出 stats
-		// SELECT_CLOSE 这个tag始终包含，其他tag按策略名筛选
+		// SELECT_CLOSE 和 REVERSE_REPO 这两个tag始终包含，其他tag按策略名筛选
 		let filteredStats = data.stats
 		if (strategyName) {
 			filteredStats = data.stats.filter(
 				(stat: any) =>
-					stat.tag === "SELECT_CLOSE" || stat.strategy === strategyName,
+					stat.tag === "SELECT_CLOSE" ||
+					stat.tag === "REVERSE_REPO" ||
+					stat.strategy === strategyName,
 			)
 		}
 

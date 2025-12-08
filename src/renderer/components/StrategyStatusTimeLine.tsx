@@ -73,7 +73,7 @@ interface StatusTimeLineItemProps {
 
 interface SummaryItem {
 	strategyName: string
-	overallStatus: StrategyStatusEnum
+	overallStatus: StrategyStatusEnum | null
 	descList: string[]
 }
 
@@ -585,7 +585,8 @@ export default function StrategyStatusTimeline() {
 		// 1.如果全部是已完成 则该策略状态status:"completed"是已完成 descList:[]
 		// 2.如果有进行中的  则该策略状态status:"in_progress"是进行中 descList:[进行中的title1，...]
 		// 3.如果没有进行中  有异常的 则该策略状态status:"incomplete"有异常 descList:[]
-		// 4.如果全是未到预期时间 则该策略状态status:"pending"是进行中 descList:[]
+		// 4.如果全是未开始 则该策略状态status:"pending"是未开始 descList:[]
+		// 5.其他情况 不显示
 
 		// 计算每个策略的汇总状态
 		const tempSummaryList = strategyStatusData.map((strategyItem) => {
@@ -598,7 +599,7 @@ export default function StrategyStatusTimeline() {
 			)
 			const allPending = statuses.every((s) => s === StrategyStatusEnum.PENDING)
 
-			let overallStatus: StrategyStatusEnum
+			let overallStatus: StrategyStatusEnum | null
 			let descList: string[] = []
 
 			if (allCompleted) {
@@ -613,7 +614,7 @@ export default function StrategyStatusTimeline() {
 			} else if (allPending) {
 				overallStatus = StrategyStatusEnum.PENDING
 			} else {
-				overallStatus = StrategyStatusEnum.PENDING
+				overallStatus = null
 			}
 
 			return {
@@ -801,34 +802,38 @@ export default function StrategyStatusTimeline() {
 												<span className="flex-shrink-0">
 													{strategyIndex + 1}. {strategyItem[0].strategyName}
 												</span>
-												{summaryList.length > 0 && (
-													<div className="flex-1 min-w-0 flex items-center gap-2 ">
-														{/* 总统状态 */}
-														<Badge
-															variant="outline"
-															className={cn(
-																"text-xs px-2 py-0.5",
-																statusStyleMap[
-																	summaryList[strategyIndex].overallStatus
-																],
+												{summaryList.length > 0 &&
+													summaryList[strategyIndex].overallStatus && (
+														<div className="flex-1 min-w-0 flex items-center gap-2 ">
+															{/* 总统状态 */}
+															<Badge
+																variant="outline"
+																className={cn(
+																	"text-xs px-2 py-0.5",
+																	statusStyleMap[
+																		summaryList[strategyIndex].overallStatus!
+																	],
+																)}
+															>
+																{
+																	StrategyStatusLabelEnum[
+																		summaryList[strategyIndex].overallStatus!
+																	]
+																}
+															</Badge>
+															{/* 描述title */}
+															{summaryList[strategyIndex].descList.length >
+																0 && (
+																<div className="flex-1 min-w-0 text-xs truncate text-muted-foreground">
+																	(
+																	{summaryList[strategyIndex].descList.join(
+																		", ",
+																	)}
+																	)
+																</div>
 															)}
-														>
-															{
-																StrategyStatusLabelEnum[
-																	summaryList[strategyIndex].overallStatus
-																]
-															}
-														</Badge>
-														{/* 描述title */}
-														{summaryList[strategyIndex].descList.length > 0 && (
-															<div className="flex-1 min-w-0 text-xs truncate text-muted-foreground">
-																(
-																{summaryList[strategyIndex].descList.join(", ")}
-																)
-															</div>
-														)}
-													</div>
-												)}
+														</div>
+													)}
 											</div>
 										</AccordionTrigger>
 										<AccordionContent>
@@ -839,7 +844,7 @@ export default function StrategyStatusTimeline() {
 														variant="outline"
 														onClick={() => scrollLeft(strategyIndex)}
 														className="w-10 h-10 absolute left-0 z-20
-     bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70 
+     bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70
     top-[calc(50%-20px-8px)]"
 													>
 														<ChevronLeft />
@@ -898,7 +903,7 @@ export default function StrategyStatusTimeline() {
 													<Button
 														variant="outline"
 														onClick={() => scrollRight(strategyIndex)}
-														className="w-10 h-10 absolute right-0 top-[calc(50%-20px-8px)] z-20 
+														className="w-10 h-10 absolute right-0 top-[calc(50%-20px-8px)] z-20
      bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70 "
 													>
 														<ChevronRight />

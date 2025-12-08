@@ -299,7 +299,7 @@ function StatusCard({
 				</div>
 
 				<div className="flex justify-end">
-					{statusItem?.stats && statusItem?.stats.length > 0 ? (
+					{statusItem?.stats && statusItem?.stats.length > 0 && (
 						<Button
 							size="sm"
 							className="text-xs h-[22px] px-2 text-foreground lg:flex gap-1"
@@ -308,8 +308,6 @@ function StatusCard({
 						>
 							查看执行记录
 						</Button>
-					) : (
-						<></>
 					)}
 				</div>
 			</CardContent>
@@ -332,7 +330,8 @@ function TimeLineItem({
 		}, 0)
 	}
 
-	const NodesTemplate = () => {
+	const NodesTemplate = ({ location }: { location: string }) => {
+		// location 卡片所在位置 top bottom
 		return (
 			<div
 				className={cn(
@@ -353,7 +352,11 @@ function TimeLineItem({
 							style={{
 								zIndex: isActive ? 20 : statusItem.nodeItems!.length - index,
 								left: `${index * 10}px`,
-								bottom: `${index * 34}px`,
+								bottom: location === "top" ? `${index * 34}px` : undefined,
+								top:
+									location === "bottom"
+										? `${((statusItem?.nodeItems?.length || 1) - index - 1) * 34}px`
+										: undefined,
 							}}
 							onClick={(e) => {
 								e.stopPropagation()
@@ -382,7 +385,7 @@ function TimeLineItem({
 						</div>
 					</div>
 				) : statusItem?.isMultiNodeMerging ? (
-					<NodesTemplate />
+					<NodesTemplate location="top" />
 				) : (
 					<StatusCard statusItem={statusItem} />
 				)}
@@ -430,7 +433,7 @@ function TimeLineItem({
 							</div>
 						</div>
 					) : statusItem?.isMultiNodeMerging ? (
-						<NodesTemplate />
+						<NodesTemplate location="bottom" />
 					) : (
 						<StatusCard statusItem={statusItem} />
 					)

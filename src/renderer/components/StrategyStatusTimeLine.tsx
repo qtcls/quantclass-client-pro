@@ -666,28 +666,33 @@ export default function StrategyStatusTimeline() {
 				const nextItem = list[i + 1]
 
 				// 合并模糊择时信号和精确择时信号 放入数组中
+				// 合并生成卖出计划和生成买入计划
 				if (
-					currentItem.tag === "SELECT_TIMING_SIG0" &&
-					nextItem?.tag === "SELECT_TIMING_SIG1"
+					(currentItem.tag === "SELECT_TIMING_SIG0" &&
+						nextItem?.tag === "SELECT_TIMING_SIG1") ||
+					(currentItem.tag === "SELECT_TIMING_SIG1" &&
+						nextItem?.tag === "SELECT_TIMING_SIG0") ||
+					(currentItem.tag === "TRADE_SELL_PLAN" &&
+						nextItem?.tag === "TRADE_BUY_PLAN") ||
+					(currentItem.tag === "TRADE_BUY_PLAN" &&
+						nextItem?.tag === "TRADE_SELL_PLAN")
 				) {
+					let isPlan = false
+					if (
+						(currentItem.tag === "TRADE_SELL_PLAN" &&
+							nextItem?.tag === "TRADE_BUY_PLAN") ||
+						(currentItem.tag === "TRADE_BUY_PLAN" &&
+							nextItem?.tag === "TRADE_SELL_PLAN")
+					) {
+						isPlan = true
+					}
 					const mergedItem = {
 						...currentItem,
 						status: getNodeStatus([currentItem.status, nextItem.status]),
 						isMultiNodeMerging: true,
-						nodeItems: [nextItem, currentItem],
-					}
-					processedList.push(mergedItem)
-					i += 2
-				}
-				// 合并生成卖出计划和生成买入计划
-				else if (
-					currentItem.title.includes("生成卖出计划") &&
-					nextItem?.title.includes("生成买入计划")
-				) {
-					const mergedItem = {
-						...nextItem,
-						title: "生成交易计划",
-						description: "在卖出时间前2分钟生成交易计划",
+						nodeItems: isPlan
+							? [currentItem, nextItem]
+							: [nextItem, currentItem],
 					}
 					processedList.push(mergedItem)
 					i += 2
@@ -699,7 +704,6 @@ export default function StrategyStatusTimeline() {
 
 			return processedList
 		})
-
 		setStrategyStatusList(result)
 	}, [strategyStatusData, selectedDate])
 

@@ -301,8 +301,8 @@ async function generateSingleStrategyStatus(
 	const preSellTime = parseTimeToDate("0915", date)
 	const preSellDeadline = parseTimeToDate("0930", date)
 
-	// SELECT_CLOSE: 前一天15:00，截止时间为第二天9:30
-	const selectCloseTime = parseTimeToDate("1500", date, -1)
+	// SELECT_CLOSE: 前一天15:31，截止时间为第二天9:30
+	const selectCloseTime = parseTimeToDate("1531", date, -1)
 	const selectCloseDeadline = parseTimeToDate("0930", date)
 
 	// 当天的买入时间

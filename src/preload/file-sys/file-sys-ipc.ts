@@ -259,6 +259,9 @@ async function checkDBFileHandler(): Promise<void> {
 }
 
 async function importSelectStockHandler(): Promise<void> {
+	// 获取实盘路径
+	const realTradingPath = await store.getAllDataPath(["real_trading"], true)
+
 	ipcMain.handle("import-select-stock", async (_, configFilePath: string) => {
 		try {
 			const fuelProTradingPath = await store.getAllDataPath(
@@ -363,6 +366,11 @@ async function importSelectStockHandler(): Promise<void> {
 			const timingPath = path.join(rootPath, "信号库")
 			fs.existsSync(timingPath) &&
 				copyFiles(timingPath, path.join(fuelProTradingPath, "信号库"))
+
+			// -- 复制截面因子库(如需)
+			const sectionFactorPath = path.join(rootPath, "截面因子库")
+			fs.existsSync(sectionFactorPath) &&
+				copyFiles(sectionFactorPath, path.join(realTradingPath, "截面因子库"))
 
 			return {
 				success: true,

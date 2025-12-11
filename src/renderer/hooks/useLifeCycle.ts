@@ -8,7 +8,11 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { isWindows } from "@/renderer/constant"
+import {
+	POS_MGMT_STRATEGY_CONFIG,
+	SELECT_STOCK_STRATEGY_CONFIG,
+	isWindows,
+} from "@/renderer/constant"
 import { useConfig } from "@/renderer/hooks/useConfig"
 import { useHandleTimeTask } from "@/renderer/hooks/useHandleTimeTask"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
@@ -21,6 +25,7 @@ import {
 } from "@/renderer/store"
 import {
 	accountKeyAtom,
+	backtestConfigAtom,
 	isAutoLoginAtom,
 	libraryTypeAtom,
 	realMarketConfigSchemaAtom,
@@ -80,6 +85,7 @@ export const useLifeCycle = () => {
 		setIsFullscreen: useSetAtom(isFullscreenAtom),
 		setAccountKey: useSetAtom(accountKeyAtom),
 		setRealMarketConfig: useSetAtom(realMarketConfigSchemaAtom),
+		setBacktestConfig: useSetAtom(backtestConfigAtom),
 	}
 
 	// -- 用于保存休眠前的更新状态
@@ -159,6 +165,33 @@ export const useLifeCycle = () => {
 	}
 
 	/**
+	 * -- 初始化回测配置
+	 */
+	const initBacktestConfig = async (libraryType: string) => {
+		const configKey =
+			libraryType === "pos"
+				? POS_MGMT_STRATEGY_CONFIG
+				: SELECT_STOCK_STRATEGY_CONFIG
+
+		const [initialCash, startDate, endDate, backtestName] = await Promise.all([
+			getStoreValue(`${configKey}.initial_cash`, 100000),
+			getStoreValue(`${configKey}.start_date`, ""),
+			getStoreValue(`${configKey}.end_date`, ""),
+			getStoreValue(`${configKey}.backtest_name`, "默认策略"),
+		])
+
+		setters.setBacktestConfig((prev) => ({
+			...prev,
+			initial_cash: Number(initialCash),
+			start_date: startDate
+				? new Date(startDate)
+				: new Date(new Date().setFullYear(new Date().getFullYear() - 10)),
+			end_date: endDate ? new Date(endDate) : undefined,
+			backtest_name: backtestName as string,
+		}))
+	}
+
+	/**
 	 * -- 处理电源状态变化
 	 */
 	const handlePowerStatusChange = (status: string) => {
@@ -192,10 +225,13 @@ export const useLifeCycle = () => {
 	// -- 生命周期钩子
 	useMount(async () => {
 		// versionCheck.start()
-		const [_, { apiKey, uuid }] = await Promise.all([
+		const [_, { apiKey, uuid, libraryType }] = await Promise.all([
 			initScheduleTask(),
 			initAccountInfo(),
 		])
+
+		// -- 初始化回测配置
+		await initBacktestConfig(libraryType)
 
 		// -- 初始化监听器
 		onPowerStatus(handlePowerStatusChange)

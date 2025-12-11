@@ -286,6 +286,10 @@ async function generateSingleStrategyStatus(
 	const tradingPlanTime = sellTime
 		? new Date(sellTime.getTime() - 2 * 60 * 1000)
 		: null
+	// 交易计划截止时间（卖出计划时间加2分钟）
+	const tradingPlanDeadline = sellTime
+		? new Date(sellTime.getTime() + 2 * 60 * 1000)
+		: null
 
 	const qmtDataTime = isStrategyPool
 		? tradingPlanTime
@@ -455,7 +459,7 @@ async function generateSingleStrategyStatus(
 			description: "在卖出时间前2分钟生成卖出计划",
 			status: determineStatus(
 				tradingPlanTime,
-				sellTime,
+				tradingPlanDeadline,
 				findLatestStatByTag(rocketStats, "TRADE_SELL_PLAN"),
 			),
 			plan: {
@@ -471,7 +475,7 @@ async function generateSingleStrategyStatus(
 			description: "在卖出时间前2分钟生成买入计划",
 			status: determineStatus(
 				tradingPlanTime,
-				sellTime,
+				tradingPlanDeadline,
 				findLatestStatByTag(rocketStats, "TRADE_BUY_PLAN"),
 			),
 			plan: {

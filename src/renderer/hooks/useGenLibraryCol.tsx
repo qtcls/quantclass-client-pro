@@ -272,7 +272,7 @@ export const useGenLibraryColumn = (
 								</TooltipTrigger>
 								<TooltipContent
 									side="top"
-									className="max-w-xs text-xs"
+									className="max-w-xs text-xs whitespace-normal"
 									sideOffset={12}
 								>
 									客户端会在{" "}

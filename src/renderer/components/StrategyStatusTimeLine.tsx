@@ -759,8 +759,8 @@ export default function StrategyStatusTimeline() {
 								className="h-8"
 								variant={isCurrentDay ? "default" : "outline"}
 								onClick={() => {
-									refetch()
 									setSelectedDate(undefined)
+									refetch()
 									toast.success("策略实盘状态信息刷新成功")
 								}}
 							>

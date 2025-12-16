@@ -26,16 +26,15 @@ export const selectedDateAtom = atom<string | undefined>()
 export const strategyStatusAtom = atomWithQuery<StrategyStatus[][]>((get) => {
 	const selectedDate = get(selectedDateAtom)
 
-	const date =
-		selectedDate ||
-		dayjs(new Date(new Date().getTime() + 8.5 * 60 * 60 * 1000)).format(
-			"YYYY-MM-DD",
-		)
-
 	return {
-		queryKey: ["strategy-status", date],
+		queryKey: ["strategy-status", selectedDate],
 		queryFn: async () => {
-			const result = await getStrategyStatus(date)
+			const result = await getStrategyStatus(
+				selectedDate ||
+					dayjs(new Date(new Date().getTime() + 8.5 * 60 * 60 * 1000)).format(
+						"YYYY-MM-DD",
+					),
+			)
 			if (result.status === "success") {
 				return result.data || []
 			}

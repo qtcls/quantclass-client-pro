@@ -367,6 +367,11 @@ async function importSelectStockHandler(): Promise<void> {
 			fs.existsSync(timingPath) &&
 				copyFiles(timingPath, path.join(fuelProTradingPath, "信号库"))
 
+			// -- 复制外部数据(如需)
+			const externalDataPath = path.join(rootPath, "外部数据")
+			fs.existsSync(externalDataPath) &&
+				copyFiles(externalDataPath, path.join(realTradingPath, "外部数据"))
+
 			// -- 复制截面因子库(如需)
 			const sectionFactorPath = path.join(rootPath, "截面因子库")
 			fs.existsSync(sectionFactorPath) &&

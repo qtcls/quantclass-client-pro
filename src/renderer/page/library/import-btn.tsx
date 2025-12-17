@@ -19,6 +19,7 @@ import {
 } from "@/renderer/components/ui/alert-dialog"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
+import { Checkbox } from "@/renderer/components/ui/checkbox"
 import {
 	Dialog,
 	DialogContent,
@@ -30,6 +31,7 @@ import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { backtestConfigAtom } from "@/renderer/store/storage"
 import type { SelectStgType } from "@/renderer/types/strategy"
 import { openRealTradingFolder } from "@/renderer/utils"
+import { normalizeCapWeights } from "@/renderer/utils/strategy"
 import { useMutation } from "@tanstack/react-query"
 import { useSetAtom } from "jotai"
 import { isArray } from "lodash-es"
@@ -40,7 +42,6 @@ import {
 	Loader2,
 	OctagonAlert,
 	Scale,
-	ShieldCheck,
 	TriangleAlert,
 } from "lucide-react"
 import { useState } from "react"
@@ -53,6 +54,7 @@ export default function StgImportButton() {
 	const [pending, setPending] = useState(false)
 	const [importOpen, setImportOpen] = useState(false)
 	const [deleteOpen, setDeleteOpen] = useState(false)
+	const [resetCapWeight, setResetCapWeight] = useState(true)
 
 	const setBacktestConfig = useSetAtom(backtestConfigAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
@@ -67,10 +69,13 @@ export default function StgImportButton() {
 			const strategyList = JSON.parse(strategyListStr)
 
 			if (isArray(strategyList)) {
-				const strategyListWithCap0 = strategyList.map((item) => ({
-					...item,
-					cap_weight: 0,
-				}))
+				// 根据resetCapWeight决定是否重置cap_weight
+				const strategyListWithCap = resetCapWeight
+					? strategyList.map((item) => ({
+							...item,
+							cap_weight: 0,
+						}))
+					: normalizeCapWeights(strategyList)
 
 				// -- Set to config json store
 				setStoreValue("select_stock.backtest_name", backtestName)
@@ -79,7 +84,7 @@ export default function StgImportButton() {
 					...p,
 					backtest_name: backtestName,
 				}))
-				updateSelectStgList(strategyListWithCap0 as SelectStgType[])
+				updateSelectStgList(strategyListWithCap as SelectStgType[])
 			}
 			setImportOpen(false)
 			toast.success("导入成功")
@@ -180,15 +185,36 @@ export default function StgImportButton() {
 								<span className="text-danger">覆盖</span>
 								当前策略库中所有的策略
 							</li>
-							<li className="flex items-center">
-								<ShieldCheck size={18} className="mr-2" />
-								导入成功后，为了资金安全，策略资金占比都
-								<span className="text-blue-400">重置为 0</span>
+							<li className="flex items-start">
+								<div className="flex flex-col gap-2 flex-1">
+									<div className="flex items-center gap-2">
+										<Checkbox
+											id="reset-cap-weight"
+											checked={resetCapWeight}
+											onCheckedChange={(checked) =>
+												setResetCapWeight(checked as boolean)
+											}
+										/>
+										<label
+											htmlFor="reset-cap-weight"
+											className="text-sm font-medium leading-none cursor-pointer"
+										>
+											导入后重置策略资金占比为 0（默认选择，更安全）
+										</label>
+									</div>
+								</div>
 							</li>
 							<li className="flex items-center">
 								<Scale size={18} className="mr-2" />
-								需要在页面上<span className="text-warning-600">重新配置</span>
-								回测和实盘资金权重
+								{resetCapWeight ? (
+									<>
+										需要在页面上
+										<span className="text-warning-600">重新配置</span>
+										回测和实盘资金权重
+									</>
+								) : (
+									<span>将使用 config.py 中的 cap_weight 配置值</span>
+								)}
 							</li>
 						</ul>
 					</div>

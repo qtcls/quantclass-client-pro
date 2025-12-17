@@ -33,6 +33,30 @@ export const processOffsetList = (offsetListStr: string): number[] => {
 	).sort((a, b) => a - b) // -- 排序
 }
 
+export const normalizeCapWeights = (strategies: any[]): any[] => {
+	// 转换为百分比
+	const strategiesWithPercent = strategies.map((item) => ({
+		...item,
+		cap_weight: (item.cap_weight ?? 0) * 100,
+	}))
+
+	// 计算总和
+	const totalCapWeight = strategiesWithPercent.reduce(
+		(sum, item) => sum + (item.cap_weight ?? 0),
+		0,
+	)
+
+	// 如果总和超过100，按比例归一化
+	if (totalCapWeight > 100) {
+		return strategiesWithPercent.map((item) => ({
+			...item,
+			cap_weight: Number(((item.cap_weight / totalCapWeight) * 100).toFixed(6)),
+		}))
+	}
+
+	return strategiesWithPercent
+}
+
 // -- 生成随机交易时间
 // export const generateTradeTime = () => {
 // 	return {

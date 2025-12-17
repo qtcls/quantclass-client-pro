@@ -233,7 +233,7 @@ async function wakeUpAqua(userAccount: UserAccount, mw) {
 	}
 	try {
 		mw?.webContents.send("send-schedule-status", "aqua_start")
-		await execBin(["select", "trading"], "选股", "aqua")
+		await execBin(["select", "trading", "no-fuzzy"], "选股", "aqua")
 	} catch (error) {
 		logger.info(`[aqua] runtime error(${error})`)
 	} finally {

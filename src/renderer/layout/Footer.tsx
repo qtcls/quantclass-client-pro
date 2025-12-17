@@ -93,7 +93,7 @@ export const Footer: FC = () => {
 	])
 
 	return (
-		<div className="flex h-10 items-center justify-between pl-4 text-foreground border-t">
+		<div className="flex-shrink-0 flex h-10 items-center justify-between pl-4 text-foreground border-t">
 			<KernalVersionDes
 				textSize="base"
 				layout="horizontal"

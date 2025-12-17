@@ -89,15 +89,11 @@ const Layout: FC = () => {
 	}
 
 	return (
-		<>
+		<div className="flex flex-col h-screen">
 			<WindowsBar toggleFullscreen={toggleFullscreen} />
 
-			<SidebarProvider className="h-[calc(100svh-2.5rem)] min-h-[calc(100svh-2.5rem)] dddd">
-				<Sidebar
-					// variant="floating"
-					collapsible="none"
-					className="h-[calc(100svh-2.5rem)] bottom-0 top-10 border-r"
-				>
+			<SidebarProvider className="flex-1 min-h-0">
+				<Sidebar collapsible="none" className="border-r">
 					<_SidebarContent />
 					<_SiderFooter />
 					<SidebarRail />
@@ -110,7 +106,7 @@ const Layout: FC = () => {
 				/>
 			</SidebarProvider>
 			<VersionUpgrade />
-		</>
+		</div>
 	)
 }
 
@@ -123,7 +119,7 @@ const MainLayout: FC<MainLayoutProps> = ({
 }) => {
 	useLocation()
 	return (
-		<SidebarInset className="min-h-[calc(100svh-2.5rem-1px)] h-[calc(100svh-2.5rem-1px)] min-w-0">
+		<SidebarInset className="h-full overflow-hidden min-w-0 flex flex-col">
 			<header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
 				{/* <SidebarTrigger className="-ml-1 text-muted-foreground size-5" />
 				<Separator orientation="vertical" className="mr-2 h-4" /> */}
@@ -136,11 +132,7 @@ const MainLayout: FC<MainLayoutProps> = ({
 			</header>
 			<LoadingAnime loading={loading} content={content} type="kernalUpdate" />
 			<AlertDialogProvider>
-				<div
-					className={cn(
-						"px-4 h-full max-w-[calc(100vw - 10rem - 2em)] max-h-[calc(100vh - 8.5rem - 1px)] overflow-auto flex-1 flex-col space-y-4 md:flex ",
-					)}
-				>
+				<div className={cn("px-4 min-h-0 overflow-auto flex-1")}>
 					<Outlet />
 				</div>
 				{isShowMonitorPanel && <MonitorDialog />}

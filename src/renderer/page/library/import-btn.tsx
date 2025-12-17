@@ -41,7 +41,6 @@ import {
 	FolderOpen,
 	Loader2,
 	OctagonAlert,
-	Scale,
 	TriangleAlert,
 } from "lucide-react"
 import { useState } from "react"
@@ -177,58 +176,56 @@ export default function StgImportButton() {
 						</ul>
 					</div>
 					<hr />
-					<div className="space-y-1">
-						<span className="text-sm">ℹ️ 导入说明：</span>
-						<ul className="list-inside space-y-2">
-							<li className="flex items-center">
-								<Eraser size={18} className="mr-2" /> 导入会{" "}
-								<span className="text-danger">覆盖</span>
+					<div className="space-y-2">
+						<div className="bg-red-100 text-red-600 py-2 px-3 rounded-lg leading-relaxed text-sm">
+							<p className="flex items-center gap-2 font-bold">
+								<Eraser size={18} />
+								导入会<span className="font-bold text-red-700">覆盖</span>
 								当前策略库中所有的策略
-							</li>
-							<li className="flex items-start">
-								<div className="flex flex-col gap-2 flex-1">
-									<div className="flex items-center gap-2">
-										<Checkbox
-											id="reset-cap-weight"
-											checked={resetCapWeight}
-											onCheckedChange={(checked) =>
-												setResetCapWeight(checked as boolean)
-											}
-										/>
-										<label
-											htmlFor="reset-cap-weight"
-											className="text-sm font-medium leading-none cursor-pointer"
-										>
-											导入后重置策略资金占比为 0（默认选择，更安全）
-										</label>
-									</div>
-								</div>
-							</li>
-							<li className="flex items-center">
-								<Scale size={18} className="mr-2" />
-								{resetCapWeight ? (
-									<>
-										需要在页面上
-										<span className="text-warning-600">重新配置</span>
-										回测和实盘资金权重
-									</>
-								) : (
-									<span>将使用 config.py 中的 cap_weight 配置值</span>
-								)}
-							</li>
-						</ul>
+							</p>
+						</div>
+						<div className="bg-warning-100 text-warning-600 py-2 px-3 rounded-lg leading-relaxed text-sm">
+							<p className="flex items-center gap-2 font-bold">
+								<TriangleAlert size={18} /> 导入提示
+							</p>
+							<div className="text-xs leading-relaxed">
+								如果遇到导入失败，很可能你的"策略库"或者"因子库"有只读的.py文件，客户端无法自动写入。可以{" "}
+								<span className="font-bold text-warning-700">打开文件夹</span>{" "}
+								后 ，删除{" "}
+								<span className="font-bold text-warning-700">策略库</span> 和{" "}
+								<span className="font-bold text-warning-700">因子库</span>{" "}
+								文件夹后，然后再导入
+							</div>
+						</div>
 					</div>
-					<hr />
-					<div className="bg-warning-100 text-warning-600 py-2 px-3 rounded-lg leading-relaxed text-sm">
-						<p className="flex items-center gap-2 font-bold">
-							<TriangleAlert size={18} /> 导入提示
-						</p>
-						<div className="text-xs leading-relaxed">
-							如果遇到导入失败，很可能你的“策略库”或者“因子库”有只读的.py文件，客户端无法自动写入。可以{" "}
-							<span className="font-bold text-warning-700">打开文件夹</span> 后
-							，删除 <span className="font-bold text-warning-700">策略库</span>{" "}
-							和 <span className="font-bold text-warning-700">因子库</span>{" "}
-							文件夹后，然后再导入
+					<div className="space-y-3">
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id="reset-cap-weight"
+								checked={resetCapWeight}
+								onCheckedChange={(checked) =>
+									setResetCapWeight(checked as boolean)
+								}
+							/>
+							<label
+								htmlFor="reset-cap-weight"
+								className="text-sm font-medium leading-none cursor-pointer"
+							>
+								导入后重置策略资金占比为 0（默认选择，更安全）
+							</label>
+						</div>
+						<div className="text-sm text-muted-foreground pl-6">
+							{resetCapWeight ? (
+								<span>
+									需要在页面上{" "}
+									<span className="font-semibold text-warning-600">
+										重新配置
+									</span>{" "}
+									回测和实盘资金权重
+								</span>
+							) : (
+								<span>将使用 config.py 中的 cap_weight 配置值</span>
+							)}
 						</div>
 					</div>
 					<DialogFooter className="p-0">

@@ -161,8 +161,7 @@ export function DataTableRowActions<TData>({
 		})
 	}
 
-	const isIncrementalUpdateDisabled =
-		task.canAutoUpdate !== 1 || isUpdating || task.updateTime === task.dataTime
+	const isIncrementalUpdateDisabled = task.canAutoUpdate !== 1 || isUpdating
 
 	const incrementalUpdateDisabledReason =
 		task.updateTime === task.dataTime

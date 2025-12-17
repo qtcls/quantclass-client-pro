@@ -19,6 +19,7 @@ import {
 } from "@/renderer/components/ui/alert-dialog"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
+import { Checkbox } from "@/renderer/components/ui/checkbox"
 import {
 	Dialog,
 	DialogContent,
@@ -30,6 +31,7 @@ import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { backtestConfigAtom } from "@/renderer/store/storage"
 import type { SelectStgType } from "@/renderer/types/strategy"
 import { openRealTradingFolder } from "@/renderer/utils"
+import { normalizeCapWeights } from "@/renderer/utils/strategy"
 import { useMutation } from "@tanstack/react-query"
 import { useSetAtom } from "jotai"
 import { isArray } from "lodash-es"
@@ -39,8 +41,6 @@ import {
 	FolderOpen,
 	Loader2,
 	OctagonAlert,
-	Scale,
-	ShieldCheck,
 	TriangleAlert,
 } from "lucide-react"
 import { useState } from "react"
@@ -53,6 +53,7 @@ export default function StgImportButton() {
 	const [pending, setPending] = useState(false)
 	const [importOpen, setImportOpen] = useState(false)
 	const [deleteOpen, setDeleteOpen] = useState(false)
+	const [resetCapWeight, setResetCapWeight] = useState(true)
 
 	const setBacktestConfig = useSetAtom(backtestConfigAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
@@ -67,10 +68,13 @@ export default function StgImportButton() {
 			const strategyList = JSON.parse(strategyListStr)
 
 			if (isArray(strategyList)) {
-				const strategyListWithCap0 = strategyList.map((item) => ({
-					...item,
-					cap_weight: 0,
-				}))
+				// 根据resetCapWeight决定是否重置cap_weight
+				const strategyListWithCap = resetCapWeight
+					? strategyList.map((item) => ({
+							...item,
+							cap_weight: 0,
+						}))
+					: normalizeCapWeights(strategyList)
 
 				// -- Set to config json store
 				setStoreValue("select_stock.backtest_name", backtestName)
@@ -79,7 +83,7 @@ export default function StgImportButton() {
 					...p,
 					backtest_name: backtestName,
 				}))
-				updateSelectStgList(strategyListWithCap0 as SelectStgType[])
+				updateSelectStgList(strategyListWithCap as SelectStgType[])
 			}
 			setImportOpen(false)
 			toast.success("导入成功")
@@ -172,37 +176,56 @@ export default function StgImportButton() {
 						</ul>
 					</div>
 					<hr />
-					<div className="space-y-1">
-						<span className="text-sm">ℹ️ 导入说明：</span>
-						<ul className="list-inside space-y-2">
-							<li className="flex items-center">
-								<Eraser size={18} className="mr-2" /> 导入会{" "}
-								<span className="text-danger">覆盖</span>
+					<div className="space-y-2">
+						<div className="bg-red-100 text-red-600 py-2 px-3 rounded-lg leading-relaxed text-sm">
+							<p className="flex items-center gap-2 font-bold">
+								<Eraser size={18} />
+								导入会<span className="font-bold text-red-700">覆盖</span>
 								当前策略库中所有的策略
-							</li>
-							<li className="flex items-center">
-								<ShieldCheck size={18} className="mr-2" />
-								导入成功后，为了资金安全，策略资金占比都
-								<span className="text-blue-400">重置为 0</span>
-							</li>
-							<li className="flex items-center">
-								<Scale size={18} className="mr-2" />
-								需要在页面上<span className="text-warning-600">重新配置</span>
-								回测和实盘资金权重
-							</li>
-						</ul>
+							</p>
+						</div>
+						<div className="bg-warning-100 text-warning-600 py-2 px-3 rounded-lg leading-relaxed text-sm">
+							<p className="flex items-center gap-2 font-bold">
+								<TriangleAlert size={18} /> 导入提示
+							</p>
+							<div className="text-xs leading-relaxed">
+								如果遇到导入失败，很可能你的"策略库"或者"因子库"有只读的.py文件，客户端无法自动写入。可以{" "}
+								<span className="font-bold text-warning-700">打开文件夹</span>{" "}
+								后 ，删除{" "}
+								<span className="font-bold text-warning-700">策略库</span> 和{" "}
+								<span className="font-bold text-warning-700">因子库</span>{" "}
+								文件夹后，然后再导入
+							</div>
+						</div>
 					</div>
-					<hr />
-					<div className="bg-warning-100 text-warning-600 py-2 px-3 rounded-lg leading-relaxed text-sm">
-						<p className="flex items-center gap-2 font-bold">
-							<TriangleAlert size={18} /> 导入提示
-						</p>
-						<div className="text-xs leading-relaxed">
-							如果遇到导入失败，很可能你的“策略库”或者“因子库”有只读的.py文件，客户端无法自动写入。可以{" "}
-							<span className="font-bold text-warning-700">打开文件夹</span> 后
-							，删除 <span className="font-bold text-warning-700">策略库</span>{" "}
-							和 <span className="font-bold text-warning-700">因子库</span>{" "}
-							文件夹后，然后再导入
+					<div className="space-y-3">
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id="reset-cap-weight"
+								checked={resetCapWeight}
+								onCheckedChange={(checked) =>
+									setResetCapWeight(checked as boolean)
+								}
+							/>
+							<label
+								htmlFor="reset-cap-weight"
+								className="text-sm font-medium leading-none cursor-pointer"
+							>
+								导入后重置策略资金占比为 0（默认选择，更安全）
+							</label>
+						</div>
+						<div className="text-sm text-muted-foreground pl-6">
+							{resetCapWeight ? (
+								<span>
+									需要在页面上{" "}
+									<span className="font-semibold text-warning-600">
+										重新配置
+									</span>{" "}
+									回测和实盘资金权重
+								</span>
+							) : (
+								<span>将使用 config.py 中的 cap_weight 配置值</span>
+							)}
 						</div>
 					</div>
 					<DialogFooter className="p-0">

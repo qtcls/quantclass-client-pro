@@ -294,7 +294,7 @@ export const execBin = async (
 			process.env.PYTHON8 = "1"
 			process.env.PYTHONUNBUFFERED = "1"
 			process.env.PYTHONIOENCODING = "utf8"
-			process.env.FUEL_USE_FUZZY = "0"
+			process.env.FUEL_USE_FUZZY = "1"
 			process.env.FUEL_TEMP_FILE_PATH = extraEnv ?? ""
 
 			const pythonProcess = process_manager.spawnProcess(

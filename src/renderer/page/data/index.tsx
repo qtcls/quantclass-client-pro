@@ -137,9 +137,11 @@ const Data: FC = () => {
 						# 数据订阅名词解释
 					</h3>
 					<div>
-						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
-							<HardDrive size={16} />
+						<div className="flex items-start space-x-2">
+							<div className="flex items-center space-x-2 mt-1.5">
+								<div className="w-1 h-1 bg-muted-foreground rounded-full" />
+								<HardDrive size={16} />
+							</div>
 							<span>
 								<span className="font-semibold">数据时间：</span>
 								<span>
@@ -147,9 +149,11 @@ const Data: FC = () => {
 								</span>
 							</span>
 						</div>
-						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
-							<Server size={16} />
+						<div className="flex items-start space-x-2">
+							<div className="flex items-center space-x-2 mt-1.5">
+								<div className="w-1 h-1 bg-muted-foreground rounded-full" />
+								<Server size={16} />
+							</div>
 							<span>
 								<span className="font-semibold">更新时间（云端）：</span>
 								<span>
@@ -158,9 +162,11 @@ const Data: FC = () => {
 								</span>
 							</span>
 						</div>
-						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
-							<RefreshCcwDot size={16} />
+						<div className="flex items-start space-x-2">
+							<div className="flex items-center space-x-2 mt-1.5">
+								<div className="w-1 h-1 bg-muted-foreground rounded-full" />
+								<RefreshCcwDot size={16} />
+							</div>
 							<span>
 								<span className="font-semibold">更新时间（本地）：</span>
 								<span>

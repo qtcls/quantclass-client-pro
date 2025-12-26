@@ -8,7 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { isWindows } from "@/renderer/constant"
+import { APP_VERSION_YEAR, isWindows } from "@/renderer/constant"
 // import { BoxIcon } from "@radix-ui/react-icons"
 import { useAtomValue } from "jotai"
 import { Maximize2, Minimize2, Minus, X } from "lucide-react"
@@ -44,7 +44,7 @@ const WindowsBar = ({ toggleFullscreen }: { toggleFullscreen: () => void }) => {
 									量化小讲堂客户端
 								</span>
 								<Badge variant={"default"} className="ml-2">
-									2025版
+									{APP_VERSION_YEAR}版
 								</Badge>
 							</div>
 						)}

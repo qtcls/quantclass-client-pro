@@ -661,6 +661,66 @@ async function importPositionHandler(): Promise<void> {
 	})
 }
 
+async function deletePeriodOffsetHandler(): Promise<void> {
+	ipcMain.handle("delete-period-offset", async () => {
+		try {
+			// 检查 rocket 和选股内核是否正在运行
+			const { isAnyKernalBusy } = await import("@/main/utils/tools.js")
+			const kernalsBusy = await isAnyKernalBusy(["rocket", "aqua", "zeus"])
+
+			if (kernalsBusy) {
+				logger.warn(
+					"[updatePeriodOffset] 内核正在运行中，无法更新 period_offset.csv",
+				)
+				return {
+					success: false,
+					message: "选股或实盘内核正在运行中，无法更新 period_offset.csv",
+				}
+			}
+
+			const periodOffsetPath = await store.getAllDataPath(
+				"period_offset.csv",
+				false,
+			)
+
+			// 删除旧文件
+			if (fs.existsSync(periodOffsetPath)) {
+				fs.unlinkSync(periodOffsetPath)
+				logger.info("[updatePeriodOffset] 已删除旧的 period_offset.csv")
+			}
+
+			// 从 API 下载新文件
+			const downloadUrl =
+				"https://api.quantclass.cn/api/data/client/real-trading/period-offset"
+			logger.info(`[updatePeriodOffset] 开始下载: ${downloadUrl}`)
+
+			const response = await fetch(downloadUrl)
+
+			if (!response.ok) {
+				logger.error(
+					`[updatePeriodOffset] 下载失败，HTTP 状态: ${response.status}`,
+				)
+				return {
+					success: false,
+					message: `下载 period_offset.csv 失败: HTTP ${response.status}`,
+				}
+			}
+
+			const csvContent = await response.text()
+			const { writeFile } = await import("node:fs/promises")
+			await writeFile(periodOffsetPath, csvContent, "utf-8")
+
+			logger.info("[updatePeriodOffset] 成功更新 period_offset.csv")
+			return { success: true, message: "成功更新 period_offset.csv" }
+		} catch (error) {
+			logger.error(
+				`[updatePeriodOffset] 更新 period_offset.csv 失败: ${JSON.stringify(error, null, 2)}`,
+			)
+			return { success: false, message: "更新 period_offset.csv 失败" }
+		}
+	})
+}
+
 export const regFileSysIPC = () => {
 	openUrlHandler()
 	killRocketHandler()
@@ -685,5 +745,6 @@ export const regFileSysIPC = () => {
 	createRealTradingDirHandler()
 	strategyResultPathHandler()
 	importPositionHandler()
+	deletePeriodOffsetHandler()
 	console.log("[reg] file-sys-ipc")
 }

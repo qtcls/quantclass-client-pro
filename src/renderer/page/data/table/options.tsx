@@ -23,12 +23,21 @@ import { useMutation } from "@tanstack/react-query"
 import type { Table } from "@tanstack/react-table"
 import { useUnmount } from "etc-hooks"
 import { useAtom, useAtomValue } from "jotai"
-import { ArrowDownNarrowWideIcon, PlusCircle } from "lucide-react"
+import {
+	ArrowDownNarrowWideIcon,
+	FileText,
+	PlusCircle,
+	RefreshCw,
+} from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
-const { handleUpdateOneProduct, fetchFuelStatus, minimizeApp } =
-	window.electronAPI
+const {
+	handleUpdateOneProduct,
+	fetchFuelStatus,
+	minimizeApp,
+	deletePeriodOffset,
+} = window.electronAPI
 
 export interface DataTableActionOptionsProps<TData> {
 	placeholder: string
@@ -47,6 +56,7 @@ export function DataTableActionOptions<TData>({
 }: DataTableActionOptionsProps<TData>) {
 	const [loading, setLoading] = useState(false)
 	const [isFetching] = useState(false)
+	const [isUpdatingPeriodOffset, setIsUpdatingPeriodOffset] = useState(false)
 	const isLoggedIn = useAtomValue(userAtom)
 	const isUpdating = useAtomValue(isUpdatingAtom) // 获取是否正在更新的状态
 	const [showDataSubModal, setShowDataSubModal] = useAtom(showDataSubModalAtom)
@@ -128,6 +138,35 @@ export function DataTableActionOptions<TData>({
 				>
 					<ArrowDownNarrowWideIcon size={14} className="mr-2" />
 					更新数据
+				</Button>
+
+				<Button
+					size="sm"
+					variant="outline"
+					className="h-8 text-foreground"
+					disabled={isUpdatingPeriodOffset}
+					onClick={async () => {
+						setIsUpdatingPeriodOffset(true)
+						try {
+							const result = await deletePeriodOffset()
+							if (result.success) {
+								toast.success(result.message || "成功更新 period_offset.csv")
+							} else {
+								toast.error(result.message || "更新 period_offset.csv 失败")
+							}
+						} catch (error) {
+							toast.error("更新 period_offset.csv 失败")
+						} finally {
+							setIsUpdatingPeriodOffset(false)
+						}
+					}}
+				>
+					{isUpdatingPeriodOffset ? (
+						<RefreshCw size={14} className="mr-2 animate-spin" />
+					) : (
+						<FileText size={14} className="mr-2" />
+					)}
+					更新 period_offset
 				</Button>
 			</div>
 

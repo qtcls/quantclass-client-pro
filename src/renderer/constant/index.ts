@@ -10,6 +10,8 @@
 
 export * from "./contributors"
 
+// 应用版本年份
+export const APP_VERSION_YEAR = 2026
 // 首页
 export const HOME_PAGE = "/"
 // 数据

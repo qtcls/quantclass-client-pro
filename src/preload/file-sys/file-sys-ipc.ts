@@ -706,9 +706,10 @@ async function deletePeriodOffsetHandler(): Promise<void> {
 				}
 			}
 
-			const csvContent = await response.text()
+			// 使用 arrayBuffer 处理二进制数据，避免乱码
+			const buffer = Buffer.from(await response.arrayBuffer())
 			const { writeFile } = await import("node:fs/promises")
-			await writeFile(periodOffsetPath, csvContent, "utf-8")
+			await writeFile(periodOffsetPath, buffer)
 
 			logger.info("[updatePeriodOffset] 成功更新 period_offset.csv")
 			return { success: true, message: "成功更新 period_offset.csv" }

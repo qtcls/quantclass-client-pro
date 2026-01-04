@@ -57,7 +57,7 @@ export function DataTableActionOptions<TData>({
 	const [loading, setLoading] = useState(false)
 	const [isFetching] = useState(false)
 	const [isUpdatingPeriodOffset, setIsUpdatingPeriodOffset] = useState(false)
-	const isLoggedIn = useAtomValue(userAtom)
+	const { isLoggedIn } = useAtomValue(userAtom)
 	const isUpdating = useAtomValue(isUpdatingAtom) // 获取是否正在更新的状态
 	const [showDataSubModal, setShowDataSubModal] = useAtom(showDataSubModalAtom)
 	const isFiltered = table.getState().columnFilters.length > 0
@@ -78,13 +78,8 @@ export function DataTableActionOptions<TData>({
 					size="sm"
 					variant="outline"
 					className="ml-auto h-8 text-foreground"
-					disabled={isFetching}
+					disabled={isFetching || !isLoggedIn}
 					onClick={() => {
-						if (!isLoggedIn) {
-							toast.dismiss()
-							toast.warning("请先登录")
-							return
-						}
 						if (isUpdating) {
 							toast.warning("正在更新数据，请暂停更新再添加订阅")
 							return
@@ -112,14 +107,8 @@ export function DataTableActionOptions<TData>({
 					size="sm"
 					variant="outline"
 					className="h-8 text-foreground"
-					disabled={loading || isUpdating || isFetching}
+					disabled={loading || isUpdating || isFetching || !isLoggedIn}
 					onClick={async () => {
-						if (!isLoggedIn) {
-							toast.dismiss()
-							toast.warning("请先登录")
-							return
-						}
-
 						const fuelStatus = await fetchFuelStatus()
 						if (fuelStatus) {
 							toast.info("正在自动更新，请稍候...")
@@ -144,7 +133,7 @@ export function DataTableActionOptions<TData>({
 					size="sm"
 					variant="outline"
 					className="h-8 text-foreground"
-					disabled={isUpdatingPeriodOffset}
+					disabled={isUpdatingPeriodOffset || !isLoggedIn}
 					onClick={async () => {
 						setIsUpdatingPeriodOffset(true)
 						try {

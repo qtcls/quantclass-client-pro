@@ -20,6 +20,7 @@ import {
 import store, { rStore } from "@/main/store/index.js"
 import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import { CLIENT_VERSION } from "@/main/vars.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
 import { parse } from "csv-parse/sync"
 import {
@@ -690,11 +691,16 @@ async function deletePeriodOffsetHandler(): Promise<void> {
 			}
 
 			// 从 API 下载新文件
-			const downloadUrl =
-				"https://api.quantclass.cn/api/data/client/real-trading/period-offset"
+			const hid = await store.getSetting("hid", "")
+			const downloadUrl = `https://api.quantclass.cn/api/data/client/real-trading/period-offset?client=${CLIENT_VERSION}`
 			logger.info(`[updatePeriodOffset] 开始下载: ${downloadUrl}`)
 
-			const response = await fetch(downloadUrl)
+			const response = await fetch(downloadUrl, {
+				method: "POST",
+				headers: {
+					hid: hid,
+				},
+			})
 
 			if (!response.ok) {
 				logger.error(

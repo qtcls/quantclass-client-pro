@@ -19,7 +19,8 @@
 			"dist/*",
 			".rspack/",
 			"out/",
-			"build/**"
+			"build/**",
+			"tsconfig*.json"
 		],
 		"rules": {
 			"recommended": true,
@@ -52,7 +53,8 @@
 			"dist/*",
 			".rspack/",
 			"out/",
-			"build/**"
+			"build/**",
+			"tsconfig*.json"
 		]
 	},
 	"javascript": {

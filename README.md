@@ -22,7 +22,7 @@ You may **read, review, and test locally in non‑production** for audit and eva
 
 你可以**阅读代码、进行代码审计与本地非生产测试**；在转换日期前，**生产用途/托管服务/再分发/发布派生作品**均需另行获得**商业授权**。转换日期后将自动转为 GPL-3.0-or-later。
 
-See the full license text at: https://mariadb.com/bsl11/
+See the full license text at: <https://mariadb.com/bsl11/>
 
 # Quantclass Client Use Brief
 
@@ -33,7 +33,7 @@ See the full license text at: https://mariadb.com/bsl11/
 
 ## 🛟 VERY USEFUL TIP
 
-**IF YOU FAILED ON BUILD, **
+**IF YOU FAILED ON BUILD**
 
 1. LIKELY THE NETWORK PROBLEM. USE MAGIC AND YOU WILL BE FINE
 2. SHUTDOWN ANI-VIRUS SOFTWARES INCLUDING THE "Windows Defender"

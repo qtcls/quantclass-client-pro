@@ -8,12 +8,12 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { useCallback } from "react"
 import { useStore } from "@/renderer/context/store-context"
+import { useCallback } from "react"
 import type {
+	PosStrategyType,
 	SelectStgType,
 	StgGroupType,
-	PosStrategyType,
 } from "../types/strategy"
 
 export function useFusionManager() {

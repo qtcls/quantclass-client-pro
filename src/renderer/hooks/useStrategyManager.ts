@@ -8,9 +8,9 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { useCallback } from "react"
 import { useStore } from "@/renderer/context/store-context"
 import type { SelectStgType } from "@/renderer/types/strategy"
+import { useCallback } from "react"
 
 export function useStrategyManager() {
 	const {

@@ -8,10 +8,10 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import path from "node:path"
 import windowManager from "@/main/lib/WindowManager.js"
 import { is, platform } from "@electron-toolkit/utils"
 import { Menu, type NativeImage, Tray, app } from "electron"
-import path from "node:path"
 import MacTray from "/build/XBX-bar.png?asset"
 import WinTray from "/build/icon.ico?asset"
 

@@ -134,6 +134,7 @@ export const saveStrategyListFusion = async (
 						rebalance_time: stg.rebalance_time,
 						cap_weight: stg.cap_weight,
 						params: stg.params,
+						factor_list: stg.factor_list,
 						strategy_pool: stg.strategy_pool.map((grp_or_stg) =>
 							grp_or_stg.type === "group"
 								? {

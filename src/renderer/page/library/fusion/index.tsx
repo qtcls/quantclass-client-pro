@@ -1,3 +1,7 @@
+import {
+	FactorListDialog,
+	ParamsDialog,
+} from "@/renderer/components/FactorParamsDialog"
 /**
  * quantclass-client
  * Copyright (c) 2025 量化小讲堂
@@ -97,6 +101,19 @@ const FusionStrategyLibrary = () => {
 	const [deletePopoverStates, setDeletePopoverStates] = useState<{
 		[key: number]: boolean
 	}>({})
+
+	const [factorListDialogState, setFactorListDialogState] = useState<{
+		open: boolean
+		factorList?: Array<[string, boolean, any, string | number | null]>
+	}>({
+		open: false,
+	})
+	const [paramsDialogState, setParamsDialogState] = useState<{
+		open: boolean
+		params?: Record<string, any>
+	}>({
+		open: false,
+	})
 
 	// 渲染通用结构
 	const renderCommonStructure = (
@@ -350,13 +367,36 @@ const FusionStrategyLibrary = () => {
 
 									{strategyGroup.factor_list &&
 										strategyGroup.factor_list.length > 0 && (
-											<span className="text-sm font-mono">
-												{JSON.stringify(strategyGroup.factor_list)}
-											</span>
+											<Button
+												variant="outline"
+												size="sm"
+												className="h-6 text-xs"
+												onClick={() => {
+													setFactorListDialogState({
+														open: true,
+														factorList: strategyGroup.factor_list,
+													})
+												}}
+											>
+												factor list ({strategyGroup.factor_list.length})
+											</Button>
 										)}
-									<span className="text-sm font-mono">
-										{JSON.stringify(strategyGroup.params)}
-									</span>
+									{strategyGroup.params &&
+										Object.keys(strategyGroup.params).length > 0 && (
+											<Button
+												variant="outline"
+												size="sm"
+												className="h-6 text-xs"
+												onClick={() => {
+													setParamsDialogState({
+														open: true,
+														params: strategyGroup.params,
+													})
+												}}
+											>
+												params ({Object.keys(strategyGroup.params).length})
+											</Button>
+										)}
 								</div>
 								<Separator />
 								{isList ? (
@@ -419,6 +459,24 @@ const FusionStrategyLibrary = () => {
 			<hr />
 			<RatioIntro />
 			<div className="h-5" />
+			{factorListDialogState.factorList && (
+				<FactorListDialog
+					open={factorListDialogState.open}
+					onOpenChange={(open) => {
+						setFactorListDialogState((prev) => ({ ...prev, open }))
+					}}
+					factorList={factorListDialogState.factorList}
+				/>
+			)}
+			{paramsDialogState.params && (
+				<ParamsDialog
+					open={paramsDialogState.open}
+					onOpenChange={(open) => {
+						setParamsDialogState((prev) => ({ ...prev, open }))
+					}}
+					params={paramsDialogState.params}
+				/>
+			)}
 		</div>
 	)
 }

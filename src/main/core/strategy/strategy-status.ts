@@ -102,6 +102,24 @@ async function detectSelectKernel(date: string): Promise<"aqua" | "zeus"> {
 	return "zeus"
 }
 
+/**
+ * 计算前一天的日期
+ * @param date 日期字符串，格式为 YYYY-MM-DD
+ * @returns 前一天的日期字符串，格式为 YYYY-MM-DD
+ */
+function getPreviousDay(date: string): string {
+	const base = new Date(date)
+	const previous = new Date(
+		base.getFullYear(),
+		base.getMonth(),
+		base.getDate() - 1,
+	)
+	const year = previous.getFullYear()
+	const month = String(previous.getMonth() + 1).padStart(2, "0")
+	const day = String(previous.getDate()).padStart(2, "0")
+	return `${year}-${month}-${day}`
+}
+
 // 获取策略的 timing 和 override 最晚时间
 function getStrategyTiming(strategy: any): {
 	latestTime: string
@@ -273,7 +291,21 @@ async function generateSingleStrategyStatus(
 
 	// const fuelStats = await readStatsFromJson(date, "fuel")
 	const selectStats = await readStatsFromJson(date, selectKernel, strategyName)
-	const rocketStats = await readStatsFromJson(date, "rocket", strategyName)
+
+	// 读取当天的 rocket stats
+	const rocketStatsToday = await readStatsFromJson(date, "rocket", strategyName)
+
+	// 如果是隔日换仓，从前一天读取 TRADE_SELL_PLAN 和 TRADE_SELL，从当天读取除这两个之外的其他状态
+	const isSellTag = (tag: string) =>
+		tag === "TRADE_SELL_PLAN" || tag === "TRADE_SELL"
+	const rocketStats: StrategyStatusStat[] = isOvernightRebalance
+		? [
+				...(
+					await readStatsFromJson(getPreviousDay(date), "rocket", strategyName)
+				).filter((stat) => isSellTag(stat.tag)),
+				...rocketStatsToday.filter((stat) => !isSellTag(stat.tag)),
+			]
+		: rocketStatsToday // 当日换仓，直接使用当天的所有 stats
 
 	const sellDayOffset = isOvernightRebalance ? -1 : 0
 
@@ -283,16 +315,28 @@ async function generateSingleStrategyStatus(
 		date,
 		sellDayOffset,
 	)
-	const tradingPlanTime = sellTime
+	// 生成卖出计划时间（卖出时间前2分钟）
+	const sellPlanTime = sellTime
 		? new Date(sellTime.getTime() - 2 * 60 * 1000)
 		: null
-	// 交易计划截止时间（卖出计划时间加2分钟）
-	const tradingPlanDeadline = sellTime
-		? new Date(sellTime.getTime() + 2 * 60 * 1000)
+
+	// 当天的买入时间
+	const buyTime = parseTimeToDate(buyTimeStr.replace(/:/g, ""), date)
+	// 生成买入计划时间（买入时间前2分钟）
+	const buyPlanTime = buyTime
+		? new Date(buyTime.getTime() - 2 * 60 * 1000)
+		: null
+	// 卖出计划截止时间（卖出计划时间加2分钟）
+	const sellPlanDeadline = sellPlanTime
+		? new Date(sellPlanTime.getTime() + 2 * 60 * 1000)
+		: null
+	// 买入计划截止时间（买入计划时间加2分钟）
+	const buyPlanDeadline = buyPlanTime
+		? new Date(buyPlanTime.getTime() + 2 * 60 * 1000)
 		: null
 
 	const qmtDataTime = isStrategyPool
-		? tradingPlanTime
+		? sellPlanTime
 		: parseTimeToDate(latestTiming, date)
 			? new Date(parseTimeToDate(latestTiming, date)!.getTime() + 80 * 1000)
 			: null
@@ -308,9 +352,6 @@ async function generateSingleStrategyStatus(
 	// SELECT_CLOSE: 前一天15:00，截止时间为第二天9:30
 	const selectCloseTime = parseTimeToDate("1500", date, -1)
 	const selectCloseDeadline = parseTimeToDate("0930", date)
-
-	// 当天的买入时间
-	const buyTime = parseTimeToDate(buyTimeStr.replace(/:/g, ""), date)
 
 	// TRADE_REVERSE_REPO: 当天15:05，截止时间为当天15:30
 	const tradeReverseRepoTime = parseTimeToDate("1505", date)
@@ -411,7 +452,7 @@ async function generateSingleStrategyStatus(
 				description: "计算模糊择时信号",
 				status: determineStatus(
 					qmtDataTime,
-					tradingPlanTime,
+					sellPlanTime,
 					timingSig0Stats.length > 0
 						? timingSig0Stats[timingSig0Stats.length - 1]
 						: undefined,
@@ -433,7 +474,7 @@ async function generateSingleStrategyStatus(
 				description: "计算精确择时信号",
 				status: determineStatus(
 					qmtDataTime,
-					tradingPlanTime,
+					sellPlanTime,
 					timingSig1Stats.length > 0
 						? timingSig1Stats[timingSig1Stats.length - 1]
 						: undefined,
@@ -458,12 +499,12 @@ async function generateSingleStrategyStatus(
 			title: "生成卖出计划",
 			description: "在卖出时间前2分钟生成卖出计划",
 			status: determineStatus(
-				tradingPlanTime,
-				tradingPlanDeadline,
+				sellPlanTime,
+				sellPlanDeadline,
 				findLatestStatByTag(rocketStats, "TRADE_SELL_PLAN"),
 			),
 			plan: {
-				time: tradingPlanTime,
+				time: sellPlanTime,
 			},
 			stat: findLatestStatByTag(rocketStats, "TRADE_SELL_PLAN"),
 			stats: findStatsByTag(rocketStats, "TRADE_SELL_PLAN"),
@@ -472,14 +513,14 @@ async function generateSingleStrategyStatus(
 			strategyName,
 			tag: "TRADE_BUY_PLAN",
 			title: "生成买入计划",
-			description: "在卖出时间前2分钟生成买入计划",
+			description: "在买入时间前2分钟生成买入计划",
 			status: determineStatus(
-				tradingPlanTime,
-				tradingPlanDeadline,
+				buyPlanTime,
+				buyPlanDeadline,
 				findLatestStatByTag(rocketStats, "TRADE_BUY_PLAN"),
 			),
 			plan: {
-				time: tradingPlanTime,
+				time: buyPlanTime,
 			},
 			stat: findLatestStatByTag(rocketStats, "TRADE_BUY_PLAN"),
 			stats: findStatsByTag(rocketStats, "TRADE_BUY_PLAN"),

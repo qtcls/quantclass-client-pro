@@ -367,10 +367,9 @@ const FusionStrategyLibrary = () => {
 
 									{strategyGroup.factor_list &&
 										strategyGroup.factor_list.length > 0 && (
-											<Button
+											<Badge
 												variant="outline"
-												size="sm"
-												className="h-6 text-xs"
+												className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
 												onClick={() => {
 													setFactorListDialogState({
 														open: true,
@@ -379,14 +378,13 @@ const FusionStrategyLibrary = () => {
 												}}
 											>
 												factor list ({strategyGroup.factor_list.length})
-											</Button>
+											</Badge>
 										)}
 									{strategyGroup.params &&
 										Object.keys(strategyGroup.params).length > 0 && (
-											<Button
+											<Badge
 												variant="outline"
-												size="sm"
-												className="h-6 text-xs"
+												className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
 												onClick={() => {
 													setParamsDialogState({
 														open: true,
@@ -395,7 +393,7 @@ const FusionStrategyLibrary = () => {
 												}}
 											>
 												params ({Object.keys(strategyGroup.params).length})
-											</Button>
+											</Badge>
 										)}
 								</div>
 								<Separator />

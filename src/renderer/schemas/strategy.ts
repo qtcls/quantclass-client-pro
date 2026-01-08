@@ -65,17 +65,22 @@ export const SplitOrderAmountFormSchema = z
 	)
 
 // ===== 因子相关 Schema =====
-export const FactorItemSchema = z.tuple([
-	z.string(), // 因子名称
-	z.boolean(), // 排序方式
-	// 因子参数
-	z.any(),
-	// 因子权重，后续拓展成了一个因子参数，和param等权，默认为权重1
-	z.any(),
-	// 因子权重，后续拓展成了一个因子参数，和param等权，默认为权重1
-	z
-		.union([z.string(), z.array(z.string())])
-		.optional(), // 分钟数据为可选,
+export const FactorItemSchema = z.union([
+	// 支持 4 个元素的元组（没有分钟数据）
+	z.tuple([
+		z.string(), // 因子名称
+		z.boolean(), // 排序方式
+		z.any(), // 因子参数
+		z.any(), // 因子权重
+	]),
+	// 支持 5 个元素的元组（有分钟数据）
+	z.tuple([
+		z.string(), // 因子名称
+		z.boolean(), // 排序方式
+		z.any(), // 因子参数
+		z.any(), // 因子权重
+		z.union([z.string(), z.array(z.string())]), // 分钟数据
+	]),
 ])
 
 export const FilterConditionSchema = z

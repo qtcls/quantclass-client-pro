@@ -34,10 +34,10 @@ class UserStore {
 
 	// -- 获取用户信息（带缓存逻辑）
 	async getUserAccount(isForce = false): Promise<UserAccount | null> {
-		const TWO_HOURS = 2 * 60 * 60 * 1000 // 两小时的毫秒数
-		// 两小时±10分钟
-		const randomOffset = (Math.random() - 0.5) * 2 * 10 * 60 * 1000
-		const cacheExpireTime = TWO_HOURS + randomOffset
+		const BASE_TIME = 15 * 3600 * 1000 // 15小时的毫秒数
+		// 15小时 + 0~4小时的随机偏移
+		const randomOffset = Math.random() * 4 * 3600 * 1000
+		const cacheExpireTime = BASE_TIME + randomOffset
 
 		const data = this._userStore.get("userData") as
 			| WebUserInfoWithTimestamp
@@ -53,9 +53,9 @@ class UserStore {
 		const now = Date.now()
 		const lastUpdateTime = data.lastUpdateTime
 
-		// 如果距离上次更新不足两小时且不强制更新，返回缓存数据
+		// 如果距离上次更新未超过缓存过期时间且不强制更新，返回缓存数据
 		if (lastUpdateTime && now - lastUpdateTime < cacheExpireTime && !isForce) {
-			logger.info("[user] 使用缓存的用户信息（未超过两小时）")
+			logger.info("[user] 使用缓存的用户信息（未超过缓存过期时间）")
 			return this._buildUserAccount(data.WebUserInfo)
 		}
 

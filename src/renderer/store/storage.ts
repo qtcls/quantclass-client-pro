@@ -145,6 +145,7 @@ export const realMarketConfigSchemaAtom = atomWithStorage<
 		filter_cyb: "1",
 		filter_bj: "1",
 		performance_mode: "EQUAL",
+		use_fuzzy: "1",
 		date_start: new Date(new Date().setFullYear(new Date().getFullYear() - 3)),
 	},
 	undefined,

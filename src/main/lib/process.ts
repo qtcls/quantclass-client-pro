@@ -27,10 +27,13 @@ import {
 import logger from "@/main/utils/wiston.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
+import Store from "electron-store"
 import iconv from "iconv-lite"
 import { isUndefined } from "lodash-es"
 import { getKernalPath } from "../utils/common.js"
 import windowManager from "./WindowManager.js"
+
+const _store = new Store()
 
 export class ProcessManage {
 	private processes: Map<
@@ -280,6 +283,8 @@ export const execBin = async (
 		logger.info(`export ROCKET_STR_INFO_PATH=${ROCKET_STR_INFO_PATH}`)
 		logger.info(`~% ${kernel} ${args.join(" ")}`)
 
+		const useFuzzy = _store.get("real_market_config.use_fuzzy", "1")
+
 		return new Promise((resolve, reject) => {
 			// -- 内核目录
 			process.env.FUEL_CODE_PATH = fuelCodePath
@@ -294,6 +299,7 @@ export const execBin = async (
 			process.env.PYTHON8 = "1"
 			process.env.PYTHONUNBUFFERED = "1"
 			process.env.PYTHONIOENCODING = "utf8"
+			process.env.USE_FUZZY = useFuzzy as string
 			process.env.FUEL_TEMP_FILE_PATH = extraEnv ?? ""
 
 			const pythonProcess = process_manager.spawnProcess(

@@ -44,7 +44,8 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
-const { setStoreValue, rendererLog, openUrl } = window.electronAPI
+const { setStoreValue, rendererLog, openUrl, checkKernalRunning } =
+	window.electronAPI
 
 export const RealMarketConfigSchema = z.object({
 	qmt_path: z.string().min(1, { message: "QMT 安装路径未填写" }),
@@ -57,6 +58,8 @@ export const RealMarketConfigSchema = z.object({
 	filter_bj: z.enum(["0", "1"]),
 	// -- 均衡-EQUAL，性能-PERFORMANCE，节能-ECONOMY
 	performance_mode: z.enum(["EQUAL", "PERFORMANCE", "ECONOMY"]),
+	// -- 启用模糊信号: "1" 启用，"0" 禁用
+	use_fuzzy: z.enum(["0", "1"]),
 	reverse_repo_keep: z.union([z.string(), z.number()]).refine(
 		(value) => {
 			const numValue =
@@ -96,6 +99,7 @@ export function TradingConfigForm() {
 			filter_cyb: realMarketConfig.filter_cyb,
 			filter_bj: realMarketConfig.filter_bj,
 			performance_mode: realMarketConfig.performance_mode ?? "EQUAL",
+			use_fuzzy: realMarketConfig.use_fuzzy ?? "1",
 			reverse_repo_keep: realMarketConfig.reverse_repo_keep ?? 1000,
 		}
 	}, [realMarketConfig])
@@ -401,9 +405,9 @@ export function TradingConfigForm() {
 											<ButtonTooltip
 												content={
 													<div>
-														<p>选择“节能”，实盘使用 1/3 系统核心数进行计算</p>
-														<p>选择“均衡”，实盘使用 1/2 系统核心数进行计算</p>
-														<p>选择“性能”，实盘使用 系统核心数 - 1 进行计算</p>
+														<p>选择"节能"，实盘使用 1/3 系统核心数进行计算</p>
+														<p>选择"均衡"，实盘使用 1/2 系统核心数进行计算</p>
+														<p>选择"性能"，实盘使用 系统核心数 - 1 进行计算</p>
 													</div>
 												}
 											>
@@ -605,6 +609,89 @@ export function TradingConfigForm() {
 									<FormMessage>
 										{formState.errors.reverse_repo_keep?.message}
 									</FormMessage>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							name="use_fuzzy"
+							control={form.control}
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
+										<span className="font-semibold">模糊信号</span>{" "}
+										<span className="text-destructive">*</span>
+										<span className="text-xs text-muted-foreground">
+											该功能需配合新版内核使用
+										</span>
+										<ButtonTooltip
+											content={
+												<div className="max-w-sm space-y-2">
+													<p className="font-semibold">模糊信号介绍：</p>
+													<p>
+														"模糊信号"是一类用于择时的前置信号，定位为"准确信号"的补充而非替代，两者使用不同的数据接口。
+													</p>
+													<p>
+														相较于"准确信号"接口，"模糊信号"接口通常请求耗时在秒级，稳定性更高；但相应地，数据质量相对一般。以"准确信号"得到的结果为准。
+													</p>
+													<p>
+														引入"模糊信号"的目的，是在 QMT
+														拉取"准确信号"超时的场景下，提高程序运行的稳定性。
+													</p>
+													<p className="pt-1">
+														aqua内核（选股策略）1.7.2l及以上
+														<br />
+														zeus内核（综合策略库）1.3.1b及以上
+													</p>
+													<p>
+														未升级到新版本的内核【不影响使用】，只是"禁用模糊数据"功能失效而已
+													</p>
+												</div>
+											}
+										>
+											<CircleHelp
+												className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
+												onClick={(e) => e.stopPropagation()}
+											/>
+										</ButtonTooltip>
+									</FormLabel>
+									<FormControl>
+										<RadioGroup
+											disabled={!user?.isMember}
+											onValueChange={async (value) => {
+												const isRunning = await checkKernalRunning(["rocket"])
+												if (isRunning) {
+													toast.warning(
+														"实盘内核正在运行中，无法修改模糊信号设置",
+													)
+													return
+												}
+												field.onChange(value)
+											}}
+											value={field.value}
+											className="flex space-x-1"
+										>
+											<FormItem className="flex items-center space-x-1 space-y-0">
+												<FormControl>
+													<RadioGroupItem value="1" />
+												</FormControl>
+												<FormLabel
+													className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
+												>
+													启用
+												</FormLabel>
+											</FormItem>
+											<FormItem className="flex items-center space-x-1 space-y-0">
+												<FormControl>
+													<RadioGroupItem value="0" />
+												</FormControl>
+												<FormLabel
+													className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
+												>
+													禁用
+												</FormLabel>
+											</FormItem>
+										</RadioGroup>
+									</FormControl>
 								</FormItem>
 							)}
 						/>

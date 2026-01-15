@@ -47,4 +47,9 @@ export const systemIPC = {
 
 	// 服务控制
 	startServer: () => ipcRenderer.invoke("start-server"),
+
+	// 检查内核是否运行
+	checkKernalRunning: (
+		kernals: ("rocket" | "aqua" | "zeus" | "fuel")[] = ["rocket"],
+	) => ipcRenderer.invoke("check-kernal-running", kernals) as Promise<boolean>,
 }

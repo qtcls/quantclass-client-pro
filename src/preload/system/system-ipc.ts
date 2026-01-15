@@ -77,6 +77,19 @@ function handleMonitorProcess() {
 	})
 }
 
+function handleCheckKernalRunning() {
+	ipcMain.handle(
+		"check-kernal-running",
+		async (
+			_event,
+			kernals: ("rocket" | "aqua" | "zeus" | "fuel")[] = ["rocket"],
+		) => {
+			const { isAnyKernalBusy } = await import("@/main/utils/tools.js")
+			return await isAnyKernalBusy(kernals)
+		},
+	)
+}
+
 function handleKillProcess() {
 	ipcMain.handle("kill-process", async (_event, pid: number) => {
 		return await process_manager.killProcess(pid)
@@ -157,6 +170,7 @@ export const regSystemIPC = () => {
 	handleSetAutoUpdate()
 	fetchFullscreenState()
 	handleMonitorProcess()
+	handleCheckKernalRunning()
 	handleToggleFullscreen()
 	handleRestartApp()
 	handleGetAppAndKernalVersions()

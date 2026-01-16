@@ -641,6 +641,8 @@ export function TradingConfigForm() {
 														aqua内核（选股策略）1.7.2l及以上
 														<br />
 														zeus内核（综合策略库）1.3.1b及以上
+														<br />
+														rocket内核1.9.4.20260108及以上
 													</p>
 													<p>
 														未升级到新版本的内核【不影响使用】，只是"禁用模糊数据"功能失效而已

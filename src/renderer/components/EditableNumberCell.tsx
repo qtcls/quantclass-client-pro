@@ -10,9 +10,10 @@
 
 import { Input } from "@/renderer/components/ui/input"
 import { totalWeightAtom } from "@/renderer/store/storage"
+import type { SelectStgType } from "@/renderer/types/strategy"
 import { useUnmount } from "etc-hooks"
 import { useAtom } from "jotai"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { ChangeEvent, FC, KeyboardEvent } from "react"
 import { toast } from "sonner"
 
@@ -21,6 +22,8 @@ interface EditableNumberCellProps {
 	disabled?: boolean
 	onChange: (value: number) => void
 	className?: string
+	/** 当前表格的数据（用于仓管子策略，计算当前表格的总权重） */
+	currentTableData?: SelectStgType[]
 }
 
 const { setStoreValue } = window.electronAPI
@@ -30,10 +33,22 @@ const EditableNumberCell: FC<EditableNumberCellProps> = ({
 	onChange,
 	className,
 	disabled,
+	currentTableData,
 }) => {
 	const inputRef = useRef<HTMLInputElement>(null)
 	const [totalWeight, setTotalWeight] = useAtom(totalWeightAtom)
 	const [inputValue, setInputValue] = useState(value?.toString() || "0")
+
+	// 计算当前表格的总权重（仓管子策略使用）
+	const currentTableTotalWeight = useMemo(() => {
+		if (currentTableData) {
+			return currentTableData.reduce(
+				(sum, stg) => sum + (stg.cap_weight ?? 0),
+				0,
+			)
+		}
+		return undefined
+	}, [currentTableData])
 
 	useEffect(() => {
 		if (value !== undefined) {
@@ -71,6 +86,27 @@ const EditableNumberCell: FC<EditableNumberCellProps> = ({
 		if (newValue !== value) {
 			const adjustedValue = Math.min(100, newValue)
 			const diff = Number((adjustedValue - value).toFixed(5))
+
+			// 仓管模式：使用当前表格总权重进行验证
+			if (currentTableTotalWeight !== undefined) {
+				if (Number((currentTableTotalWeight + diff).toFixed(5)) <= 100) {
+					onChange(adjustedValue)
+					setInputValue(adjustedValue.toString())
+				} else {
+					const maxAllowedValue = Number(
+						Math.max(0, value + (100 - currentTableTotalWeight)).toFixed(5),
+					)
+					onChange(maxAllowedValue)
+					setInputValue(maxAllowedValue.toString())
+					toast.dismiss()
+					toast.info("资金占比超过 100%，已自动调整为最大可能值")
+					return
+				}
+				toast.success(`设置为 ${adjustedValue}%`)
+				return
+			}
+
+			// 选股模式：使用全局 totalWeight 进行验证
 			if (Number((totalWeight + diff).toFixed(5)) <= 100) {
 				onChange(adjustedValue)
 				setTotalWeight((prevTotal) => Number((prevTotal + diff).toFixed(5)))

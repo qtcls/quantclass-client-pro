@@ -45,7 +45,7 @@ const StrategyTable = ({
 	strategyIndex,
 	showCapWeight,
 }: StrategyTableProps) => {
-	const columns = useGenLibraryColumn(() => {}, true, strategyIndex)
+	const columns = useGenLibraryColumn(() => {}, true, strategyIndex, data)
 
 	let tempCapWeight = 0
 	if (data) {

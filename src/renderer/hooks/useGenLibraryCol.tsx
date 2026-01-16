@@ -33,6 +33,8 @@ export const useGenLibraryColumn = (
 	refresh: () => void,
 	isDisabled = false,
 	fusionIndex = -1,
+	/** 当前表格的数据（用于仓管子策略，计算当前表格的总权重） */
+	currentTableData?: SelectStgType[],
 ): ColumnDef<SelectStgType>[] => {
 	const totalWeight = useAtomValue(totalWeightAtom)
 	const { updateFusionStgInRow } = useFusionManager()
@@ -124,6 +126,7 @@ export const useGenLibraryColumn = (
 						className="w-24 pr-1"
 						disabled={isAutoRocket}
 						value={row.original.cap_weight ?? 0}
+						currentTableData={currentTableData}
 						onChange={async (newValue) => {
 							if (fusionIndex === -1) {
 								updateSelectStg(row.index, {

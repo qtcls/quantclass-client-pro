@@ -33,6 +33,30 @@ export const processOffsetList = (offsetListStr: string): number[] => {
 	).sort((a, b) => a - b) // -- 排序
 }
 
+export const normalizeCapWeights = (strategies: any[]): any[] => {
+	// 转换为百分比
+	const strategiesWithPercent = strategies.map((item) => ({
+		...item,
+		cap_weight: (item.cap_weight ?? 0) * 100,
+	}))
+
+	// 计算总和
+	const totalCapWeight = strategiesWithPercent.reduce(
+		(sum, item) => sum + (item.cap_weight ?? 0),
+		0,
+	)
+
+	// 如果总和超过100，按比例归一化
+	if (totalCapWeight > 100) {
+		return strategiesWithPercent.map((item) => ({
+			...item,
+			cap_weight: Number(((item.cap_weight / totalCapWeight) * 100).toFixed(6)),
+		}))
+	}
+
+	return strategiesWithPercent
+}
+
 // -- 生成随机交易时间
 // export const generateTradeTime = () => {
 // 	return {
@@ -113,35 +137,13 @@ export const saveStrategyListFusion = async (
 ) => {
 	// 深度拷贝输入的策略，避免污染原始数据
 	const strategies = JSON.parse(JSON.stringify(fusionStrategies))
-
-	// 递归转换所有策略的 cap_weight（百分比转小数）
-	const convertCapWeight = (strategy: any): any => {
-		if (strategy.type === "pos") {
-			return {
-				...strategy,
-				cap_weight: (strategy.cap_weight ?? 100) / 100,
-				strategy_pool: strategy.strategy_pool?.map((item: any) =>
-					convertCapWeight(item),
-				),
-			}
-		} else if (strategy.type === "group") {
-			return {
-				...strategy,
-				cap_weight: (strategy.cap_weight ?? 100) / 100,
-				strategy_list: strategy.strategy_list?.map((item: any) =>
-					convertCapWeight(item),
-				),
-			}
-		} else {
-			return {
-				...strategy,
-				cap_weight: (strategy.cap_weight ?? 100) / 100,
-			}
-		}
-	}
-
 	// -- 调整权重，把百分比转换为小数
-	const strategiesWithAdjustedWeight = strategies.map(convertCapWeight)
+	const strategiesWithAdjustedWeight = strategies.map(
+		(strategy: SelectStgType | StgGroupType | PosStrategyType) => ({
+			...strategy,
+			cap_weight: (strategy.cap_weight ?? 100) / 100,
+		}),
+	)
 
 	// -- 生成zeus内核策略列表
 	const selectStrategyList = strategiesWithAdjustedWeight.map(
@@ -156,7 +158,6 @@ export const saveStrategyListFusion = async (
 						rebalance_time: stg.rebalance_time,
 						cap_weight: stg.cap_weight,
 						params: stg.params,
-						factor_list: stg.factor_list,
 						strategy_pool: stg.strategy_pool.map((grp_or_stg) =>
 							grp_or_stg.type === "group"
 								? {
@@ -217,7 +218,7 @@ export const saveStrategyListFusion = async (
 					{
 						...subStrategy,
 						cap_weight:
-							(subStrategy.cap_weight ?? 0) * (strategy.cap_weight ?? 0),
+							(subStrategy.cap_weight / 100) * (strategy.cap_weight ?? 0),
 					},
 					rebTimeVals[rebTime],
 				)
@@ -230,7 +231,7 @@ export const saveStrategyListFusion = async (
 			strategyDict[strategyName] = genSelectStrategyDict(
 				{
 					...strategy,
-					cap_weight: strategy.cap_weight ?? 0,
+					cap_weight: strategy.cap_weight ?? 0 / 100,
 				},
 				rebTimeVals[rebTime],
 			)

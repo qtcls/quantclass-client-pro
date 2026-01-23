@@ -111,6 +111,7 @@ export default function StrategyEditDialog({
 								hold_period: strategy.hold_period,
 								offset_list: (strategy.offset_list ?? ["0"]).join(","),
 								filter_list: strategy.filter_list,
+								filter_list_post: strategy.filter_list_post || [],
 								factor_list: strategy.factor_list,
 								select_num: strategy.select_num,
 								buy_time: strategy.buy_time

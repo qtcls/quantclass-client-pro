@@ -129,6 +129,7 @@ export const CoreStrategySchema = z.object({
 	factor_list: z.array(z.any()),
 	cross_sections: z.array(z.any()),
 	filter_list: z.array(z.any()),
+	filter_list_post: z.array(z.any()).optional(), // 后置过滤因子列表
 	timing: TimingSchema,
 	scalein_targets: z.array(z.number()).optional(),
 	override: TimingSchema, // 提前离场逻辑

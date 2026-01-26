@@ -2,6 +2,7 @@ import {
 	FactorListDialog,
 	ParamsDialog,
 } from "@/renderer/components/FactorParamsDialog"
+import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
 /**
  * quantclass-client
  * Copyright (c) 2025 量化小讲堂
@@ -336,6 +337,7 @@ const FusionStrategyLibrary = () => {
 									strategyIndex={strategyIndex}
 									showCapWeight={true}
 								/>
+								<ReTimingDisplay reTiming={strategyGroup.re_timing} />
 							</div>
 						)
 						break
@@ -417,6 +419,7 @@ const FusionStrategyLibrary = () => {
 										showCapWeight={false}
 									/>
 								)}
+								<ReTimingDisplay reTiming={strategyGroup.re_timing} />
 							</div>
 						)
 						break

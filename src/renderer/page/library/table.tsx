@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
 import { Button } from "@/renderer/components/ui/button"
 import { DataTable } from "@/renderer/components/ui/data-table"
 import { DataTableToolbar } from "@/renderer/components/ui/data-table-toolbar"
@@ -15,9 +16,11 @@ import { BACKTEST_PAGE, REAL_MARKET_CONFIG_PAGE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import StgImportButton from "@/renderer/page/library/import-btn"
+import { reTimingAtom } from "@/renderer/store/storage"
 
 import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
 import type { SelectStgType } from "@/renderer/types/strategy"
+import { useAtomValue } from "jotai"
 import {
 	AlignVerticalSpaceAround,
 	PencilRuler,
@@ -30,6 +33,7 @@ import { toast } from "sonner"
 export const LibraryTable = forwardRef((_, _ref) => {
 	const { selectStgList, updateSelectStgList } = useStrategyManager()
 	const { isAutoRocket } = useToggleAutoRealTrading()
+	const reTiming = useAtomValue(reTimingAtom)
 	const navigate = useNavigate()
 
 	const columns = useGenLibraryColumn(() => {})
@@ -48,6 +52,8 @@ export const LibraryTable = forwardRef((_, _ref) => {
 					</DataTableToolbar>
 				)}
 			/>
+
+			<ReTimingDisplay reTiming={reTiming} />
 			<div className="flex items-center justify-between gap-2">
 				<Button
 					size="sm"

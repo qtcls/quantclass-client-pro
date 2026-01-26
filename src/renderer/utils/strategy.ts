@@ -170,6 +170,7 @@ export const saveStrategyListFusion = async (
 									}
 								: genSelectStgInfo(grp_or_stg as SelectStgType),
 						),
+						re_timing: stg.re_timing, // 资金曲线再择时
 					}
 				case "group":
 					return {
@@ -178,6 +179,7 @@ export const saveStrategyListFusion = async (
 						strategy_list: stg.strategy_list.map((_stg) =>
 							genSelectStgInfo(_stg as SelectStgType),
 						),
+						re_timing: stg.re_timing, // 资金曲线再择时
 					}
 				default:
 					return genSelectStgInfo(stg as SelectStgType)

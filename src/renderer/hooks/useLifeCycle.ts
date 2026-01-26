@@ -28,6 +28,7 @@ import {
 	backtestConfigAtom,
 	isAutoLoginAtom,
 	libraryTypeAtom,
+	reTimingAtom,
 	realMarketConfigSchemaAtom,
 } from "@/renderer/store/storage"
 import { macAddressAtom } from "@/renderer/store/user"
@@ -86,6 +87,7 @@ export const useLifeCycle = () => {
 		setAccountKey: useSetAtom(accountKeyAtom),
 		setRealMarketConfig: useSetAtom(realMarketConfigSchemaAtom),
 		setBacktestConfig: useSetAtom(backtestConfigAtom),
+		setReTiming: useSetAtom(reTimingAtom),
 	}
 
 	// -- 用于保存休眠前的更新状态
@@ -173,12 +175,14 @@ export const useLifeCycle = () => {
 				? POS_MGMT_STRATEGY_CONFIG
 				: SELECT_STOCK_STRATEGY_CONFIG
 
-		const [initialCash, startDate, endDate, backtestName] = await Promise.all([
-			getStoreValue(`${configKey}.initial_cash`, 100000),
-			getStoreValue(`${configKey}.start_date`, ""),
-			getStoreValue(`${configKey}.end_date`, ""),
-			getStoreValue(`${configKey}.backtest_name`, "默认策略"),
-		])
+		const [initialCash, startDate, endDate, backtestName, reTiming] =
+			await Promise.all([
+				getStoreValue(`${configKey}.initial_cash`, 100000),
+				getStoreValue(`${configKey}.start_date`, ""),
+				getStoreValue(`${configKey}.end_date`, ""),
+				getStoreValue(`${configKey}.backtest_name`, "默认策略"),
+				getStoreValue(`${configKey}.re_timing`, null),
+			])
 
 		setters.setBacktestConfig((prev) => ({
 			...prev,
@@ -189,6 +193,9 @@ export const useLifeCycle = () => {
 			end_date: endDate ? new Date(endDate) : undefined,
 			backtest_name: backtestName as string,
 		}))
+
+		// 初始化 re_timing
+		setters.setReTiming(reTiming)
 	}
 
 	/**

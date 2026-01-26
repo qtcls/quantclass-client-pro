@@ -16,6 +16,11 @@ export type SelectStgType = z.infer<typeof SelectStgSchema> & {
 	strategy_type: "select"
 }
 
+export type ReTimingType = {
+	name: string
+	params: any[]
+} | null
+
 // 以下是仓位策略管理的类型定义
 export type StgGroupType = {
 	name: string
@@ -23,6 +28,7 @@ export type StgGroupType = {
 	strategy_list: SelectStgType[]
 	cap_weight?: number
 	isFold: boolean
+	re_timing?: ReTimingType
 }
 
 export type PosStrategyType = {
@@ -37,4 +43,5 @@ export type PosStrategyType = {
 	strategy_pool: SelectStgType[] | StgGroupType[]
 	cap_weight: number
 	isFold: boolean
+	re_timing?: ReTimingType
 }

@@ -27,7 +27,7 @@ import {
 import { DialogFooter, DialogHeader } from "@/renderer/components/ui/dialog"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
-import { backtestConfigAtom } from "@/renderer/store/storage"
+import { backtestConfigAtom, reTimingAtom } from "@/renderer/store/storage"
 import type { SelectStgType } from "@/renderer/types/strategy"
 import { openRealTradingFolder } from "@/renderer/utils"
 import { useMutation } from "@tanstack/react-query"
@@ -55,6 +55,7 @@ export default function StgImportButton() {
 	const [deleteOpen, setDeleteOpen] = useState(false)
 
 	const setBacktestConfig = useSetAtom(backtestConfigAtom)
+	const setReTiming = useSetAtom(reTimingAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
 	const { resetSelectStgList, updateSelectStgList } = useStrategyManager()
 	const { mutateAsync: importLibraryDir, isPending } = useMutation({
@@ -62,8 +63,11 @@ export default function StgImportButton() {
 		mutationFn: async (configFilePath: string) =>
 			await importSelectStock(configFilePath),
 		onSuccess: async (data) => {
-			const { configJson: strategyListStr = "", backtestName = "默认策略" } =
-				data
+			const {
+				configJson: strategyListStr = "",
+				backtestName = "默认策略",
+				reTiming = null,
+			} = data
 			const strategyList = JSON.parse(strategyListStr)
 
 			if (isArray(strategyList)) {
@@ -74,6 +78,10 @@ export default function StgImportButton() {
 
 				// -- Set to config json store
 				setStoreValue("select_stock.backtest_name", backtestName)
+				// -- 保存 re_timing（资金曲线再择时）
+				const reTimingObj = reTiming ? JSON.parse(reTiming) : null
+				setStoreValue("select_stock.re_timing", reTimingObj)
+				setReTiming(reTimingObj)
 				// -- Set to render local storage
 				setBacktestConfig((p) => ({
 					...p,

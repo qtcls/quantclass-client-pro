@@ -77,6 +77,12 @@ export const selectStgListAtom = atomWithStorage<SelectStgType[]>(
 	{ getOnInit: true },
 )
 
+// 资金曲线再择时（选股模式下）
+export const reTimingAtom = atomWithStorage<{
+	name: string
+	params: any[]
+} | null>("reTiming", null, undefined, { getOnInit: true })
+
 // 选股策略信息，可以认为是dict版本的list，是list的另一种形态
 export const selectStgDictAtom = atomWithStorage<Record<string, any>>(
 	"selectStockStrategyInfo25",

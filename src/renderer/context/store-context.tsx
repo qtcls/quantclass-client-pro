@@ -11,6 +11,7 @@
 import {
 	fusionAtom,
 	libraryTypeAtom,
+	reTimingAtom,
 	selectStgDictAtom,
 	selectStgListAtom,
 } from "@/renderer/store/storage"
@@ -65,9 +66,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 	const [selectStgList, setSelectStgList] = useAtom(selectStgListAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
 	const setSelectStgDict = useSetAtom(selectStgDictAtom)
+	const setReTiming = useSetAtom(reTimingAtom)
 	const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null) // 防抖时间控制器
-	const { clearRealMarketData, saveRealMarketData, cleanRealMarketData } =
-		window.electronAPI
+	const {
+		clearRealMarketData,
+		saveRealMarketData,
+		cleanRealMarketData,
+		setStoreValue,
+	} = window.electronAPI
 
 	/**
 	 * 初始化各种electron-store
@@ -114,9 +120,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 		setSelectStgList([])
 		if (libraryType !== "pos") {
 			setSelectStgDict(RESET)
+			// 清除资金曲线再择时
+			setReTiming(null)
+			setStoreValue("select_stock.re_timing", null)
 		}
 		return []
-	}, [setSelectStgList, libraryType, setSelectStgDict])
+	}, [
+		setSelectStgList,
+		libraryType,
+		setSelectStgDict,
+		setReTiming,
+		setStoreValue,
+	])
 
 	const syncSelectStgList = useAtomCallback(async (get, set) => {
 		const currentSelectStgList = get(selectStgListAtom)

@@ -278,6 +278,7 @@ async function importSelectStockHandler(): Promise<void> {
 			// }
 			let configJsonStr: string | undefined
 			let backtestName: string | undefined
+			let reTimingStr: string | null | undefined
 
 			// -- 检查 config.py 文件是否存在
 			if (!fs.existsSync(configFilePath)) {
@@ -297,6 +298,8 @@ async function importSelectStockHandler(): Promise<void> {
 				}
 				backtestName =
 					convertPythonVariableToJson(content, "backtest_name") ?? "默认策略"
+				// -- 解析 re_timing（资金曲线再择时）
+				reTimingStr = convertPythonVariableToJson(content, "re_timing") ?? null
 				configJsonStr = jsonStr
 				logger.info(`[import] 解析 config.py 文件成功，策略名：${backtestName}`)
 			} catch (error) {
@@ -382,6 +385,7 @@ async function importSelectStockHandler(): Promise<void> {
 				success: true,
 				configJson: configJsonStr,
 				backtestName,
+				reTiming: reTimingStr,
 			}
 		} catch (error) {
 			logger.error(`[import] 导入文件夹失败: ${JSON.stringify(error, null, 2)}`)

@@ -173,7 +173,7 @@ export const dataApiProductsAtom = atomWithQuery(() => ({
 	queryKey: ["data-api-products"],
 	queryFn: async () => {
 		const response = await fetch(
-			`${VITE_BASE_URL}/api/product/data/abstract/by_category/data-api-products`,
+			"https://quantclass.cn-sh2.ufileos.com/sapi/data/products-status.json",
 		)
 		const json = await response.json()
 

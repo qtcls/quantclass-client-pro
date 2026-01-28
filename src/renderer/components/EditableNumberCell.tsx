@@ -42,9 +42,9 @@ const EditableNumberCell: FC<EditableNumberCellProps> = ({
 	// 计算当前表格的总权重（仓管子策略使用）
 	const currentTableTotalWeight = useMemo(() => {
 		if (currentTableData) {
-			return currentTableData.reduce(
-				(sum, stg) => sum + (stg.cap_weight ?? 0),
-				0,
+			return (
+				currentTableData.reduce((sum, stg) => sum + (stg.cap_weight ?? 0), 0) *
+				100
 			)
 		}
 		return undefined
@@ -107,16 +107,19 @@ const EditableNumberCell: FC<EditableNumberCellProps> = ({
 			}
 
 			// 选股模式：使用全局 totalWeight 进行验证
-			if (Number((totalWeight + diff).toFixed(5)) <= 100) {
+			const totalWeightPercent = totalWeight * 100
+			if (Number((totalWeightPercent + diff).toFixed(5)) <= 100) {
 				onChange(adjustedValue)
-				setTotalWeight((prevTotal) => Number((prevTotal + diff).toFixed(5)))
+				setTotalWeight((prevTotal) =>
+					Number((prevTotal + diff / 100).toFixed(7)),
+				)
 			} else {
 				const maxAllowedValue = Number(
-					Math.max(0, value + (100 - totalWeight)).toFixed(5),
+					Math.max(0, value + (100 - totalWeightPercent)).toFixed(5),
 				)
 				onChange(maxAllowedValue)
 				setInputValue(maxAllowedValue.toString())
-				setTotalWeight(100)
+				setTotalWeight(1)
 				toast.dismiss()
 				toast.info("资金占比超过 100%，已自动调整为最大可能值")
 				return

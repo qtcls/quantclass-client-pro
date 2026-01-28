@@ -55,7 +55,7 @@ const StrategyTable = ({
 			subStrategy.cap_weight = subStrategy.cap_weight ?? 1
 			return sum + subStrategy.cap_weight
 		}, 0)
-		tempCapWeight = Math.round((allCapWeight / 1000) * 1000)
+		tempCapWeight = Math.round(allCapWeight * 100)
 	}
 
 	const tempColumns = columns.map((col: any) => {
@@ -147,7 +147,7 @@ const FusionStrategyLibrary = () => {
 						<ButtonTooltip content={<div>{strategyGroup.name}资金占比</div>}>
 							<div>
 								<NumberInput
-									value={strategyGroup.cap_weight}
+									value={strategyGroup.cap_weight * 100}
 									size="sm"
 									// disabled={isAutoRocket}
 									aria-label={`输入${strategyGroup.name}资金占比`}
@@ -169,17 +169,17 @@ const FusionStrategyLibrary = () => {
 											if (index === strategyIndex) {
 												return {
 													...group,
-													cap_weight: val || 0,
+													cap_weight: (val || 0) / 100, //保存时转换为小数（除以 100）
 												}
 											}
 											return group
 										})
-										// 检查所有 cap_weight 的总和是否超过 100
+										// 检查所有 cap_weight 的总和是否超过 1
 										const totalCapWeight = updatedFusion.reduce(
 											(sum, group) => sum + (group.cap_weight ?? 0),
 											0,
 										)
-										if (totalCapWeight > 100) {
+										if (totalCapWeight > 1) {
 											toast.error("资金占比总和不能超过 100%")
 											return
 										}

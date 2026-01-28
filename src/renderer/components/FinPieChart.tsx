@@ -56,7 +56,7 @@ export function FinPieChart({
 
 			for (const [index, item] of filtered.entries()) {
 				config[`${item.name}`] = {
-					label: `${item.cap_weight}% ${item.name}`,
+					label: `${(item.cap_weight * 100).toFixed(2)}% ${item.name}`,
 					color: `hsl(var(--chart-${((index + 2) % 10) + 1}))`,
 				}
 			}
@@ -76,18 +76,19 @@ export function FinPieChart({
 					?.filter((item) => item.cap_weight > 0) ?? []
 
 			for (const item of filtered) {
-				total += item.cap_weight
+				const capWeightPercent = item.cap_weight * 100
+				total += capWeightPercent
 				result.push({
 					name: `${item.name}`,
-					cap_weight: item.cap_weight,
-					amount:
-						totalCap < 0 ? item.cap_weight : totalCap * (item.cap_weight / 100),
+					cap_weight: capWeightPercent,
+					amount: totalCap < 0 ? capWeightPercent : totalCap * item.cap_weight,
 					fill: chartConfig[`${item.name}`].color,
 				})
 			}
 		}
 
-		if (total !== totalWeight || totalWeight !== 100) {
+		const totalWeightPercent = totalWeight * 100
+		if (total !== totalWeightPercent || totalWeightPercent !== 100) {
 			const key = "可用资金"
 			result.push({
 				name: key,
@@ -158,7 +159,7 @@ export function FinPieChart({
 											>
 												{}
 												{availCap < 0
-													? `${Number(100 - totalWeight).toFixed(2)}%`
+													? `${Number((1 - totalWeight) * 100).toFixed(2)}%`
 													: `${availCap}¥`}
 											</tspan>
 											<tspan
@@ -201,7 +202,9 @@ export function FinPieChart({
 
 			<div className="mt-2 text-sm">
 				资金已占用{" "}
-				<span className="font-semibold text-primary">{totalWeight}%</span>
+				<span className="font-semibold text-primary">
+					{Math.round(totalWeight * 100)}%
+				</span>
 			</div>
 		</div>
 	)

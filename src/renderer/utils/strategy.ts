@@ -33,30 +33,6 @@ export const processOffsetList = (offsetListStr: string): number[] => {
 	).sort((a, b) => a - b) // -- 排序
 }
 
-export const normalizeCapWeights = (strategies: any[]): any[] => {
-	// 转换为百分比
-	const strategiesWithPercent = strategies.map((item) => ({
-		...item,
-		cap_weight: (item.cap_weight ?? 0) * 100,
-	}))
-
-	// 计算总和
-	const totalCapWeight = strategiesWithPercent.reduce(
-		(sum, item) => sum + (item.cap_weight ?? 0),
-		0,
-	)
-
-	// 如果总和超过100，按比例归一化
-	if (totalCapWeight > 100) {
-		return strategiesWithPercent.map((item) => ({
-			...item,
-			cap_weight: Number(((item.cap_weight / totalCapWeight) * 100).toFixed(6)),
-		}))
-	}
-
-	return strategiesWithPercent
-}
-
 // -- 生成随机交易时间
 // export const generateTradeTime = () => {
 // 	return {
@@ -89,10 +65,8 @@ export const saveStrategyList = async (strategies: SelectStgType[]) => {
 	/**
 	 * @description 保存策略列表
 	 */
-	// -- 调整权重，把百分比转换为小数
 	const strategiesWithAdjustedWeight = strategies.map((strategy) => ({
 		...strategy,
-		cap_weight: strategy.cap_weight / 100,
 		calc_time: strategy.calc_time ?? "08:00:00",
 	}))
 
@@ -138,11 +112,9 @@ export const saveStrategyListFusion = async (
 ) => {
 	// 深度拷贝输入的策略，避免污染原始数据
 	const strategies = JSON.parse(JSON.stringify(fusionStrategies))
-	// -- 调整权重，把百分比转换为小数
 	const strategiesWithAdjustedWeight = strategies.map(
 		(strategy: SelectStgType | StgGroupType | PosStrategyType) => ({
 			...strategy,
-			cap_weight: (strategy.cap_weight ?? 100) / 100,
 		}),
 	)
 
@@ -220,8 +192,7 @@ export const saveStrategyListFusion = async (
 				strategyDict[dictKey] = genSelectStrategyDict(
 					{
 						...subStrategy,
-						cap_weight:
-							(subStrategy.cap_weight / 100) * (strategy.cap_weight ?? 0),
+						cap_weight: subStrategy.cap_weight * (strategy.cap_weight ?? 0),
 					},
 					rebTimeVals[rebTime],
 				)
@@ -232,10 +203,7 @@ export const saveStrategyListFusion = async (
 				rebTimeVals[rebTime] = autoTradeTimeByRebTime(rebTime)
 			}
 			strategyDict[strategyName] = genSelectStrategyDict(
-				{
-					...strategy,
-					cap_weight: strategy.cap_weight ?? 0 / 100,
-				},
+				strategy,
 				rebTimeVals[rebTime],
 			)
 		}

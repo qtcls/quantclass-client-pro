@@ -114,7 +114,7 @@ export default function ImportStrategyButton() {
 					return {
 						...selectStg,
 						...synConfig,
-						cap_weight: (selectStg.cap_weight / all_cap_weight) * 100,
+						cap_weight: selectStg.cap_weight / all_cap_weight,
 					}
 				},
 			)
@@ -383,7 +383,7 @@ export default function ImportStrategyButton() {
 							return
 						}
 						const avgCapWeight = Number.parseFloat(
-							(100 / fusion.length).toFixed(5),
+							(1 / fusion.length).toFixed(7),
 						)
 						const _fusion = fusion.map((s) => ({
 							...s,
@@ -391,7 +391,7 @@ export default function ImportStrategyButton() {
 						}))
 						updateFusion(_fusion)
 
-						toast.success(`平均分配权重，每个策略为${avgCapWeight}%`)
+						toast.success(`平均分配权重，每个策略为${avgCapWeight * 100}%`)
 					}}
 				>
 					<AlignVerticalSpaceAround className="size-4 mr-2" />

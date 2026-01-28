@@ -114,7 +114,7 @@ export const useGenLibraryColumn = (
 				<div className="text-muted-foreground flex items-baseline gap-1 text-nowrap">
 					资金占比:{" "}
 					<span className="text-primary text-right w-8 font-bold">
-						{Math.round((totalWeight / 1000) * 1000)}%
+						{Math.round(totalWeight * 100)}%
 					</span>
 				</div>
 			),
@@ -125,18 +125,21 @@ export const useGenLibraryColumn = (
 					<EditableNumberCell
 						className="w-24 pr-1"
 						disabled={isAutoRocket}
-						value={row.original.cap_weight ?? 0}
+						// 显示时转换为百分比（乘以 100）
+						value={(row.original.cap_weight ?? 0) * 100}
 						currentTableData={currentTableData}
 						onChange={async (newValue) => {
+							// 保存时转换为小数（除以 100）
+							const decimalValue = newValue / 100
 							if (fusionIndex === -1) {
 								updateSelectStg(row.index, {
 									...selectStgList[row.index],
-									cap_weight: newValue,
+									cap_weight: decimalValue,
 								})
 							} else {
 								updateFusionStgInRow(
 									fusionIndex,
-									{ cap_weight: newValue },
+									{ cap_weight: decimalValue },
 									row.original,
 									row.index,
 								)

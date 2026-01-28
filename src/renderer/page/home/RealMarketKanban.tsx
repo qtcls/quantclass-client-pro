@@ -163,9 +163,9 @@ export const RealMarketKanban = () => {
 						<span className="text-primary leading-none font-bold">
 							{showMoney ? (
 								totalWeight === 0 ? (
-									totalWeight
+									0
 								) : (
-									<NumberTicker value={totalWeight} />
+									<NumberTicker value={totalWeight * 100} />
 								)
 							) : (
 								"****"

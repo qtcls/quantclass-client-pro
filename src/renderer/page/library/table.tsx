@@ -65,7 +65,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 							return
 						}
 						const avgCapWeight = Number.parseFloat(
-							(100 / selectStgList.length).toFixed(6),
+							(1 / selectStgList.length).toFixed(7),
 						)
 						const strategies = selectStgList.map((s: SelectStgType) => ({
 							...s,
@@ -74,7 +74,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 
 						updateSelectStgList(strategies)
 
-						toast.success(`平均分配权重，每个策略为${avgCapWeight}%`)
+						toast.success(`平均分配权重，每个策略为${avgCapWeight * 100}%`)
 					}}
 				>
 					<AlignVerticalSpaceAround className="size-4 mr-2" />

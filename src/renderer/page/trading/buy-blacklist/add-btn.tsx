@@ -11,12 +11,12 @@
 import { Button } from "@/renderer/components/ui/button"
 import { useMemo, useState } from "react"
 
-import { toast } from "sonner"
-import { validateStockCode } from "@/renderer/utils"
-import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
-import BuyBlacklistAddConfirm from "./confirm-add-dialog"
-import { ShieldBan, Trash2 } from "lucide-react"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
+import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
+import { validateStockCode } from "@/renderer/utils"
+import { ShieldBan, Trash2 } from "lucide-react"
+import { toast } from "sonner"
+import BuyBlacklistAddConfirm from "./confirm-add-dialog"
 
 export default function BuyBlacklistAddBtn({
 	stockCode,

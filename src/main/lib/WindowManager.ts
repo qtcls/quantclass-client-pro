@@ -8,9 +8,9 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { fileURLToPath } from "node:url"
 import { is } from "@electron-toolkit/utils"
 import { BrowserWindow } from "electron"
-import { fileURLToPath } from "node:url"
 import {
 	WINDOW_HEIGHT,
 	WINDOW_MIN_HEIGHT,

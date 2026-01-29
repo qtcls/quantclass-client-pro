@@ -8,12 +8,12 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import fs from "node:fs"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import Database from "better-sqlite3"
 import { type BetterSQLite3Database, drizzle } from "drizzle-orm/better-sqlite3"
 import type { MiddlewareHandler } from "hono"
-import fs from "node:fs"
 
 let db: BetterSQLite3Database | null = null
 let dbWatcher: fs.FSWatcher | null = null

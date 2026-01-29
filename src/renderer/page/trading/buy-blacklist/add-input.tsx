@@ -13,11 +13,11 @@ import { Input } from "@/renderer/components/ui/input"
 import { ShieldBan, Trash } from "lucide-react"
 import { useState } from "react"
 
-import { toast } from "sonner"
-import { validateStockCode } from "@/renderer/utils"
-import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
-import BuyBlacklistAddConfirm from "./confirm-add-dialog"
 import { useAlertDialog } from "@/renderer/context/alert-dialog"
+import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
+import { validateStockCode } from "@/renderer/utils"
+import { toast } from "sonner"
+import BuyBlacklistAddConfirm from "./confirm-add-dialog"
 
 export default function BuyBlacklistAddInput() {
 	const { addBlacklistItem, setBuyBlacklist, isBlacklisted, buyBlacklist } =

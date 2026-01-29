@@ -87,7 +87,7 @@ const App: FC = () => {
 					</HydrateAtoms>
 					{VITE_XBX_ENV === "development" && (
 						<>
-							<ReactQueryDevtools initialIsOpen={true} />
+							<ReactQueryDevtools initialIsOpen={false} />
 							<DevTools theme="dark" />
 						</>
 					)}

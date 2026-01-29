@@ -8,9 +8,9 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { app } from "electron"
 import fs from "node:fs/promises" // -- 使用 Promise API
 import path from "node:path"
+import { app } from "electron"
 import * as winston from "winston"
 import DailyRotateFile from "winston-daily-rotate-file"
 

@@ -34,6 +34,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useSetAtom } from "jotai"
 import { isArray } from "lodash-es"
 import {
+	Clock,
 	Eraser,
 	FolderDown,
 	FolderOpen,
@@ -45,6 +46,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import RebTimeConfigModal from "../../components/RebTimeConfigModal"
 import TradeCtrlBtn from "../../components/trade-ctrl-btn"
 
 export default function StgImportButton() {
@@ -53,6 +55,7 @@ export default function StgImportButton() {
 	const [pending, setPending] = useState(false)
 	const [importOpen, setImportOpen] = useState(false)
 	const [deleteOpen, setDeleteOpen] = useState(false)
+	const [rebTimeConfigOpen, setRebTimeConfigOpen] = useState(false)
 
 	const setBacktestConfig = useSetAtom(backtestConfigAtom)
 	const setReTiming = useSetAtom(reTimingAtom)
@@ -149,6 +152,19 @@ export default function StgImportButton() {
 					打开文件夹
 				</Button>
 			</ButtonTooltip>
+			<Button
+				size="sm"
+				variant="outline"
+				className="h-8 lg:flex"
+				onClick={() => setRebTimeConfigOpen(true)}
+			>
+				<Clock className="size-4 mr-2" />
+				换仓时间配置
+			</Button>
+			<RebTimeConfigModal
+				open={rebTimeConfigOpen}
+				onOpenChange={setRebTimeConfigOpen}
+			/>
 			<Dialog open={importOpen} onOpenChange={setImportOpen}>
 				<DialogContent className="p-4">
 					<DialogHeader>

@@ -9,6 +9,7 @@
  */
 
 import type { SelectStgSchema } from "@/renderer/schemas/strategy"
+import type { TimeValue } from "react-aria"
 import type { z } from "zod"
 
 export type SelectStgType = z.infer<typeof SelectStgSchema> & {
@@ -44,4 +45,11 @@ export type PosStrategyType = {
 	cap_weight: number
 	isFold: boolean
 	re_timing?: ReTimingType
+}
+
+// 换仓时间配置类型
+export interface RebTimeConfig {
+	sell_time: TimeValue
+	buy_time: TimeValue
+	strategies: (SelectStgType | PosStrategyType)[] // 使用此 rebalance_time 的策略列表
 }

@@ -10,14 +10,50 @@
 
 import type {
 	PosStrategyType,
+	RebTimeConfig,
 	SelectStgType,
 	StgGroupType,
 } from "@/renderer/types/strategy"
 import { genPosMgmtStrategyDict, genSelectStrategyDict } from "@/renderer/utils"
-import type { TimeValue } from "react-aria"
 import { autoTradeTimeByRebTime } from "./trade"
 
 const { setStoreValue } = window.electronAPI
+
+// 写入每个策略的rebalance_time的rebTimeConfig，若rebTime不存在则先创建
+const addStrategyToRebTimeConfig = (
+	rebTimeConfig: Record<string, RebTimeConfig>,
+	rebTime: string,
+	strategy: SelectStgType | PosStrategyType,
+): void => {
+	rebTimeConfig[rebTime] ??= {
+		...autoTradeTimeByRebTime(rebTime),
+		strategies: [],
+	}
+	rebTimeConfig[rebTime].strategies.push(strategy)
+}
+
+/**
+ * 重新生成指定 rebalance_time 的换仓时间
+ * @param rebTimeConfig 当前的换仓时间配置
+ * @param rebTime 要重新生成的 rebalance_time
+ * @returns 更新后的 rebTimeConfig
+ */
+export const regenerateRebTime = (
+	rebTimeConfig: Record<string, RebTimeConfig>,
+	rebTime: string,
+): Record<string, RebTimeConfig> => {
+	const { sell_time, buy_time } = autoTradeTimeByRebTime(rebTime)
+	const strategies = rebTimeConfig[rebTime]?.strategies ?? []
+
+	return {
+		...rebTimeConfig,
+		[rebTime]: {
+			sell_time,
+			buy_time,
+			strategies, // 保留原有的策略列表
+		},
+	}
+}
 
 // -- 处理偏移列表，支持中英文逗号，去重和转换为数字
 export const processOffsetList = (offsetListStr: string): number[] => {
@@ -61,33 +97,55 @@ const genSelectStgInfo = (strategy: SelectStgType, includeInfo = true) => {
 	}
 }
 
-export const saveStrategyList = async (strategies: SelectStgType[]) => {
+export const saveStrategyList = async (
+	strategies: SelectStgType[],
+	existingRebTimeConfig?: Record<string, RebTimeConfig>,
+) => {
 	/**
 	 * @description 保存策略列表
+	 * @param strategies 策略列表
+	 * @param existingRebTimeConfig 已有的换仓时间配置（可选），如果提供则复用已有的时间
+	 * @returns { strategyDict, rebTimeConfig }
 	 */
 	const strategiesWithAdjustedWeight = strategies.map((strategy) => ({
 		...strategy,
 		calc_time: strategy.calc_time ?? "08:00:00",
 	}))
 
-	//
-	const rebTimeCache: Record<
-		string,
-		{ sell_time: TimeValue; buy_time: TimeValue }
-	> = {}
+	const rebTimeConfig: Record<string, RebTimeConfig> = {}
 
-	const strategyDict = {}
+	// 如果有已有配置，复用时间但清空策略列表
+	if (existingRebTimeConfig) {
+		for (const [rebTime, config] of Object.entries(existingRebTimeConfig)) {
+			rebTimeConfig[rebTime] = {
+				sell_time: config.sell_time,
+				buy_time: config.buy_time,
+				strategies: [],
+			}
+		}
+	}
+
+	const strategyDict: Record<string, any> = {}
 	for (let index = 0; index < strategiesWithAdjustedWeight.length; index++) {
 		const strategy = strategiesWithAdjustedWeight[index]
-		if (!rebTimeCache[strategy.rebalance_time ?? "close-open"]) {
-			rebTimeCache[strategy.rebalance_time ?? "close-open"] =
-				autoTradeTimeByRebTime(strategy.rebalance_time ?? "close-open")
-		}
-		strategyDict[`#${index}.${strategy.name}`] = genSelectStrategyDict(
+		const rebTime = strategy.rebalance_time ?? "close-open"
+		const strategyName = `#${index}.${strategy.name}`
+
+		addStrategyToRebTimeConfig(rebTimeConfig, rebTime, strategy)
+
+		strategyDict[strategyName] = genSelectStrategyDict(
 			strategy as SelectStgType,
-			rebTimeCache[strategy.rebalance_time ?? "close-open"],
+			rebTimeConfig[rebTime],
 		)
 	}
+
+	// 清理不再使用的 rebalance_time 配置
+	for (const rebTime of Object.keys(rebTimeConfig)) {
+		if (rebTimeConfig[rebTime].strategies.length === 0) {
+			delete rebTimeConfig[rebTime]
+		}
+	}
+
 	// -- 生成策略配置字典，添加index
 	// const strategyDict = strategiesWithAdjustedWeight.reduce(
 	// 	(acc, item, index) => {
@@ -103,13 +161,21 @@ export const saveStrategyList = async (strategies: SelectStgType[]) => {
 		genSelectStgInfo(stg, false),
 	)
 	await setStoreValue("select_stock.strategy_list", selectStrategyList)
-	return strategyDict
+
+	return { strategyDict, rebTimeConfig }
 }
 
 // 仓位管理生成dict
 export const saveStrategyListFusion = async (
 	fusionStrategies: (SelectStgType | StgGroupType | PosStrategyType)[],
+	existingRebTimeConfig?: Record<string, RebTimeConfig>,
 ) => {
+	/**
+	 * @description 保存仓位管理策略列表
+	 * @param fusionStrategies 策略列表
+	 * @param existingRebTimeConfig 已有的换仓时间配置（可选），如果提供则复用已有的时间
+	 * @returns { strategyDict, rebTimeConfig }
+	 */
 	// 深度拷贝输入的策略，避免污染原始数据
 	const strategies = JSON.parse(JSON.stringify(fusionStrategies))
 	const strategiesWithAdjustedWeight = strategies.map(
@@ -160,55 +226,78 @@ export const saveStrategyListFusion = async (
 	)
 	await setStoreValue("pos_mgmt.strategies", selectStrategyList)
 
-	const rebTimeVals: Record<
-		string,
-		{ sell_time: TimeValue; buy_time: TimeValue }
-	> = {}
+	const rebTimeConfig: Record<string, RebTimeConfig> = {}
 
-	const strategyDict = {}
+	// 如果有已有配置，复用时间但清空策略列表
+	if (existingRebTimeConfig) {
+		for (const [rebTime, config] of Object.entries(existingRebTimeConfig)) {
+			rebTimeConfig[rebTime] = {
+				sell_time: config.sell_time,
+				buy_time: config.buy_time,
+				strategies: [],
+			}
+		}
+	}
+
+	const strategyDict: Record<string, any> = {}
 	for (let index = 0; index < strategiesWithAdjustedWeight.length; index++) {
 		const strategy = strategiesWithAdjustedWeight[index]
 		const strategyName = `X${index + 1}-${strategy.name}`
 		if (strategy.type === "pos") {
 			const rebTime = strategy.rebalance_time ?? "close-open"
-			if (!rebTimeVals[rebTime]) {
-				rebTimeVals[rebTime] = autoTradeTimeByRebTime(rebTime)
-			}
+
+			addStrategyToRebTimeConfig(
+				rebTimeConfig,
+				rebTime,
+				strategy as PosStrategyType,
+			)
+
 			strategyDict[strategyName] = genPosMgmtStrategyDict(
 				strategy as PosStrategyType,
-				rebTimeVals[rebTime],
+				rebTimeConfig[rebTime],
 			)
 		} else if (strategy.type === "group") {
 			for (let index0 = 0; index0 < strategy.strategy_list.length; index0++) {
 				const subStrategy = strategy.strategy_list[index0]
 				const rebTime = subStrategy.rebalance_time ?? "close-open"
-				if (!rebTimeVals[rebTime]) {
-					rebTimeVals[rebTime] = autoTradeTimeByRebTime(rebTime)
-				}
+
 				const dictKey =
 					strategy.strategy_list.length > 1
 						? `${strategyName}#${index0}.${subStrategy.name}`
 						: strategyName
+
+				addStrategyToRebTimeConfig(rebTimeConfig, rebTime, subStrategy)
+
 				strategyDict[dictKey] = genSelectStrategyDict(
 					{
 						...subStrategy,
 						cap_weight: subStrategy.cap_weight * (strategy.cap_weight ?? 0),
 					},
-					rebTimeVals[rebTime],
+					rebTimeConfig[rebTime],
 				)
 			}
 		} else {
 			const rebTime = strategy.rebalance_time ?? "close-open"
-			if (!rebTimeVals[rebTime]) {
-				rebTimeVals[rebTime] = autoTradeTimeByRebTime(rebTime)
-			}
+
+			addStrategyToRebTimeConfig(
+				rebTimeConfig,
+				rebTime,
+				strategy as SelectStgType,
+			)
+
 			strategyDict[strategyName] = genSelectStrategyDict(
 				strategy,
-				rebTimeVals[rebTime],
+				rebTimeConfig[rebTime],
 			)
 		}
 	}
 
+	// 清理不再使用的 rebalance_time 配置
+	for (const rebTime of Object.keys(rebTimeConfig)) {
+		if (rebTimeConfig[rebTime].strategies.length === 0) {
+			delete rebTimeConfig[rebTime]
+		}
+	}
 	// -- 生成策略配置字典，添加index
 	// const strategyDict = strategiesWithAdjustedWeight.reduce(
 	// 	(
@@ -251,5 +340,5 @@ export const saveStrategyListFusion = async (
 	// 	},
 	// 	{},
 	// )
-	return strategyDict
+	return { strategyDict, rebTimeConfig }
 }

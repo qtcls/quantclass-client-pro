@@ -3,6 +3,7 @@ import {
 	ParamsDialog,
 } from "@/renderer/components/FactorParamsDialog"
 import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
+import RebTimeConfigModal from "@/renderer/components/RebTimeConfigModal"
 /**
  * quantclass-client
  * Copyright (c) 2025 量化小讲堂
@@ -115,6 +116,8 @@ const FusionStrategyLibrary = () => {
 	}>({
 		open: false,
 	})
+
+	const [rebTimeConfigModalOpen, setRebTimeConfigModalOpen] = useState(false)
 
 	// 渲染通用结构
 	const renderCommonStructure = (
@@ -288,7 +291,14 @@ const FusionStrategyLibrary = () => {
 				let renderContent: () => JSX.Element
 
 				switch (strategyGroup.type) {
-					case "group":
+					case "group": {
+						const groupRebTimes = Array.from(
+							new Set(
+								strategyGroup.strategy_list.map(
+									(item: any) => item.rebalance_time,
+								),
+							),
+						) as string[]
 						renderContent = () => (
 							<div className="space-y-2">
 								<div className="flex items-center gap-2">
@@ -317,15 +327,12 @@ const FusionStrategyLibrary = () => {
 										).join("、")}
 									</Badge>
 
-									<Badge variant="outline">
-										换仓时间：
-										{Array.from(
-											new Set(
-												strategyGroup.strategy_list.map(
-													(item: any) => item.rebalance_time,
-												),
-											),
-										).join(",")}
+									<Badge
+										variant="outline"
+										className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+										onClick={() => setRebTimeConfigModalOpen(true)}
+									>
+										换仓时间：{groupRebTimes.join(",")}
 									</Badge>
 									<span className="text-sm">
 										共{strategyGroup.strategy_list.length}个选股策略
@@ -341,6 +348,7 @@ const FusionStrategyLibrary = () => {
 							</div>
 						)
 						break
+					}
 					case "pos": {
 						const { strategy_pool } = strategyGroup
 						const isList = strategy_pool.some(
@@ -357,7 +365,11 @@ const FusionStrategyLibrary = () => {
 										Offset：{(strategyGroup.offset_list ?? []).join(",")}
 									</Badge>
 
-									<Badge variant="outline">
+									<Badge
+										variant="outline"
+										className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+										onClick={() => setRebTimeConfigModalOpen(true)}
+									>
 										换仓时间：{strategyGroup.rebalance_time}
 									</Badge>
 
@@ -435,7 +447,11 @@ const FusionStrategyLibrary = () => {
 									<Badge variant="outline">
 										Offset：{(strategyGroup.offset_list ?? []).join(",")}
 									</Badge>
-									<Badge variant="outline">
+									<Badge
+										variant="outline"
+										className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+										onClick={() => setRebTimeConfigModalOpen(true)}
+									>
 										换仓时间：{strategyGroup.rebalance_time}
 									</Badge>
 								</div>
@@ -478,6 +494,10 @@ const FusionStrategyLibrary = () => {
 					params={paramsDialogState.params}
 				/>
 			)}
+			<RebTimeConfigModal
+				open={rebTimeConfigModalOpen}
+				onOpenChange={setRebTimeConfigModalOpen}
+			/>
 		</div>
 	)
 }

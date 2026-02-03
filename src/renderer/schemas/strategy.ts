@@ -146,8 +146,6 @@ export const SelectStgSchema = CoreStrategySchema.extend({
 export const SelectStgFormSchema = CoreStrategySchema.omit({ name: true })
 	.extend({
 		select_num: SelectNumFormSchema,
-		buy_time: TimeValueSchema,
-		sell_time: TimeValueSchema,
 		offset_list: OffsetListFormSchema,
 		split_order_amount: SplitOrderAmountFormSchema,
 	})

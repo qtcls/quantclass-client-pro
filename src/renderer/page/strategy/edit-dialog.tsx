@@ -13,8 +13,6 @@ import { EditIcon } from "@/renderer/icons/EditIcon"
 import { SelectStgForm } from "@/renderer/page/strategy/form"
 import type { SelectStgType } from "@/renderer/types/strategy"
 
-import { parseToTimeValueWithSecond } from "@/renderer/utils"
-
 import {
 	Dialog,
 	DialogContent,
@@ -114,12 +112,6 @@ export default function StrategyEditDialog({
 								filter_list_post: strategy.filter_list_post || [],
 								factor_list: strategy.factor_list,
 								select_num: strategy.select_num,
-								buy_time: strategy.buy_time
-									? parseToTimeValueWithSecond(strategy.buy_time)
-									: undefined,
-								sell_time: strategy.sell_time
-									? parseToTimeValueWithSecond(strategy.sell_time)
-									: undefined,
 								rebalance_time: strategy.rebalance_time ?? "close-open",
 								split_order_amount:
 									strategy?.split_order_amount ||

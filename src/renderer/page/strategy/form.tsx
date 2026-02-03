@@ -18,7 +18,6 @@ import { CardContent, CardFooter } from "@/renderer/components/ui/card"
 import { Input as InputUI } from "@/renderer/components/ui/input"
 import { Separator } from "@/renderer/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/renderer/components/ui/tabs"
-import { TimePicker } from "@/renderer/components/ui/time-picker"
 import { ALLOWED_HOLD_PERIODS } from "@/renderer/constant/strategy"
 import { cn } from "@/renderer/lib/utils"
 import ScaleinTargetsView from "@/renderer/page/strategy/ScaleinTargetsView"
@@ -28,8 +27,6 @@ import type {
 	SelectStgFormProps,
 } from "@/renderer/page/strategy/types"
 import { SelectStgFormSchema } from "@/renderer/schemas/strategy"
-import { formatTime } from "@/renderer/utils/time"
-import { autoTradeTimeByRebTime } from "@/renderer/utils/trade"
 import { Input } from "@heroui/input"
 import { Select, SelectItem, SelectSection } from "@heroui/select"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -53,7 +50,6 @@ import {
 	Filter,
 	Loader,
 	Shell,
-	Shuffle,
 	Timer,
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -137,13 +133,12 @@ export function SelectStgForm({
 			return
 
 		setTimeout(() => {
+			const values = form.getValues()
 			onSave({
-				...form.getValues(),
-				select_num: Number(form.getValues("select_num")),
-				rebalance_time: form.getValues("rebalance_time") || "close-open",
-				buy_time: formatTime(form.getValues("buy_time")),
-				sell_time: formatTime(form.getValues("sell_time")),
-				split_order_amount: Number(form.getValues("split_order_amount")),
+				...values,
+				select_num: Number(values.select_num),
+				rebalance_time: values.rebalance_time || "close-open",
+				split_order_amount: Number(values.split_order_amount),
 			})
 			setSaving(false)
 		}, 150)
@@ -346,15 +341,6 @@ export function SelectStgForm({
 											onChange={(e) => {
 												const new_value = e.target.value
 												if (!new_value) return
-												// console.log("v", new_value)
-
-												const { sell_time, buy_time } = autoTradeTimeByRebTime(
-													new_value ?? "close-open",
-												) // -- 生成自动交易时间
-												form.setValue("sell_time", sell_time)
-												form.setValue("buy_time", buy_time)
-												// console.log("sell_time", sell_time)
-												// console.log("buy_time", buy_time)
 												field.onChange(e)
 											}}
 										>
@@ -1013,72 +999,6 @@ export function SelectStgForm({
 									</FormItem>
 								)}
 							/>
-
-							<FormField
-								control={form.control}
-								name="sell_time"
-								render={({ field }) => (
-									// TODO: 删除 hidden
-									<FormItem className="flex flex-col">
-										<FormLabel className="flex items-center gap-1">
-											<span>🈳 卖出时间</span>
-											<ButtonTooltip content="保存时随机生成，或点击下方按钮随机生成">
-												<CircleHelp className="w-4 h-4 text-muted-foreground hover:cursor-pointer" />
-											</ButtonTooltip>
-										</FormLabel>
-
-										<FormControl>
-											<TimePicker {...field} granularity="second" isReadOnly />
-										</FormControl>
-										<p className="text-muted-foreground text-xs pl-1">
-											当日换仓：根据换仓时间的 前1分钟 到
-											后10分钟，并随机秒数；隔日换仓：收盘前10分钟内随机，并随机秒数
-										</p>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="buy_time"
-								render={({ field }) => (
-									<FormItem className="flex flex-col">
-										<FormLabel className="flex items-center gap-1">
-											<span>🈵 买入时间</span>
-											<ButtonTooltip content="保存时随机生成，或点击下方按钮随机生成">
-												<CircleHelp className="w-4 h-4 text-muted-foreground hover:cursor-pointer" />
-											</ButtonTooltip>
-										</FormLabel>
-
-										<FormControl>
-											<TimePicker {...field} isReadOnly granularity="second" />
-										</FormControl>
-										<p className="text-muted-foreground text-xs pl-1">
-											分钟换仓：根据随机后的卖出时间，延迟 60 到 120
-											秒随机间隔；其他换仓：按开盘时间，随机买入时间
-										</p>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<Button
-								size="sm"
-								variant="outline"
-								className="w-52"
-								onClick={(e) => {
-									e.preventDefault()
-									const { sell_time, buy_time } = autoTradeTimeByRebTime(
-										form.getValues("rebalance_time") ?? "close-open",
-									)
-									form.setValue("sell_time", sell_time)
-									form.setValue("buy_time", buy_time)
-								}}
-							>
-								<Shuffle className="w-4 h-4 mr-2" />
-								随机生成买入、卖出时间
-							</Button>
 						</div>
 					</div>
 				</CardContent>

@@ -191,12 +191,11 @@ export function genSelectStrategyDict(
 		stock_weight: ["equal_weight", false], // -- 默认为等权重，(当选股数量不足的时候，是否自动补足，false的话是全仓)
 		buy: [
 			"t_wap", // -- 拆单策略
-			stg.buy_time ??
-				`${buy_time.hour.toString().padStart(2, "0")}:${buy_time.minute
-					.toString()
-					.padStart(2, "0")}:${
-					buy_time.second?.toString().padStart(2, "0") ?? "00"
-				}`, // 买入时间，时分秒补零
+			`${buy_time.hour.toString().padStart(2, "0")}:${buy_time.minute
+				.toString()
+				.padStart(2, "0")}:${
+				buy_time.second?.toString().padStart(2, "0") ?? "00"
+			}`, // 买入时间，时分秒补零
 			Math.floor(Math.random() * (45 - 25 + 1)) + 25, // 随机买入时间间隔
 			stg.split_order_amount ??
 				Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000, // 随机拆单金额
@@ -204,12 +203,11 @@ export function genSelectStrategyDict(
 		],
 		sell: [
 			"base_sell",
-			stg.sell_time ??
-				`${sell_time.hour.toString().padStart(2, "0")}:${sell_time.minute
-					.toString()
-					.padStart(2, "0")}:${
-					sell_time.second?.toString().padStart(2, "0") ?? "00"
-				}`, // 卖出时间，时分秒补零
+			`${sell_time.hour.toString().padStart(2, "0")}:${sell_time.minute
+				.toString()
+				.padStart(2, "0")}:${
+				sell_time.second?.toString().padStart(2, "0") ?? "00"
+			}`, // 卖出时间，时分秒补零
 		], // -- 卖出策略，一笔全卖（夏普说的）
 		risk: [false], // -- 默认为 false，客户端不改
 		intraday_swap: IntradayWap[reb_time] ?? IntradayWap.open, // -- 默认为早盘换仓

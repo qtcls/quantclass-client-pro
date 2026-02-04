@@ -45,6 +45,7 @@ export type PosStrategyType = {
 	cap_weight: number
 	isFold: boolean
 	re_timing?: ReTimingType
+	split_order_amount?: number
 }
 
 // 换仓时间配置类型

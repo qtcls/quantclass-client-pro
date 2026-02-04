@@ -28,7 +28,12 @@ import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
 import { cn } from "@/renderer/lib/utils"
 import ImportStrategyButton from "@/renderer/page/library/fusion/import-btn"
-import type { SelectStgType, StgGroupType } from "@/renderer/types/strategy"
+import PosStrategyEditDialog from "@/renderer/page/strategy/pos-edit-dialog"
+import type {
+	PosStrategyType,
+	SelectStgType,
+	StgGroupType,
+} from "@/renderer/types/strategy"
 import { NumberInput } from "@heroui/number-input"
 import { Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
@@ -40,14 +45,23 @@ interface StrategyTableProps {
 	data: SelectStgType[]
 	strategyIndex: number
 	showCapWeight: boolean
+	/** 为 true 时不渲染操作列（pos 类型下 strategy_pool） */
+	hideOperationColumn?: boolean
 }
 
 const StrategyTable = ({
 	data,
 	strategyIndex,
 	showCapWeight,
+	hideOperationColumn = false,
 }: StrategyTableProps) => {
-	const columns = useGenLibraryColumn(() => {}, true, strategyIndex, data)
+	const columns = useGenLibraryColumn(
+		() => {},
+		true,
+		strategyIndex,
+		data,
+		hideOperationColumn,
+	)
 
 	let tempCapWeight = 0
 	if (data) {
@@ -200,6 +214,12 @@ const FusionStrategyLibrary = () => {
 						</div>
 					</div>
 					<div className="flex items-center gap-2">
+						{strategyGroup.type === "pos" && (
+							<PosStrategyEditDialog
+								posStrategy={strategyGroup as PosStrategyType}
+								fusionIndex={strategyIndex}
+							/>
+						)}
 						<Popover
 							open={isDeletePopoverOpen}
 							onOpenChange={setIsDeletePopoverOpen}
@@ -421,6 +441,7 @@ const FusionStrategyLibrary = () => {
 												data={poolItem.strategy_list}
 												strategyIndex={strategyIndex}
 												showCapWeight={true}
+												hideOperationColumn={true}
 											/>
 										</div>
 									))
@@ -429,6 +450,7 @@ const FusionStrategyLibrary = () => {
 										data={strategy_pool as SelectStgType[]}
 										strategyIndex={strategyIndex}
 										showCapWeight={false}
+										hideOperationColumn={true}
 									/>
 								)}
 								<ReTimingDisplay reTiming={strategyGroup.re_timing} />

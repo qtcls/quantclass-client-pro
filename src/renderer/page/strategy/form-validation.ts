@@ -17,12 +17,16 @@ export const useFormValidation = (_form: UseFormReturn<SelectStgFormData>) => {
 	// -- 验证表单数据并返回验证结果
 	const validateFormData = async (data: SelectStgFormData) => {
 		/**
-		 * 拆单金额必须为大于 0 的数字
+		 * 拆单金额须在 6000～12000 之间
 		 */
 		const splitOrderAmount = Number(data.split_order_amount)
 
-		if (!isNumber(splitOrderAmount) || splitOrderAmount <= 0) {
-			toast.error("拆单金额必须为大于 0 的数字")
+		if (
+			!isNumber(splitOrderAmount) ||
+			splitOrderAmount < 6000 ||
+			splitOrderAmount > 12000
+		) {
+			toast.error("拆单金额须在 6000～12000 之间")
 			return false
 		}
 

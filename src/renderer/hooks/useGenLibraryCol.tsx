@@ -35,6 +35,8 @@ export const useGenLibraryColumn = (
 	fusionIndex = -1,
 	/** 当前表格的数据（用于仓管子策略，计算当前表格的总权重） */
 	currentTableData?: SelectStgType[],
+	/** 为 true 时不渲染操作列（pos 类型下 strategy_pool）  */
+	hideOperationColumn = false,
 ): ColumnDef<SelectStgType>[] => {
 	const totalWeight = useAtomValue(totalWeightAtom)
 	const { updateFusionStgInRow } = useFusionManager()
@@ -328,33 +330,37 @@ export const useGenLibraryColumn = (
 				)
 			},
 		},
-		{
-			id: "action",
-			size: 50,
-			maxSize: 80,
-			header: "操作",
-			cell: ({ row }) => {
-				return isAutoRocket ? (
-					<Badge variant="secondary">实盘中</Badge>
-				) : (
-					<div className="flex items-center gap-1">
-						<StrategyEditDialog
-							strategy={row.original as SelectStgType}
-							rowIndex={row.index}
-							fusionIndex={fusionIndex}
-						/>
-						{!isDisabled && (
-							<DeleteStrategy
-								strategy={row.original as SelectStgType}
-								rowIndex={row.index}
-								strategyType="select"
-								onSuccess={refresh}
-								className="!relative !inset-auto"
-							/>
-						)}
-					</div>
-				)
-			},
-		},
+		...(hideOperationColumn
+			? []
+			: [
+					{
+						id: "action",
+						size: 50,
+						maxSize: 80,
+						header: "操作",
+						cell: ({ row }) => {
+							return isAutoRocket ? (
+								<Badge variant="secondary">实盘中</Badge>
+							) : (
+								<div className="flex items-center gap-1">
+									<StrategyEditDialog
+										strategy={row.original as SelectStgType}
+										rowIndex={row.index}
+										fusionIndex={fusionIndex}
+									/>
+									{!isDisabled && (
+										<DeleteStrategy
+											strategy={row.original as SelectStgType}
+											rowIndex={row.index}
+											strategyType="select"
+											onSuccess={refresh}
+											className="!relative !inset-auto"
+										/>
+									)}
+								</div>
+							)
+						},
+					},
+				]),
 	]
 }

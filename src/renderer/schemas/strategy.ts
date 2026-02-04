@@ -50,17 +50,17 @@ export const OffsetListFormSchema = z.string().min(1, {
 
 export const RebalanceTimeSchema = z.string().optional()
 
-export const SplitOrderAmountSchema = z.number().positive()
+export const SplitOrderAmountSchema = z.number().min(6000).max(12000)
 
 export const SplitOrderAmountFormSchema = z
 	.union([z.number(), z.string()])
 	.refine(
 		(val) => {
 			const num = typeof val === "string" ? Number(val) : val
-			return !Number.isNaN(num) && num > 0
+			return !Number.isNaN(num) && num >= 6000 && num <= 12000
 		},
 		{
-			message: "分割订单金额必须大于0",
+			message: "拆单金额须在 6000～12000 之间",
 		},
 	)
 

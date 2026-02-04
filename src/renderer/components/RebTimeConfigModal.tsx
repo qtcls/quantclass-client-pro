@@ -251,6 +251,16 @@ export default function RebTimeConfigModal({
 						换仓时间配置
 					</DialogTitle>
 				</DialogHeader>
+				<div className="flex gap-3 rounded-lg border border-blue-500/25 bg-blue-500/10 dark:border-blue-400/30 dark:bg-blue-500/15 px-4 py-3 text-sm">
+					<InfoIcon className="size-4 shrink-0 mt-1 text-blue-600 dark:text-blue-400" />
+					<p className="min-w-0 flex-1 text-blue-900/90 dark:text-blue-100/90 leading-relaxed">
+						在此统一配置同一{" "}
+						<span className="font-bold text-blue-900/90 dark:text-blue-100/90">
+							rebalance_time
+						</span>{" "}
+						下各策略的换仓时间（卖出/买入时间）。下方每个区块对应一种换仓模式，其下列出的策略将共用该模式的换仓时间。
+					</p>
+				</div>
 				<RebTimeConfigBody />
 			</DialogContent>
 		</Dialog>

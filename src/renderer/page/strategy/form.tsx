@@ -1,3 +1,4 @@
+import RebTimeConfigModal from "@/renderer/components/RebTimeConfigModal"
 import {
 	Accordion,
 	AccordionContent,
@@ -27,6 +28,7 @@ import type {
 	SelectStgFormProps,
 } from "@/renderer/page/strategy/types"
 import { SelectStgFormSchema } from "@/renderer/schemas/strategy"
+import { rebTimeConfigAtom } from "@/renderer/store/storage"
 import { Input } from "@heroui/input"
 import { Select, SelectItem, SelectSection } from "@heroui/select"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -39,6 +41,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@renderer/components/ui/form"
+import { useAtomValue } from "jotai"
 import {
 	AlarmClockCheck,
 	ArrowDown,
@@ -50,11 +53,22 @@ import {
 	Filter,
 	Loader,
 	Shell,
+	Shuffle,
 	Timer,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
+
+function formatRebTimeDisplay(
+	time: { hour: number; minute: number; second?: number } | undefined,
+): string {
+	if (!time) return "--:--:--"
+	const hour = time.hour.toString().padStart(2, "0")
+	const minute = time.minute.toString().padStart(2, "0")
+	const second = (time.second ?? 0).toString().padStart(2, "0")
+	return `${hour}:${minute}:${second}`
+}
 
 export function SelectStgForm({
 	defaultValues,
@@ -68,6 +82,9 @@ export function SelectStgForm({
 	})
 	const [saving, setSaving] = useState(false)
 	const [tabValue, setTabValue] = useState("开仓") //开仓 离场  --择时
+	const [rebTimeConfigModalOpen, setRebTimeConfigModalOpen] = useState(false)
+	const rebTimeConfig = useAtomValue(rebTimeConfigAtom)
+	const rebalanceTime = form.watch("rebalance_time") ?? "close-open"
 
 	// 初始化 signalTime 状态
 	const [signalTime, setSignalTime] = useState<string>()
@@ -984,7 +1001,6 @@ export function SelectStgForm({
 												<CircleHelp className="w-4 h-4 text-muted-foreground hover:cursor-pointer" />
 											</ButtonTooltip>
 										</FormLabel>
-
 										<FormControl>
 											<InputUI
 												{...field}
@@ -994,11 +1010,81 @@ export function SelectStgForm({
 												className="bg-background"
 											/>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								className="w-52"
+								onClick={(e) => {
+									e.preventDefault()
+									form.setValue(
+										"split_order_amount",
+										Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
+									)
+								}}
+							>
+								<Shuffle className="w-4 h-4 mr-2" />
+								随机生成拆单金额
+							</Button>
+							<FormItem className="flex flex-col">
+								<FormLabel className="flex items-center gap-1">
+									<span>🈳 卖出时间</span>
+									<ButtonTooltip content="保存时随机生成，或点击下方按钮打开换仓时间配置">
+										<CircleHelp className="w-4 h-4 text-muted-foreground hover:cursor-pointer" />
+									</ButtonTooltip>
+								</FormLabel>
+								<FormControl>
+									<div className="flex min-h-9 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground">
+										{rebTimeConfig[rebalanceTime]?.sell_time
+											? formatRebTimeDisplay(
+													rebTimeConfig[rebalanceTime].sell_time,
+												)
+											: "--:--:--"}
+									</div>
+								</FormControl>
+								<p className="text-muted-foreground text-xs pl-1">
+									当日换仓：根据换仓时间的 前1分钟 到
+									后10分钟，并随机秒数；隔日换仓：收盘前10分钟内随机，并随机秒数
+								</p>
+							</FormItem>
+							<FormItem className="flex flex-col">
+								<FormLabel className="flex items-center gap-1">
+									<span>🈵 买入时间</span>
+									<ButtonTooltip content="保存时随机生成，或点击下方按钮打开换仓时间配置">
+										<CircleHelp className="w-4 h-4 text-muted-foreground hover:cursor-pointer" />
+									</ButtonTooltip>
+								</FormLabel>
+								<FormControl>
+									<div className="flex min-h-9 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground">
+										{rebTimeConfig[rebalanceTime]?.buy_time
+											? formatRebTimeDisplay(
+													rebTimeConfig[rebalanceTime].buy_time,
+												)
+											: "--:--:--"}
+									</div>
+								</FormControl>
+								<p className="text-muted-foreground text-xs pl-1">
+									分钟换仓：根据随机后的卖出时间，延迟 60 到 120
+									秒随机间隔；其他换仓：按开盘时间，随机买入时间
+								</p>
+							</FormItem>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								className="w-52"
+								onClick={(e) => {
+									e.preventDefault()
+									setRebTimeConfigModalOpen(true)
+								}}
+							>
+								<Shuffle className="w-4 h-4 mr-2" />
+								随机生成换仓时间
+							</Button>
 						</div>
 					</div>
 				</CardContent>
@@ -1022,6 +1108,10 @@ export function SelectStgForm({
 					</Button>
 				</CardFooter>
 			</form>
+			<RebTimeConfigModal
+				open={rebTimeConfigModalOpen}
+				onOpenChange={setRebTimeConfigModalOpen}
+			/>
 		</Form>
 	)
 }

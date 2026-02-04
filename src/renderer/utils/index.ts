@@ -239,8 +239,8 @@ export function genPosMgmtStrategyDict(
 				buy_time.second?.toString().padStart(2, "0") ?? "00"
 			}`, // 买入时间，时分秒补零
 			Math.floor(Math.random() * (45 - 25 + 1)) + 25, // 随机买入时间间隔
-			// stg.split_order_amount ??
-			Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000, // 随机拆单金额
+			stg.split_order_amount ??
+				Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000, // 随机拆单金额
 			1.005, // 买入价格浮动比例
 		],
 		sell: [

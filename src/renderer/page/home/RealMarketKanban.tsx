@@ -29,10 +29,12 @@ import { isUpdatingAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import {
 	accountKeyAtom,
+	realMarketConfigSchemaAtom,
 	// libraryTypeAtom,
 	showMoneyAtom,
 	totalWeightAtom,
 } from "@/renderer/store/storage"
+import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { useAtom, useAtomValue } from "jotai"
 import { Eye, EyeOff, Library, Play, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -58,6 +60,10 @@ export const RealMarketKanban = () => {
 	// const setActiveTab = useSetAtom(realTradingTabAtom)
 
 	const [{ data, refetch }] = useAtom(loadAccountQueryAtom)
+	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
+	const accountId = realMarketConfig?.account_id ?? ""
+	const brokerName = getBrokerNameByAccountId(accountId)
+	const brokerOrAccountLabel = brokerName || accountId.trim()
 	// const libraryType = useAtomValue(libraryTypeAtom)
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies:
@@ -173,7 +179,6 @@ export const RealMarketKanban = () => {
 							%
 						</span>
 					</div>
-
 					<div className="flex items-baseline gap-1">
 						<span className="">可用资金:</span>
 						<span className="text-primary font-bold leading-none">
@@ -189,7 +194,6 @@ export const RealMarketKanban = () => {
 						</span>
 						<span className="leading-none">¥</span>
 					</div>
-
 					<div className="flex items-baseline gap-1">
 						<span>总资产:</span>
 						<span className="text-primary font-bold leading-none">
@@ -204,6 +208,16 @@ export const RealMarketKanban = () => {
 							)}
 						</span>
 						<span className="leading-none">¥</span>
+					</div>
+					<div className="flex items-baseline gap-1">
+						<span>券商:</span>
+						<span className="text-primary font-bold leading-none">
+							{showMoney
+								? brokerOrAccountLabel
+									? brokerOrAccountLabel
+									: "--"
+								: "****"}
+						</span>
 					</div>
 				</div>
 

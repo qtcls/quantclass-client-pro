@@ -31,6 +31,12 @@ export const fuelOutPutAtom = atom(
 	)}---------------------</div> \n`,
 )
 
+export const selectStockOutputAtom = atom(
+	`<div class="w-full text-center">---------------------${String(
+		dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
+	)}---------------------</div> \n`,
+)
+
 export const realMarketOutputAtom = atom(
 	`<div class="w-full text-center">---------------------${String(
 		dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),

@@ -29,6 +29,7 @@ import logger from "@/main/utils/wiston.js"
 import { regCoreIPC } from "@/preload/core/core-ipc.js"
 import { regDataIPC } from "@/preload/data/data-ipc.js"
 import { regFileSysIPC } from "@/preload/file-sys/file-sys-ipc.js"
+import { regKernelLogIPC } from "@/preload/kernel-log/kernel-log-ipc.js"
 import { regStoreIPC } from "@/preload/store/store-ipc.js"
 import { regStrategyIPC } from "@/preload/strategy/strategy-ipc.js"
 import { regSystemIPC } from "@/preload/system/system-ipc.js"
@@ -103,6 +104,7 @@ if (!gotTheLock) {
 		regStoreIPC()
 		regSystemIPC()
 		regFileSysIPC()
+		regKernelLogIPC()
 		regDataIPC()
 		regStrategyIPC()
 		regWindowsIPC()

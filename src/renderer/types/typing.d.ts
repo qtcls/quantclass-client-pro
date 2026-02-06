@@ -13,6 +13,7 @@ import type { ElectronAPI } from "@electron-toolkit/preload"
 // 直接从preload模块提取类型
 type SystemIPC = typeof import("@/preload/system/index.js").systemIPC
 type FileSystemIPC = typeof import("@/preload/file-sys/index.js").fileSysIPC
+type KernelLogIPC = typeof import("@/preload/kernel-log/index.js").kernelLogIPC
 type StoreIPC = typeof import("@/preload/store/index.js").storeIPC
 type DataIPC = typeof import("@/preload/data/index.js").dataIPC
 type EmitterIPC = typeof import("@/preload/emitter/index.js").emitterIPC
@@ -23,6 +24,7 @@ type StrategyIPC = typeof import("@/preload/strategy/index.js").strategyIPC
 // 组合所有IPC类型
 type CustomElectronAPI = SystemIPC &
 	FileSystemIPC &
+	KernelLogIPC &
 	StoreIPC &
 	DataIPC &
 	EmitterIPC &

@@ -22,7 +22,12 @@ import {
 import { useDataSubscribed } from "@/renderer/hooks/useDataSubscribed"
 import { useSettings } from "@/renderer/hooks/useSettings"
 import type { IDataListType } from "@/renderer/schemas/data-schema"
-import { isUpdatingAtom, stepAtom, stepLoaderMapAtom } from "@/renderer/store"
+import {
+	fuelOutPutAtom,
+	isUpdatingAtom,
+	stepAtom,
+	stepLoaderMapAtom,
+} from "@/renderer/store"
 import { Button } from "@renderer/components/ui/button"
 import { useMutation } from "@tanstack/react-query"
 import type { Row } from "@tanstack/react-table"
@@ -38,6 +43,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { LogViewer } from "../logViewer"
 import ButtonTooltip from "./button-tooltip"
 
 const {
@@ -80,6 +86,7 @@ export function DataTableRowActions<TData>({
 	const { settings, updateSettings } = useSettings()
 	const { removeDataSubscribed } = useDataSubscribed()
 	const [downloadProgress, setDownloadProgress] = useState("")
+	const [fuelOutput, setFuelOutput] = useAtom(fuelOutPutAtom)
 
 	// -- 获取下载链接
 	const { mutateAsync: fetchFullDataLink, isPending: stepOneLoading } =
@@ -215,6 +222,15 @@ export function DataTableRowActions<TData>({
 														</li>
 													</ul>
 												</div>
+												<LogViewer
+													title="数据更新日志"
+													logType="fuel"
+													htmlContent={fuelOutput}
+													onChange={setFuelOutput}
+													key="fuel1"
+													customClass="max-h-[60px]"
+													isShowExternal={true}
+												/>
 											</div>
 										),
 										okText: "确认增量更新",
@@ -224,10 +240,9 @@ export function DataTableRowActions<TData>({
 												toast.info("正在自动更新，请稍候...")
 												return
 											}
-
 											const needResume = isUpdating
 
-											await createTerminalWindow()
+											// await createTerminalWindow()
 											if (needResume) {
 												await handleTimeTask(true)
 											}
@@ -236,7 +251,7 @@ export function DataTableRowActions<TData>({
 											if (needResume) {
 												await handleTimeTask(false)
 											}
-											await minimizeApp("terminal")
+											// await minimizeApp("terminal")
 										},
 									})
 								}}

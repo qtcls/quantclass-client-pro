@@ -8,6 +8,8 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { LogModal } from "@/renderer/components/logModal"
+// import { useLogListener } from "@/renderer/hooks/useLogListener"
 import { ThemeCustomizer } from "@/renderer/components/theme-customizer"
 import {
 	Avatar,
@@ -76,19 +78,17 @@ import {
 } from "../components/ui/popover"
 import { useRealMarketConfig } from "../hooks/useRealMarketConfig"
 
-const {
-	createTerminalWindow,
-	openUserDirectory,
-	openDataDirectory,
-	openDirectory,
-} = window.electronAPI
+const { openUserDirectory, openDataDirectory, openDirectory } =
+	window.electronAPI
 
 export const Footer: FC = () => {
 	const setIsShowMonitorPanel = useSetAtom(isShowMonitorPanelAtom)
 	const navigate = useNavigate()
 	const { realMarketConfig } = useRealMarketConfig()
+	const [isLogModalOpen, setIsLogModalOpen] = useState(false)
+
 	useHotkeys([
-		["mod+`", async () => await createTerminalWindow()],
+		["mod+`", () => setIsLogModalOpen((prev) => !prev)],
 		["mod+,", () => navigate(SETTINGS_PAGE)],
 	])
 
@@ -193,8 +193,7 @@ export const Footer: FC = () => {
 						variant="ghost"
 						size="icon"
 						className="focus-visible:outline-none focus-visible:ring-transparent"
-						// onClick={() => setIsShowTerminalPanel((prev) => !prev)}
-						onClick={async () => await createTerminalWindow()}
+						onClick={() => setIsLogModalOpen(true)}
 					>
 						<SquareTerminal className="h-4 w-4 text-foreground hover:cursor-pointer" />
 					</Button>
@@ -211,6 +210,7 @@ export const Footer: FC = () => {
 					</Button>
 				</ButtonTooltip>
 			</div>
+			<LogModal open={isLogModalOpen} onOpenChange={setIsLogModalOpen} />
 		</div>
 	)
 }

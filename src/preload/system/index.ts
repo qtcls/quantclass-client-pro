@@ -20,8 +20,10 @@ export const systemIPC = {
 		ipcRenderer.invoke("kill-kernal", kernal, byForce),
 
 	// 全屏控制
-	handleToggleFullscreen: () => ipcRenderer.invoke("toggle-fullscreen"),
-	fetchFullscreenState: () => ipcRenderer.invoke("fetch-fullscreen-state"),
+	handleToggleFullscreen: (key = "main") =>
+		ipcRenderer.invoke("toggle-fullscreen", key),
+	fetchFullscreenState: (key?: string) =>
+		ipcRenderer.invoke("fetch-fullscreen-state", key),
 
 	// 窗口控制 - 从renderer/ipc/system.ts迁移
 	createTerminalWindow: () => ipcRenderer.invoke("create-terminal-window"),

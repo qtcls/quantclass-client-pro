@@ -10,12 +10,13 @@
 
 import { isWindows } from "@/renderer/constant"
 import { useHotkeys } from "@/renderer/hooks/useHotkeys"
-import { Minus, X } from "lucide-react"
+import { Minus, Square, X } from "lucide-react"
 import Img from "../../../build/icon.ico"
 import ButtonTooltip from "../components/ui/button-tooltip"
 import { cn } from "../lib/utils"
 
-const { minimizeApp, focusMainWindows } = window.electronAPI
+const { minimizeApp, focusMainWindows, handleToggleFullscreen } =
+	window.electronAPI
 
 const LogWindowBar = () => {
 	useHotkeys([
@@ -33,7 +34,7 @@ const LogWindowBar = () => {
 			{
 				<div
 					className={cn(
-						"app-drag-region flex items-center justify-between h-10 bg-background select-none w-screen border-b pr-2",
+						"app-drag-region flex items-center justify-between h-10 bg-background select-none w-screen border-b pr-2 flex-shrink-0",
 						isWindows ? "" : "pl-20",
 					)}
 				>
@@ -56,6 +57,14 @@ const LogWindowBar = () => {
 									onClick={() => minimizeApp("terminal")}
 								>
 									<Minus className="w-5 h-5" />
+								</div>
+							</ButtonTooltip>
+							<ButtonTooltip content="最大化">
+								<div
+									className="hover:cursor-pointer text-foreground hover:text-foreground/80"
+									onClick={() => handleToggleFullscreen("terminal")}
+								>
+									<Square className="w-4 h-4" />
 								</div>
 							</ButtonTooltip>
 							<ButtonTooltip content="关闭">

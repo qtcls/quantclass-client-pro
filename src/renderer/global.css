@@ -166,4 +166,14 @@
     height: 2px;
     display: block;
   }
+
+  /* 窄滚动条 */
+  .scrollbar-ultra-narrow {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-ultra-narrow::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
 }

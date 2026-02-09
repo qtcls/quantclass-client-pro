@@ -26,21 +26,21 @@ export const isUpdatingAtom = atom(false)
 export const isAutoRocketAtom = atom(false)
 
 export const fuelOutPutAtom = atom(
-	`<div class="w-full text-center">---------------------${String(
+	`<div class="w-full text-center">-----${String(
 		dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
-	)}---------------------</div> \n`,
+	)}-----</div> \n`,
 )
 
 export const selectStockOutputAtom = atom(
-	`<div class="w-full text-center">---------------------${String(
+	`<div class="w-full text-center">------${String(
 		dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
-	)}---------------------</div> \n`,
+	)}-----</div> \n`,
 )
 
 export const realMarketOutputAtom = atom(
-	`<div class="w-full text-center">---------------------${String(
+	`<div class="w-full text-center">-----${String(
 		dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
-	)}---------------------</div> \n`,
+	)}-----</div> \n`,
 )
 
 export const csvFileNameAtom = atom("最新选股结果")

@@ -80,22 +80,6 @@ export function LogDashboard({
 						</div>
 						<div className="flex items-center space-x-2">
 							<Checkbox
-								id="rocket-log"
-								checked={visibleLogs.rocket}
-								disabled={activeCount === 1 && visibleLogs.rocket}
-								onCheckedChange={(checked) =>
-									setVisibleLogs((prev) => ({
-										...prev,
-										rocket: checked === true,
-									}))
-								}
-							/>
-							<Label htmlFor="rocket-log" className="text-sm font-normal">
-								选股日志
-							</Label>
-						</div>
-						<div className="flex items-center space-x-2">
-							<Checkbox
 								id="select-log"
 								checked={visibleLogs.select}
 								disabled={activeCount === 1 && visibleLogs.select}
@@ -107,6 +91,22 @@ export function LogDashboard({
 								}
 							/>
 							<Label htmlFor="select-log" className="text-sm font-normal">
+								选股日志
+							</Label>
+						</div>
+						<div className="flex items-center space-x-2">
+							<Checkbox
+								id="rocket-log"
+								checked={visibleLogs.rocket}
+								disabled={activeCount === 1 && visibleLogs.rocket}
+								onCheckedChange={(checked) =>
+									setVisibleLogs((prev) => ({
+										...prev,
+										rocket: checked === true,
+									}))
+								}
+							/>
+							<Label htmlFor="rocket-log" className="text-sm font-normal">
 								实盘日志
 							</Label>
 						</div>
@@ -139,25 +139,25 @@ export function LogDashboard({
 					/>
 				)}
 
-				{visibleLogs.rocket && (
+				{visibleLogs.select && (
 					<LogViewer
 						title="选股日志"
-						htmlContent={realMarketOutput}
-						onChange={setRealMarketOutput}
-						key="rocket"
-						logType="rocket"
+						htmlContent={selectStockOutput}
+						onChange={setSelectStockOutput}
+						key="select"
+						logType="select"
 						customClass={textSize}
 						isIndependentWindow={isIndependentWindow}
 					/>
 				)}
 
-				{visibleLogs.select && (
+				{visibleLogs.rocket && (
 					<LogViewer
 						title="实盘日志"
-						htmlContent={selectStockOutput}
-						onChange={setSelectStockOutput}
-						key="select"
-						logType="select"
+						htmlContent={realMarketOutput}
+						onChange={setRealMarketOutput}
+						key="rocket"
+						logType="rocket"
 						customClass={textSize}
 						isIndependentWindow={isIndependentWindow}
 					/>

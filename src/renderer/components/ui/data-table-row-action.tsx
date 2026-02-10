@@ -14,6 +14,7 @@ import { useAlertDialog } from "@/renderer/context/alert-dialog"
 import { useHandleTimeTask } from "@/renderer/hooks/useHandleTimeTask"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 
+import { LogViewer } from "@/renderer/components/logViewer"
 import {
 	Tooltip,
 	TooltipContent,
@@ -43,7 +44,6 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { LogViewer } from "../logViewer"
 import ButtonTooltip from "./button-tooltip"
 
 const {

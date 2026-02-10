@@ -15,14 +15,8 @@ import Img from "../../../build/icon.ico"
 import ButtonTooltip from "../components/ui/button-tooltip"
 import { cn } from "../lib/utils"
 
-const {
-	minimizeApp,
-	closeApp,
-	focusMainWindows,
-	handleToggleFullscreen,
-	unwatchKernelLog,
-	offKernelLogChanged,
-} = window.electronAPI
+const { minimizeApp, closeApp, focusMainWindows, handleToggleFullscreen } =
+	window.electronAPI
 
 const LogWindowBar = () => {
 	useHotkeys([
@@ -34,12 +28,6 @@ const LogWindowBar = () => {
 			},
 		],
 	])
-
-	const closeTerminal = async () => {
-		await unwatchKernelLog()
-		offKernelLogChanged()
-		closeApp("terminal")
-	}
 
 	return (
 		<>
@@ -82,7 +70,7 @@ const LogWindowBar = () => {
 							<ButtonTooltip content="关闭">
 								<div
 									className="hover:cursor-pointer text-foreground hover:text-foreground/80"
-									onClick={closeTerminal}
+									onClick={() => closeApp("terminal")}
 								>
 									<X className="w-5 h-5" />
 								</div>

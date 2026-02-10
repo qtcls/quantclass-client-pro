@@ -9,6 +9,12 @@ const {
 	unwatchKernelLog,
 	onKernelLogChanged,
 	offKernelLogChanged,
+	// 独立窗口
+	watchIndividualKernelLog,
+	unwatchIndividualKernelLog,
+	onIndividualKernelLogChanged,
+	offIndividualKernelLogChanged,
+	createTerminalWindow,
 } = window.electronAPI
 
 interface LogViewerProps {
@@ -37,7 +43,6 @@ export function LogViewer({
 	const isFirstRender = useRef(true)
 
 	const scrollToBottom = () => {
-		console.log(`isFirstRender.current: ${isFirstRender.current}`)
 		if (!shouldAutoScroll) return
 		isAutoScrolling.current = true
 		if (viewportRef.current) {
@@ -76,45 +81,50 @@ export function LogViewer({
 	}, [shouldAutoScroll, htmlContent])
 
 	useEffect(() => {
-		// console.log("Setting up Python output listener")
-		// console.log("htmlContent:", htmlContent.length, title)
-
-		watchKernelLog(logType as "fuel" | "rocket" | "select")
+		if (isIndependentWindow) {
+			watchIndividualKernelLog(logType as "fuel" | "rocket" | "select")
+		} else {
+			watchKernelLog(logType as "fuel" | "rocket" | "select")
+		}
 
 		const handler = (
 			content: string,
 			kernelType: "fuel" | "select" | "rocket",
 			isInitial: boolean,
 		) => {
-			console.log(
-				"logType:",
-				logType,
-				"kernelType:",
-				kernelType,
-				"isInitial:",
-				isInitial,
-			)
 			if (logType !== kernelType) return
 			if (isInitial) {
-				console.log(1)
 				onChange(() => processLogUpdate("", content))
 			} else {
-				console.log(2)
 				onChange((prev) => processLogUpdate(prev, content))
-				console.log("content1", content)
 			}
 		}
 
 		// 注册监听器
-		onKernelLogChanged(handler)
+		if (isIndependentWindow) {
+			onIndividualKernelLogChanged(handler)
+		} else {
+			onKernelLogChanged(handler)
+		}
+
+		const cleanup = () => {
+			if (isIndependentWindow) {
+				unwatchIndividualKernelLog(logType as "fuel" | "rocket" | "select")
+				offIndividualKernelLogChanged()
+			} else {
+				unwatchKernelLog(logType as "fuel" | "rocket" | "select")
+				offKernelLogChanged()
+			}
+		}
+
+		window.addEventListener("beforeunload", cleanup)
 
 		// 清理函数
 		return () => {
-			console.log("Cleaning---------------")
-			unwatchKernelLog(logType as "fuel" | "rocket" | "select")
-			offKernelLogChanged()
+			window.removeEventListener("beforeunload", cleanup)
+			cleanup()
 		}
-	}, [logType])
+	}, [logType, isIndependentWindow])
 
 	const handleClearLogs = () => {
 		onChange(() => "")
@@ -126,7 +136,7 @@ export function LogViewer({
 	}
 
 	const openIndependentWindow = async () => {
-		await window.electronAPI.createTerminalWindow()
+		await createTerminalWindow()
 	}
 
 	return (

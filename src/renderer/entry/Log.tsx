@@ -20,6 +20,7 @@ export default function Log() {
 				isShowTitle={false}
 				isShowExternal={false}
 				textSize="text-sm"
+				isIndependentWindow={true}
 			/>
 		</div>
 	)

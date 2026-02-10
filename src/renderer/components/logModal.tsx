@@ -9,7 +9,7 @@ import { useState } from "react"
 import { LogViewer } from "./logViewer"
 import { Button } from "./ui/button"
 import { Checkbox } from "./ui/checkbox"
-import { Dialog, DialogContent } from "./ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "./ui/dialog"
 import { Label } from "./ui/label"
 
 interface LogDashboardProps {
@@ -135,6 +135,7 @@ export function LogDashboard({
 						key="fuel"
 						logType="fuel"
 						customClass={textSize}
+						isIndependentWindow={isIndependentWindow}
 					/>
 				)}
 
@@ -146,6 +147,7 @@ export function LogDashboard({
 						key="rocket"
 						logType="rocket"
 						customClass={textSize}
+						isIndependentWindow={isIndependentWindow}
 					/>
 				)}
 
@@ -157,6 +159,7 @@ export function LogDashboard({
 						key="select"
 						logType="select"
 						customClass={textSize}
+						isIndependentWindow={isIndependentWindow}
 					/>
 				)}
 			</div>
@@ -176,6 +179,7 @@ export function LogModal({ open, onOpenChange }: LogModalProps) {
 				className="max-w-[90vw] h-[80vh] flex flex-col p-0 gap-0"
 				aria-describedby={undefined}
 			>
+				<DialogTitle />
 				<LogDashboard onClose={() => onOpenChange(false)} />
 			</DialogContent>
 		</Dialog>

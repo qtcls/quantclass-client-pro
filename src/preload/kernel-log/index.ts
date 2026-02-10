@@ -29,4 +29,26 @@ export const kernelLogIPC = {
 	offKernelLogChanged: () => {
 		ipcRenderer.removeAllListeners("kernel-log-changed")
 	},
+
+	// -- 独立窗口
+	watchIndividualKernelLog: (kernelType?: "fuel" | "select" | "rocket") =>
+		ipcRenderer.invoke("watch-individual-kernel-log", kernelType),
+	unwatchIndividualKernelLog: (kernelType?: "fuel" | "select" | "rocket") =>
+		ipcRenderer.invoke("unwatch-individual-kernel-log", kernelType),
+	onIndividualKernelLogChanged: (
+		callback: (
+			content: string,
+			kernelType: "fuel" | "select" | "rocket",
+			isInitial: boolean,
+		) => void,
+	) => {
+		ipcRenderer.on(
+			"kernel-log-changed-individual",
+			(_, content, kernelType, isInitial) =>
+				callback(content, kernelType, isInitial),
+		)
+	},
+	offIndividualKernelLogChanged: () => {
+		ipcRenderer.removeAllListeners("kernel-log-changed-individual")
+	},
 }

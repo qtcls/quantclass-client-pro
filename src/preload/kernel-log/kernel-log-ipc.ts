@@ -19,6 +19,12 @@ const activeWatchers = new Map<
 	{ watcher: fs.FSWatcher | ReturnType<typeof fs.watchFile>; lastSize: number }
 >()
 
+// -- 独立窗口的 watcher
+const activeWatchersIndependent = new Map<
+	string,
+	{ watcher: fs.FSWatcher | ReturnType<typeof fs.watchFile>; lastSize: number }
+>()
+
 const KERNEL_LOG_PATH_MAP: Record<string, string[]> = {
 	fuel: ["code", "data", "log"],
 	select: ["real_trading", "logs"],
@@ -214,8 +220,170 @@ async function unwatchKernelLogHandler(): Promise<void> {
 	})
 }
 
+// -- 独立窗口
+async function watchOneKernelIndependent(
+	event: Electron.IpcMainInvokeEvent,
+	kernelType: KernelType,
+): Promise<{ success: boolean; error?: string }> {
+	const pathArray = KERNEL_LOG_PATH_MAP[kernelType]
+	if (!pathArray) {
+		logger.error(`[kernel-log-individual] 未知的内核类型: ${kernelType}`)
+		return { success: false, error: `未知的内核类型: ${kernelType}` }
+	}
+
+	const existingWatcher = activeWatchersIndependent.get(kernelType)
+	if (existingWatcher) {
+		try {
+			if ("close" in existingWatcher.watcher) {
+				;(existingWatcher.watcher as fs.FSWatcher).close()
+			}
+		} catch {}
+		activeWatchersIndependent.delete(kernelType)
+	}
+
+	const logDir = await store.getAllDataPath(pathArray, true)
+	const logFileName = getTodayLogFileName()
+	const logFilePath = path.join(logDir, logFileName)
+
+	if (!fs.existsSync(logFilePath)) {
+		const errMsg = `当天日志文件不存在: ${logFilePath}`
+		logger.error(`[kernel-log-individual] ${errMsg}`)
+		return { success: false, error: errMsg }
+	}
+
+	logger.info(
+		`[kernel-log-individual] 开始监听 ${kernelType} 日志: ${logFilePath}`,
+	)
+
+	const initialContent = readLastNLines(logFilePath, 1000)
+	const senderWindow = BrowserWindow.fromWebContents(event.sender)
+
+	if (senderWindow && !senderWindow.isDestroyed()) {
+		senderWindow.webContents.send(
+			"kernel-log-changed-individual",
+			initialContent,
+			kernelType,
+			true,
+		)
+	}
+
+	const lastSize = fs.statSync(logFilePath).size
+
+	try {
+		const watcher = fs.watch(logFilePath, (eventType) => {
+			if (eventType !== "change" && eventType !== "rename") return
+
+			try {
+				const currentWatcher = activeWatchersIndependent.get(kernelType)
+				if (!currentWatcher) return
+
+				if (!fs.existsSync(logFilePath)) return
+				const stat = fs.statSync(logFilePath)
+
+				if (stat.size > currentWatcher.lastSize) {
+					const newContent = readFromOffset(
+						logFilePath,
+						currentWatcher.lastSize,
+					)
+					currentWatcher.lastSize = stat.size
+
+					if (newContent && senderWindow && !senderWindow.isDestroyed()) {
+						senderWindow.webContents.send(
+							"kernel-log-changed-individual",
+							newContent,
+							kernelType,
+							false,
+						)
+					}
+				} else if (stat.size < currentWatcher.lastSize) {
+					const content = readLastNLines(logFilePath, 1000)
+					currentWatcher.lastSize = stat.size
+					if (senderWindow && !senderWindow.isDestroyed()) {
+						senderWindow.webContents.send(
+							"kernel-log-changed-individual",
+							content,
+							kernelType,
+							true,
+						)
+					}
+				}
+			} catch (error) {
+				logger.error(
+					`[kernel-log-individual] 监听 ${kernelType} 变化时出错: ${error}`,
+				)
+			}
+		})
+
+		activeWatchersIndependent.set(kernelType, { watcher, lastSize })
+
+		if (senderWindow) {
+			senderWindow.once("closed", () => {
+				const w = activeWatchersIndependent.get(kernelType)
+				if (w) {
+					try {
+						;(w.watcher as fs.FSWatcher).close()
+					} catch {}
+					activeWatchersIndependent.delete(kernelType)
+				}
+			})
+		}
+
+		return { success: true }
+	} catch (error) {
+		logger.error(
+			`[kernel-log-individual] 启动 ${kernelType} watcher 失败: ${error}`,
+		)
+		return { success: false, error: `启动 watcher 失败: ${error}` }
+	}
+}
+
+async function watchIndividualKernelLogHandler(): Promise<void> {
+	ipcMain.handle(
+		"watch-individual-kernel-log",
+		async (event, kernelType?: KernelType) => {
+			const typesToWatch: KernelType[] =
+				kernelType !== undefined ? [kernelType] : ALL_KERNEL_TYPES
+
+			for (const k of typesToWatch) {
+				const result = await watchOneKernelIndependent(event, k)
+				if (!result.success) return result
+			}
+			return { success: true }
+		},
+	)
+}
+
+async function unwatchIndividualKernelLogHandler(): Promise<void> {
+	ipcMain.handle(
+		"unwatch-individual-kernel-log",
+		async (_, kernelType?: KernelType) => {
+			if (kernelType) {
+				const w = activeWatchersIndependent.get(kernelType)
+				if (w) {
+					try {
+						;(w.watcher as fs.FSWatcher).close()
+					} catch {}
+					activeWatchersIndependent.delete(kernelType)
+					logger.info(`[kernel-log-individual] 停止监听 ${kernelType}`)
+				}
+			} else {
+				for (const [key, w] of activeWatchersIndependent) {
+					try {
+						;(w.watcher as fs.FSWatcher).close()
+					} catch {}
+					logger.info(`[kernel-log-individual] 停止监听 ${key}`)
+				}
+				activeWatchersIndependent.clear()
+			}
+			return { success: true }
+		},
+	)
+}
+
 export const regKernelLogIPC = () => {
 	watchKernelLogHandler()
 	unwatchKernelLogHandler()
+	watchIndividualKernelLogHandler()
+	unwatchIndividualKernelLogHandler()
 	console.log("[reg] kernel-log-ipc")
 }

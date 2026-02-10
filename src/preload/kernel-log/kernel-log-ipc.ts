@@ -12,6 +12,7 @@ import fs from "node:fs"
 import path from "node:path"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
+import { LIBRARY_TYPE } from "@/shared/constants.js"
 import { BrowserWindow, ipcMain } from "electron"
 
 const activeWatchers = new Map<
@@ -31,7 +32,13 @@ const KERNEL_LOG_PATH_MAP: Record<string, string[]> = {
 	rocket: ["real_trading", "rocket", "data", "系统日志"],
 }
 
-function getTodayLogFileName(): string {
+type KernelType = "fuel" | "select" | "rocket"
+
+async function getLogFileName(kernelType: KernelType): Promise<string> {
+	if (kernelType === "select") {
+		const libraryType = (await store.getValue(LIBRARY_TYPE, "select")) as string
+		return libraryType === "pos" ? "zeus.log" : "aqua.log"
+	}
 	const today = new Date()
 	const yyyy = today.getFullYear()
 	const mm = String(today.getMonth() + 1).padStart(2, "0")
@@ -68,8 +75,6 @@ function readFromOffset(filePath: string, offset: number): string {
 	}
 }
 
-type KernelType = "fuel" | "select" | "rocket"
-
 const ALL_KERNEL_TYPES: KernelType[] = ["fuel", "select", "rocket"]
 
 async function watchOneKernel(
@@ -93,7 +98,7 @@ async function watchOneKernel(
 	}
 
 	const logDir = await store.getAllDataPath(pathArray, true)
-	const logFileName = getTodayLogFileName()
+	const logFileName = await getLogFileName(kernelType)
 	const logFilePath = path.join(logDir, logFileName)
 
 	if (!fs.existsSync(logFilePath)) {
@@ -242,7 +247,7 @@ async function watchOneKernelIndependent(
 	}
 
 	const logDir = await store.getAllDataPath(pathArray, true)
-	const logFileName = getTodayLogFileName()
+	const logFileName = await getLogFileName(kernelType)
 	const logFilePath = path.join(logDir, logFileName)
 
 	if (!fs.existsSync(logFilePath)) {

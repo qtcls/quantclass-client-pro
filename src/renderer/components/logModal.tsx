@@ -16,12 +16,16 @@ interface LogDashboardProps {
 	isShowTitle?: boolean
 	isShowExternal?: boolean
 	textSize?: string
+	onClose?: () => void
+	isIndependentWindow?: boolean
 }
 
 export function LogDashboard({
 	isShowTitle = true,
 	isShowExternal = true,
 	textSize = "text-xs",
+	onClose,
+	isIndependentWindow = false,
 }: LogDashboardProps) {
 	const [fuelOutput, setFuelOutput] = useAtom(fuelOutPutAtom)
 	const [realMarketOutput, setRealMarketOutput] = useAtom(realMarketOutputAtom)
@@ -37,6 +41,7 @@ export function LogDashboard({
 
 	const openIndependentWindow = async () => {
 		await window.electronAPI.createTerminalWindow()
+		onClose?.()
 	}
 
 	const activeCount = Object.values(visibleLogs).filter(Boolean).length
@@ -171,7 +176,7 @@ export function LogModal({ open, onOpenChange }: LogModalProps) {
 				className="max-w-[90vw] h-[80vh] flex flex-col p-0 gap-0"
 				aria-describedby={undefined}
 			>
-				<LogDashboard />
+				<LogDashboard onClose={() => onOpenChange(false)} />
 			</DialogContent>
 		</Dialog>
 	)

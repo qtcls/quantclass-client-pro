@@ -1,8 +1,6 @@
 import { processLogUpdate } from "@/renderer/utils/log"
-import { useSetAtom } from "jotai"
 import { ArrowDown, ExternalLink, Trash } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { terminalTabAtom } from "../store"
 import { Button } from "./ui/button"
 import ButtonTooltip from "./ui/button-tooltip"
 
@@ -20,6 +18,7 @@ interface LogViewerProps {
 	logType: string
 	customClass?: string
 	isShowExternal?: boolean
+	isIndependentWindow?: boolean
 }
 
 export function LogViewer({
@@ -29,22 +28,26 @@ export function LogViewer({
 	logType,
 	customClass,
 	isShowExternal = false,
+	isIndependentWindow = false,
 }: LogViewerProps) {
 	const viewportRef = useRef<HTMLDivElement>(null)
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
-	const setTerminalTab = useSetAtom(terminalTabAtom)
 	const isAutoScrolling = useRef(false)
 	const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const isFirstRender = useRef(true)
 
-	const scrollToBottom = (isSmooth = true) => {
+	const scrollToBottom = () => {
+		console.log(`isFirstRender.current: ${isFirstRender.current}`)
 		if (!shouldAutoScroll) return
 		isAutoScrolling.current = true
 		if (viewportRef.current) {
 			viewportRef.current.scrollTo({
 				top: viewportRef.current.scrollHeight,
-				behavior: isSmooth ? "smooth" : "auto",
+				behavior: isFirstRender.current ? "instant" : "smooth",
 			})
+			if (isFirstRender.current) {
+				isFirstRender.current = false
+			}
 		}
 		if (scrollTimeoutRef.current) {
 			clearTimeout(scrollTimeoutRef.current)
@@ -67,15 +70,10 @@ export function LogViewer({
 	}
 
 	useEffect(() => {
-		if (shouldAutoScroll) {
-			if (isFirstRender.current) {
-				scrollToBottom(false)
-				isFirstRender.current = false
-			} else {
-				scrollToBottom(true)
-			}
+		if (shouldAutoScroll && htmlContent.length > 0) {
+			scrollToBottom()
 		}
-	}, [shouldAutoScroll])
+	}, [shouldAutoScroll, htmlContent])
 
 	useEffect(() => {
 		// console.log("Setting up Python output listener")
@@ -88,14 +86,14 @@ export function LogViewer({
 			kernelType: "fuel" | "select" | "rocket",
 			isInitial: boolean,
 		) => {
-			// console.log(
-			// 	"logType:",
-			// 	logType,
-			// 	"kernelType:",
-			// 	kernelType,
-			// 	"isInitial:",
-			// 	isInitial,
-			// )
+			console.log(
+				"logType:",
+				logType,
+				"kernelType:",
+				kernelType,
+				"isInitial:",
+				isInitial,
+			)
 			if (logType !== kernelType) return
 			if (isInitial) {
 				console.log(1)
@@ -116,7 +114,7 @@ export function LogViewer({
 			unwatchKernelLog(logType as "fuel" | "rocket" | "select")
 			offKernelLogChanged()
 		}
-	}, [onChange, logType])
+	}, [logType])
 
 	const handleClearLogs = () => {
 		onChange(() => "")
@@ -128,7 +126,6 @@ export function LogViewer({
 	}
 
 	const openIndependentWindow = async () => {
-		setTerminalTab(logType)
 		await window.electronAPI.createTerminalWindow()
 	}
 

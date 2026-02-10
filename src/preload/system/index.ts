@@ -46,6 +46,7 @@ export const systemIPC = {
 
 	// 系统信息
 	getMacAddress: () => ipcRenderer.invoke("get-mac-address"),
+	getMachineId: () => ipcRenderer.invoke("get-machine-id") as Promise<string>,
 
 	// 服务控制
 	startServer: () => ipcRenderer.invoke("start-server"),

@@ -18,6 +18,9 @@ import { log } from "@/main/utils/wiston.js"
 import type { KernalType } from "@/shared/types/index.js"
 import { electronApp, platform } from "@electron-toolkit/utils"
 import { app, ipcMain } from "electron"
+import nodeMachineId from "node-machine-id"
+
+const { machineIdSync } = nodeMachineId
 
 async function handleToggleFullscreen() {
 	ipcMain.handle("toggle-fullscreen", async (_event, key = "main") => {
@@ -159,6 +162,12 @@ async function handleUpdateKernal(): Promise<void> {
 	)
 }
 
+function handleGetMachineId() {
+	ipcMain.handle("get-machine-id", () => {
+		return machineIdSync()
+	})
+}
+
 export const regSystemIPC = () => {
 	handleClose()
 	handleMinimize()
@@ -176,5 +185,6 @@ export const regSystemIPC = () => {
 	handleGetAppAndKernalVersions()
 	handleUpdateKernal()
 	handleCheckUpdate()
+	handleGetMachineId()
 	console.log("[reg] system-ipc")
 }

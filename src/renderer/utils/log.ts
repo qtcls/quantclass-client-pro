@@ -45,8 +45,6 @@ export const processLogUpdate = (
 		updatedOutput = matches.slice(-maxLines).join("")
 	}
 
-	console.log("updatedOutput", updatedOutput.slice(-1))
-
 	return updatedOutput
 }
 

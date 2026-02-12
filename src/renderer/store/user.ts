@@ -145,8 +145,8 @@ export const userAuthEffectAtom = atomEffect((get, set) => {
 
 		if (!data?.success) return // 如果请求失败，直接返回
 
-		// 先同步用户状态到主进程
-		await syncWebUserInfo({
+		// 同步用户状态到主进程
+		syncWebUserInfo({
 			user: data.user,
 			isLoggedIn: true,
 		})

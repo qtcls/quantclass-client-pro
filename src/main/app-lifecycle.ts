@@ -9,6 +9,10 @@
  */
 
 import { createWindow } from "@/main/lib/createWindow.js"
+import {
+	startTelemetryScheduler,
+	stopTelemetryScheduler,
+} from "@/main/lib/telemetry.js"
 import store from "@/main/store/index.js"
 import { cleanLockFiles } from "@/main/utils/tools.js"
 import dayjs from "dayjs"
@@ -17,7 +21,11 @@ import { BrowserWindow, type Tray, app } from "electron"
 export function setupAppLifecycle(tray: Tray) {
 	store.setValue("app.start_time", dayjs().format("YYYY-MM-DD HH:mm:ss"))
 
+	// 启动遥测定时检查
+	startTelemetryScheduler()
+
 	app.on("window-all-closed", async () => {
+		stopTelemetryScheduler()
 		if (process.platform !== "darwin") {
 			app.quit()
 		}

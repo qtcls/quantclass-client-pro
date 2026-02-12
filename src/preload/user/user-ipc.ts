@@ -16,10 +16,10 @@ import { ipcMain } from "electron"
 /**
  * 同步用户状态到主进程
  */
-async function syncWebUserInfoHandler(): Promise<void> {
-	ipcMain.on("sync-user-state", async (_event, WebUserInfo: WebUserInfo) => {
+function syncWebUserInfoHandler(): void {
+	ipcMain.on("sync-user-state", (_event, WebUserInfo: WebUserInfo) => {
 		logger.info("[user] 信息已同步")
-		await userStore.setWebUserInfo(WebUserInfo)
+		userStore.setWebUserInfo(WebUserInfo)
 	})
 }
 

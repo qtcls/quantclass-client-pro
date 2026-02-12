@@ -18,18 +18,23 @@ export type { UserAccount, WebUserInfo } from "@/shared/types/user.js"
 interface WebUserInfoWithTimestamp {
 	WebUserInfo: WebUserInfo
 	lastUpdateTime: number
+	last_login_time: number
 }
 
 class UserStore {
 	public _userStore = new Store({ name: "user" })
 
-	// -- 存储用户Web信息
-	async setWebUserInfo(_WebUserInfo: WebUserInfo) {
-		const dataWithTimestamp: WebUserInfoWithTimestamp = {
+	// -- 写入用户 Web 信息 + 上次登录时间到 userData
+	setWebUserInfo(_WebUserInfo: WebUserInfo): void {
+		const data = this._userStore.get("userData") as
+			| WebUserInfoWithTimestamp
+			| undefined
+		this._userStore.set("userData", {
+			...data,
 			WebUserInfo: _WebUserInfo,
 			lastUpdateTime: Date.now(),
-		}
-		this._userStore.set("userData", dataWithTimestamp)
+			last_login_time: Date.now(),
+		})
 	}
 
 	// -- 获取用户信息（带缓存逻辑）
@@ -144,8 +149,15 @@ class UserStore {
 					isLoggedIn: true,
 				}
 
-				// 保存全部用户信息到主进程文件
-				await this.setWebUserInfo(WebUserInfo)
+				// 保存用户信息到主进程文件（仅更新用户信息和 lastUpdateTime，不更新 last_login_time）
+				const existing = this._userStore.get("userData") as
+					| WebUserInfoWithTimestamp
+					| undefined
+				this._userStore.set("userData", {
+					...existing,
+					WebUserInfo,
+					lastUpdateTime: Date.now(),
+				})
 				logger.info("[user] 用户信息已更新并保存")
 
 				// 返回构建的用户账户对象
@@ -161,15 +173,15 @@ class UserStore {
 		}
 	}
 
-	// -- 获取上次更新时间
-	async getLastUpdateTime(): Promise<number | null> {
+	// -- 获取上次扫码登录时间 last_login_time
+	getLastLoginTime(): number {
 		const data = this._userStore.get("userData") as
 			| WebUserInfoWithTimestamp
 			| undefined
-		return data?.lastUpdateTime ?? null
+		return (data?.last_login_time ?? 0) || 0
 	}
 
-	// -- 清除用户信息
+	// -- 清除用户信息 userData
 	async clearWebUserInfo() {
 		this._userStore.delete("userData")
 	}

@@ -43,3 +43,12 @@ export const postUserMainAction = async (
 		throw error
 	}
 }
+
+// 上报遥测到服务端 todo
+export const postTelemetryReport = async (
+	_apiKey: string,
+	_hid: string,
+	telemetryLog: string,
+): Promise<void> => {
+	logger.info(`[telemetry] 遥测上报（模拟）: ${telemetryLog}`)
+}

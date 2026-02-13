@@ -801,148 +801,130 @@ export default function StrategyStatusTimeline() {
 							onValueChange={handleOpen}
 						>
 							{strategyStatusList.map(
-								(strategyItem: StrategyStatus[], strategyIndex: number) => {
-									const isNonLiveTrading =
-										summaryList[strategyIndex]?.capWeight === 0
-
-									return (
-										<AccordionItem
-											key={strategyItem[0].strategyName}
-											value={strategyIndex.toString()}
-											disabled={isNonLiveTrading}
-										>
-											<AccordionTrigger
-												className={cn(
-													"py-3",
-													isNonLiveTrading &&
-														"cursor-not-allowed opacity-60 hover:no-underline hover:opacity-60 data-[state=open]:opacity-60",
-												)}
-											>
-												<div className="flex items-center gap-4">
-													<span className="flex-shrink-0">
-														{strategyIndex + 1}. {strategyItem[0].strategyName}
-													</span>
-													{summaryList.length > 0 &&
-														summaryList[strategyIndex].overallStatus && (
-															<div className="flex-1 min-w-0 flex items-center gap-2 ">
-																{/* 总统状态 */}
-																<Badge
-																	variant="outline"
-																	className={cn(
-																		"text-xs px-2 py-0.5",
-																		summaryList[strategyIndex].capWeight === 0
-																			? "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-200 border-gray-200 dark:border-gray-700"
-																			: statusStyleMap[
-																					summaryList[strategyIndex]
-																						.overallStatus!
-																				],
-																	)}
-																>
-																	{summaryList[strategyIndex].capWeight === 0
-																		? "非实盘"
-																		: StrategyStatusLabelEnum[
+								(strategyItem: StrategyStatus[], strategyIndex: number) => (
+									<AccordionItem
+										key={strategyItem[0].strategyName}
+										value={strategyIndex.toString()}
+									>
+										<AccordionTrigger className="py-3">
+											<div className="flex items-center gap-4">
+												<span className="flex-shrink-0">
+													{strategyIndex + 1}. {strategyItem[0].strategyName}
+												</span>
+												{summaryList.length > 0 &&
+													summaryList[strategyIndex].overallStatus && (
+														<div className="flex-1 min-w-0 flex items-center gap-2 ">
+															{/* 总统状态 */}
+															<Badge
+																variant="outline"
+																className={cn(
+																	"text-xs px-2 py-0.5",
+																	summaryList[strategyIndex].capWeight === 0
+																		? "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-200 border-gray-200 dark:border-gray-700"
+																		: statusStyleMap[
 																				summaryList[strategyIndex]
 																					.overallStatus!
-																			]}
-																</Badge>
-																{/* 描述title */}
-																{summaryList[strategyIndex].descList.length >
-																	0 && (
-																	<div className="flex-1 min-w-0 text-xs truncate text-muted-foreground">
-																		(
-																		{summaryList[strategyIndex].descList.join(
-																			", ",
-																		)}
-																		)
-																	</div>
+																			],
 																)}
-															</div>
-														)}
-												</div>
-											</AccordionTrigger>
-											<AccordionContent>
-												<div className="relative">
-													{/* 左滚动按钮 */}
-													{canScrollList[strategyIndex] && (
-														<Button
-															variant="outline"
-															onClick={() => scrollLeft(strategyIndex)}
-															className="w-10 h-10 absolute left-0 z-20
-	   bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70
-	  top-[calc(50%-20px-8px)]"
-														>
-															<ChevronLeft />
-														</Button>
-													)}
-													<div
-														ref={(el) => {
-															scrollRefs.current[strategyIndex] = el
-														}}
-														key={strategyItem[0].strategyName}
-														className="overflow-x-auto max-w-full scroll-smooth"
-													>
-														<div className="flex flex-nowrap">
-															{/* 策略状态时间线项目 */}
-															{strategyItem.map(
-																(
-																	timeLineItem: StrategyStatus,
-																	index: number,
-																) => {
-																	let nextItem = strategyItem[index + 1] ?? null
-																	const prevItem =
-																		strategyItem[index - 1] ?? null
-																	const nowMs = currentTime.valueOf()
-
-																	if (index === 0) {
-																		nextItem = strategyItem[index + 2] ?? null
-																	}
-																	const isNextSegmentActive =
-																		isTimeBetweenNodes(
-																			timeLineItem,
-																			nextItem,
-																			nowMs,
-																		)
-																	let isPrevSegmentActive = isTimeBetweenNodes(
-																		prevItem,
-																		timeLineItem,
-																		nowMs,
+															>
+																{summaryList[strategyIndex].capWeight === 0
+																	? "非实盘"
+																	: StrategyStatusLabelEnum[
+																			summaryList[strategyIndex].overallStatus!
+																		]}
+															</Badge>
+															{/* 描述title */}
+															{summaryList[strategyIndex].descList.length >
+																0 && (
+																<div className="flex-1 min-w-0 text-xs truncate text-muted-foreground">
+																	(
+																	{summaryList[strategyIndex].descList.join(
+																		", ",
+																	)}
 																	)
-
-																	if (index === 1 && isNextSegmentActive) {
-																		isPrevSegmentActive = true
-																	}
-
-																	return (
-																		<TimeLineItem
-																			key={`${strategyIndex}-${timeLineItem.tag}-${timeLineItem.title}`}
-																			statusItem={timeLineItem}
-																			itemIndex={index}
-																			isPrevSegmentActive={isPrevSegmentActive}
-																			isNextSegmentActive={isNextSegmentActive}
-																			strategyItemLength={strategyItem.length}
-																		/>
-																	)
-																},
+																</div>
 															)}
 														</div>
-													</div>
-
-													{/* 右滚动按钮 */}
-													{canScrollList[strategyIndex] && (
-														<Button
-															variant="outline"
-															onClick={() => scrollRight(strategyIndex)}
-															className="w-10 h-10 absolute right-0 top-[calc(50%-20px-8px)] z-20
-	   bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70 "
-														>
-															<ChevronRight />
-														</Button>
 													)}
+											</div>
+										</AccordionTrigger>
+										<AccordionContent>
+											<div className="relative">
+												{/* 左滚动按钮 */}
+												{canScrollList[strategyIndex] && (
+													<Button
+														variant="outline"
+														onClick={() => scrollLeft(strategyIndex)}
+														className="w-10 h-10 absolute left-0 z-20
+	   bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70
+	  top-[calc(50%-20px-8px)]"
+													>
+														<ChevronLeft />
+													</Button>
+												)}
+												<div
+													ref={(el) => {
+														scrollRefs.current[strategyIndex] = el
+													}}
+													key={strategyItem[0].strategyName}
+													className="overflow-x-auto max-w-full scroll-smooth"
+												>
+													<div className="flex flex-nowrap">
+														{/* 策略状态时间线项目 */}
+														{strategyItem.map(
+															(timeLineItem: StrategyStatus, index: number) => {
+																let nextItem = strategyItem[index + 1] ?? null
+																const prevItem = strategyItem[index - 1] ?? null
+																const nowMs = currentTime.valueOf()
+
+																if (index === 0) {
+																	nextItem = strategyItem[index + 2] ?? null
+																}
+																const isNextSegmentActive = isTimeBetweenNodes(
+																	timeLineItem,
+																	nextItem,
+																	nowMs,
+																)
+																let isPrevSegmentActive = isTimeBetweenNodes(
+																	prevItem,
+																	timeLineItem,
+																	nowMs,
+																)
+
+																if (index === 1 && isNextSegmentActive) {
+																	isPrevSegmentActive = true
+																}
+
+																return (
+																	<TimeLineItem
+																		key={`${strategyIndex}-${timeLineItem.tag}-${timeLineItem.title}`}
+																		statusItem={timeLineItem}
+																		itemIndex={index}
+																		isPrevSegmentActive={isPrevSegmentActive}
+																		isNextSegmentActive={isNextSegmentActive}
+																		strategyItemLength={strategyItem.length}
+																	/>
+																)
+															},
+														)}
+													</div>
 												</div>
-											</AccordionContent>
-										</AccordionItem>
-									)
-								},
+
+												{/* 右滚动按钮 */}
+												{canScrollList[strategyIndex] && (
+													<Button
+														variant="outline"
+														onClick={() => scrollRight(strategyIndex)}
+														className="w-10 h-10 absolute right-0 top-[calc(50%-20px-8px)] z-20
+	   bg-neutral-700 text-white hover:text-white hover:bg-neutral-800 dark:bg-white dark:hover:bg-white/80 dark:text-neutral-800 rounded-full p-1 opacity-70 "
+													>
+														<ChevronRight />
+													</Button>
+												)}
+											</div>
+										</AccordionContent>
+									</AccordionItem>
+								),
 							)}
 						</Accordion>
 					) : (

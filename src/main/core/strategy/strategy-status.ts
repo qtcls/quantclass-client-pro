@@ -286,6 +286,7 @@ async function generateSingleStrategyStatus(
 	date: string,
 	isOvernightRebalance: boolean, // 是否隔日换仓
 	isStrategyPool = false, // 是否为 pos 类型策略
+	capWeight = 1, // 策略权重，0 表示非实盘
 ): Promise<StrategyStatus[]> {
 	const selectKernel = await detectSelectKernel(date)
 
@@ -577,11 +578,12 @@ async function generateSingleStrategyStatus(
 		},
 	)
 
-	return sortBy(statusList, (s) => {
+	const result = sortBy(statusList, (s) => {
 		const t = s.plan.time
 		// time 为 null，排在最后
 		return t ? t.getTime() : Number.POSITIVE_INFINITY
 	})
+	return result.map((s) => ({ ...s, capWeight }))
 }
 
 /**
@@ -641,8 +643,10 @@ async function getStrategyStatusListForSelect(
 				const isOvernightRebalance =
 					!rebalanceTime || rebalanceTime === "close-open"
 
+				const capWeight = strategy.cap_weight ?? 1
+
 				logger.info(
-					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}`,
+					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}, cap_weight=${capWeight}`,
 				)
 
 				return await generateSingleStrategyStatus(
@@ -654,6 +658,7 @@ async function getStrategyStatusListForSelect(
 					date,
 					isOvernightRebalance,
 					false,
+					capWeight,
 				)
 			}),
 		)
@@ -703,6 +708,7 @@ async function getStrategyStatusListForPos(
 			rebalanceTime: string
 			isOvernightRebalance: boolean
 			isStrategyPool?: boolean
+			capWeight: number
 		}
 
 		const posStrategies: PosStrategy[] = []
@@ -754,6 +760,7 @@ async function getStrategyStatusListForPos(
 				const isOvernightRebalance =
 					!rebalanceTime || rebalanceTime === "close-open"
 
+				const capWeight = strategy.cap_weight ?? 1
 				posStrategies.push({
 					name: strategyName,
 					latestTime: "",
@@ -763,10 +770,11 @@ async function getStrategyStatusListForPos(
 					rebalanceTime,
 					isOvernightRebalance,
 					isStrategyPool: true, // 标记为 pos 类型
+					capWeight,
 				})
 
 				logger.info(
-					`[strategy-status] pos策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, posHasTimingOrOverride=${posHasTimingOrOverride}, isStrategyPool=true`,
+					`[strategy-status] pos策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, posHasTimingOrOverride=${posHasTimingOrOverride}, isStrategyPool=true, cap_weight=${capWeight}`,
 				)
 			} else if (type === "group") {
 				// group 类型：展开 strategy_list
@@ -788,6 +796,8 @@ async function getStrategyStatusListForPos(
 					const { latestTime, hasTimingOrOverride } =
 						getStrategyTiming(subStrategy)
 
+					const capWeight = subStrategy.cap_weight ?? 1
+
 					posStrategies.push({
 						name: dictKey,
 						latestTime,
@@ -798,6 +808,7 @@ async function getStrategyStatusListForPos(
 						isOvernightRebalance:
 							!subStrategy.rebalance_time ||
 							subStrategy.rebalance_time === "close-open",
+						capWeight,
 					})
 
 					logger.info(
@@ -816,6 +827,8 @@ async function getStrategyStatusListForPos(
 				const isOvernightRebalance =
 					!rebalanceTime || rebalanceTime === "close-open"
 
+				const capWeight = strategy.cap_weight ?? 1
+
 				posStrategies.push({
 					name: strategyName,
 					latestTime,
@@ -824,10 +837,11 @@ async function getStrategyStatusListForPos(
 					buyTimeStr,
 					rebalanceTime,
 					isOvernightRebalance,
+					capWeight,
 				})
 
 				logger.info(
-					`[strategy-status] select策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}`,
+					`[strategy-status] select策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, cap_weight=${capWeight}`,
 				)
 			}
 		}
@@ -844,6 +858,7 @@ async function getStrategyStatusListForPos(
 					date,
 					posStrategy.isOvernightRebalance,
 					posStrategy.isStrategyPool ?? false,
+					posStrategy.capWeight,
 				)
 			}),
 		)

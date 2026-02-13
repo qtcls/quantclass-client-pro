@@ -56,4 +56,5 @@ export interface StrategyStatus {
 	stat?: StrategyStatusStat
 	stats?: StrategyStatusStat[]
 	isStrategyPool?: boolean
+	capWeight?: number // 策略权重，0 表示非实盘
 }

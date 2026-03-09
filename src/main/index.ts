@@ -15,8 +15,9 @@ import { CONFIG } from "@/main/config.js"
 import { setupErrorHandlers } from "@/main/error-handlers.js"
 import { default as windowManager } from "@/main/lib/WindowManager.js"
 import { createWindow } from "@/main/lib/createWindow.js"
-import { createTray } from "@/main/lib/tray.js"
 // import setupUpdater from "@/main/lib/updater.js"
+import DBManager from "@/main/lib/db-manager.js"
+import { createTray } from "@/main/lib/tray.js"
 import server from "@/main/server/index.js"
 import { cleanupDB } from "@/main/server/middleware/db.js"
 import {
@@ -207,6 +208,8 @@ if (!gotTheLock) {
 		logger.info("[main] 应用正在退出，进行最终清理...")
 		// 兜底kill一遍
 		// 执行退出时的清理工作
+
+		DBManager.getInstance().close()
 	})
 
 	// 当退出流程全部完成后触发

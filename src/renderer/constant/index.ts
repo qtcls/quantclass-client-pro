@@ -18,6 +18,8 @@ export const HOME_PAGE = "/"
 export const DATA_PAGE = "/data"
 // 策略
 export const STRATEGY_PAGE = "/strategy"
+// 实时数据
+export const REALTIME_DATA_PAGE = "/realtime_data"
 // 数据设置
 export const DATA_SETTING_PAGE = "/setting"
 // 选股策略
@@ -41,7 +43,12 @@ export const SETTINGS_PAGE = "/settings"
 // 问题反馈
 export const QUESTION_FEEDBACK_PAGE = "https://bbs.quantclass.cn/thread/48835"
 
-export const DATA_SECTION_PAGE = [DATA_PAGE, STRATEGY_PAGE, DATA_SETTING_PAGE]
+export const DATA_SECTION_PAGE = [
+	DATA_PAGE,
+	STRATEGY_PAGE,
+	DATA_SETTING_PAGE,
+	REALTIME_DATA_PAGE,
+]
 export const REAL_TRADING_SECTION_PAGE = [
 	TRADING_PLAN_PAGE,
 	POSITION_INFO_PAGE,

@@ -35,6 +35,7 @@ import { activeTabAtom } from "@/renderer/store"
 import { libraryTypeAtom } from "@/renderer/store/storage"
 import { useAtomValue, useSetAtom } from "jotai"
 import {
+	Activity,
 	Briefcase,
 	Check,
 	Code,
@@ -55,9 +56,14 @@ const data = {
 	data: {
 		navMain: [
 			{
-				title: "数据订阅",
+				title: "历史数据",
 				url: "/data",
 				icon: DatabaseBackup,
+			},
+			{
+				title: "实时数据",
+				url: "/realtime_data",
+				icon: Activity,
 			},
 			// {
 			// 	title: "策略订阅",

@@ -43,7 +43,8 @@ const breadcrumbList = {
 		root: "#data",
 		title: "数据中心",
 		routes: {
-			"/data": "数据订阅",
+			"/data": "历史数据",
+			"/realtime_data": "实时数据",
 			"/strategy": "策略订阅",
 			"/setting": "数据设置",
 		},

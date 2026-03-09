@@ -11,6 +11,7 @@
 import { DATA_TAB_NAME } from "@/renderer/constant"
 import dayjs from "dayjs"
 import { atom } from "jotai"
+import { atomWithStorage } from "jotai/utils"
 interface RecordType {
 	key: string
 	title: string
@@ -83,3 +84,13 @@ export const realConfigEditModalAtom = atom<boolean>(false) // 实盘配置页�
 
 // 存储每个任务的 step loader 显示状态，key 是任务名称
 export const stepLoaderMapAtom = atom<Record<string, boolean>>({})
+
+// 实时数据自动更新
+export const isMinDataUpdatingAtom = atom(false)
+export const minDataModeAtom = atomWithStorage<"fast" | "stable">(
+	"minDataMode",
+	"fast",
+)
+export const minDataAutoAccurateAtom = atom(true)
+export const minDataAutoFuzzyAtom = atom(true)
+export const minDataTabAtom = atom<"accurate" | "fuzzy">("accurate")

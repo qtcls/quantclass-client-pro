@@ -34,7 +34,12 @@ dayjs.extend(isBetween)
 interface SystemState {
 	isSetAutoUpdate: boolean
 	isSetAutoTrading: boolean
+	isSetAutoMinData: boolean
 	job: schedule.Job | null
+	minDataJob: schedule.Job | null
+	minDataMode: "fast" | "stable"
+	minDataAccurate: boolean
+	minDataFuzzy: boolean
 	isOnline: boolean
 }
 
@@ -42,7 +47,12 @@ interface SystemState {
 const systemState: SystemState = {
 	isSetAutoUpdate: false,
 	isSetAutoTrading: false,
+	isSetAutoMinData: false,
 	job: null,
+	minDataJob: null,
+	minDataMode: "fast",
+	minDataAccurate: true,
+	minDataFuzzy: true,
 	isOnline: true,
 }
 
@@ -114,6 +124,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 	systemState.job = schedule.scheduleJob("* * * * *", async () => {
 		logger.info(">>>>>>>>>>>>>>>> scheduler start <<<<<<<<<<<<<<<<")
 		const userAccount = await userStore.getUserAccount() // -- 获取用户状态
+		const allowConcurrentFuelTasks = isTradingTime()
 
 		mw?.webContents.send("send-schedule-status", "start")
 		logger.info(
@@ -139,7 +150,11 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 		// -- 检查是否设置自动更新数据，如果设置了，唤醒 Rocket
 		if (requireTrading) await wakeUpRocket(userAccount, mw)
 
-		if (await isAnyKernalBusy()) {
+		if (
+			await isAnyKernalBusy(
+				allowConcurrentFuelTasks ? ["aqua", "zeus"] : ["aqua", "fuel", "zeus"],
+			)
+		) {
 			logger.info("[scheduler] 内核正忙，跳过本轮调度")
 			return
 		}
@@ -159,7 +174,8 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 			logger.info(
 				`[scheduler-fuel] 数据模块定时任务: ${dataModuleTimes}, 当前时间: ${current15m}, 是否更新: ${isScheduleDataModule}`,
 			)
-			if (await isKernalBusy("fuel")) {
+			const isFuelBusy = await isKernalBusy("fuel")
+			if (isFuelBusy && !allowConcurrentFuelTasks) {
 				logger.info("[fuel] 内核正忙，跳过本轮调度")
 			} else if (!isScheduleDataModule) {
 				logger.info("[fuel] 非定时更新数据时间，跳过本轮数据更新")
@@ -351,4 +367,139 @@ const setAutoTrading = (isOn: boolean) => {
 	}
 }
 
-export { setAutoUpdate, setAutoTrading, setupScheduler, systemState }
+// ============================================================================
+// 实时数据（min data）定时任务
+// ============================================================================
+
+function isMinDataScheduleTime(): boolean {
+	const now = dayjs()
+	const day = now.day()
+	if (day === 0 || day === 6) return false
+
+	const timeInMinutes = now.hour() * 60 + now.minute()
+	const isMorning =
+		timeInMinutes >= 9 * 60 + 36 && timeInMinutes <= 11 * 60 + 26
+	const isAfternoon =
+		timeInMinutes >= 13 * 60 + 1 && timeInMinutes <= 15 * 60 + 1
+	return isMorning || isAfternoon
+}
+
+const cancelMinDataScheduler = () => {
+	if (systemState.minDataJob !== null) {
+		systemState.minDataJob.cancel()
+		systemState.minDataJob = null
+	}
+}
+
+async function wakeUpMinData() {
+	const mw = windowManager.getWindow()
+	const userAccount = await userStore.getUserAccount()
+	const allowConcurrentFuelTasks = isTradingTime()
+
+	if (!systemState.isOnline) {
+		logger.info("[min-data] 网络离线，跳过本轮")
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "skipped",
+			reason: "offline",
+		})
+		return
+	}
+
+	if (!userAccount?.isLoggedIn) {
+		logger.info("[min-data] 用户未登录，跳过本轮")
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "skipped",
+			reason: "unauthorized",
+		})
+		return
+	}
+
+	if (!isMinDataScheduleTime()) {
+		logger.info("[min-data] 非交易时间，跳过本轮")
+		return
+	}
+
+	const isFuelBusy = await isKernalBusy("fuel")
+	if (isFuelBusy && !allowConcurrentFuelTasks) {
+		logger.info("[min-data] Fuel 内核正忙，跳过本轮")
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "skipped",
+			reason: "busy",
+		})
+		return
+	}
+
+	if (systemState.minDataAccurate) {
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "executing",
+			task: "accurate",
+		})
+		try {
+			const args =
+				systemState.minDataMode === "stable"
+					? ["min_data", "thread"]
+					: ["min_data"]
+			const action = `定时获取准确QMT数据-${systemState.minDataMode === "stable" ? "稳定" : "极速"}模式`
+			await execBin(args, action)
+			logger.info("[min-data] 准确数据获取完成")
+		} catch (error) {
+			logger.error(`[min-data] 准确数据获取失败: ${error}`)
+		}
+	}
+
+	if (systemState.minDataFuzzy) {
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "executing",
+			task: "fuzzy",
+		})
+		try {
+			await execBin(["min_data_fuzzy"], "定时获取模糊QMT数据")
+			logger.info("[min-data] 模糊数据获取完成")
+		} catch (error) {
+			logger.error(`[min-data] 模糊数据获取失败: ${error}`)
+		}
+	}
+
+	mw?.webContents.send("min-data-schedule-status", { type: "done" })
+}
+
+const setupMinDataScheduler = () => {
+	cancelMinDataScheduler()
+	systemState.minDataJob = schedule.scheduleJob("1/5 * * * 1-5", wakeUpMinData)
+	logger.info(
+		`[min-data] 定时任务已启动，模式: ${systemState.minDataMode}, 准确: ${systemState.minDataAccurate}, 模糊: ${systemState.minDataFuzzy}`,
+	)
+}
+
+const setAutoMinData = (options: {
+	isOn: boolean
+	mode?: "fast" | "stable"
+	autoAccurate?: boolean
+	autoFuzzy?: boolean
+}) => {
+	systemState.isSetAutoMinData = options.isOn
+	if (options.mode !== undefined) systemState.minDataMode = options.mode
+	if (options.autoAccurate !== undefined)
+		systemState.minDataAccurate = options.autoAccurate
+	if (options.autoFuzzy !== undefined)
+		systemState.minDataFuzzy = options.autoFuzzy
+
+	logger.info(
+		`[min-data] 自动更新: ${systemState.isSetAutoMinData}, 模式: ${systemState.minDataMode}`,
+	)
+
+	if (!options.isOn) {
+		cancelMinDataScheduler()
+		return
+	}
+
+	setupMinDataScheduler()
+}
+
+export {
+	setAutoUpdate,
+	setAutoTrading,
+	setAutoMinData,
+	setupScheduler,
+	systemState,
+}

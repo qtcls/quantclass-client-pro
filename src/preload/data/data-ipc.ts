@@ -22,8 +22,9 @@ import {
 	updateProduct,
 } from "@/main/core/product.js"
 import { updateStrategies } from "@/main/core/strategy/index.js"
+import DBManager from "@/main/lib/db-manager.js"
 import { execBin } from "@/main/lib/process.js"
-import { isKernalRunning } from "@/main/utils/tools.js"
+import { isKernalBusy, isKernalRunning } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { ipcMain } from "electron"
 
@@ -245,6 +246,228 @@ async function handleLoadAquaTradingInfo() {
 	})
 }
 
+async function handleExecMinData() {
+	ipcMain.handle("exec-min-data", async (_event, mode: "fast" | "stable") => {
+		try {
+			const isFuelBusy = await isKernalBusy("fuel")
+			if (isFuelBusy) {
+				return { code: 300, message: "Fuel 内核正忙，请稍后再试" }
+			}
+
+			const args = mode === "stable" ? ["min_data", "thread"] : ["min_data"]
+			const action =
+				mode === "stable"
+					? "获取准确QMT数据-稳定模式"
+					: "获取准确QMT数据-极速模式"
+
+			await execBin(args, action)
+			return { code: 200, message: `${action}执行完毕` }
+		} catch (error) {
+			logger.error(`[min-data] 执行准确QMT数据获取失败: ${error}`)
+			return {
+				code: 400,
+				message: error instanceof Error ? error.message : "执行失败",
+			}
+		}
+	})
+}
+
+async function handleExecMinDataFuzzy() {
+	ipcMain.handle("exec-min-data-fuzzy", async () => {
+		try {
+			const isFuelBusy = await isKernalBusy("fuel")
+			if (isFuelBusy) {
+				return { code: 300, message: "Fuel 内核正忙，请稍后再试" }
+			}
+
+			await execBin(["min_data_fuzzy"], "获取模糊QMT数据")
+			return { code: 200, message: "获取模糊QMT数据执行完毕" }
+		} catch (error) {
+			logger.error(`[min-data] 执行模糊QMT数据获取失败: ${error}`)
+			return {
+				code: 400,
+				message: error instanceof Error ? error.message : "执行失败",
+			}
+		}
+	})
+}
+
+async function handleGetMinDataTaskStats() {
+	ipcMain.handle(
+		"get-min-data-task-stats",
+		async (
+			_event,
+			tableType: "accurate" | "fuzzy",
+			runDate?: string,
+			runIndex?: number,
+		) => {
+			const tableName =
+				tableType === "accurate"
+					? "min_data_update_task"
+					: "min_data_fuzzy_update_task"
+
+			const dbManager = DBManager.getInstance()
+			const db = await dbManager.getConnection([tableName])
+			if (!db)
+				return {
+					runDate: null,
+					runIndex: null,
+					availableRunIndexes: [],
+					statusCounts: {},
+					total: 0,
+					error: "数据库不可用",
+				}
+
+			const date = runDate ?? new Date().toISOString().slice(0, 10)
+
+			try {
+				const indexRows = db
+					.prepare(
+						`SELECT DISTINCT run_index FROM ${tableName} WHERE run_date = ? ORDER BY run_index DESC`,
+					)
+					.all(date) as { run_index: number }[]
+				const availableRunIndexes = indexRows.map((r) => r.run_index)
+
+				let targetIndex: number
+				if (runIndex !== undefined && runIndex !== null) {
+					targetIndex = runIndex
+				} else if (indexRows.length > 0) {
+					targetIndex = indexRows[0].run_index
+				} else {
+					return {
+						runDate: date,
+						runIndex: null,
+						availableRunIndexes,
+						statusCounts: {},
+						total: 0,
+					}
+				}
+
+				const rows = db
+					.prepare(
+						`SELECT status, COUNT(*) as count FROM ${tableName} WHERE run_date = ? AND run_index = ? GROUP BY status`,
+					)
+					.all(date, targetIndex) as { status: string; count: number }[]
+
+				const statusCounts: Record<string, number> = {}
+				let total = 0
+				for (const row of rows) {
+					statusCounts[row.status] = row.count
+					total += row.count
+				}
+
+				return {
+					runDate: date,
+					runIndex: targetIndex,
+					availableRunIndexes,
+					statusCounts,
+					total,
+				}
+			} catch (error) {
+				logger.error(`[min-data] 查询 ${tableName} 统计失败: ${error}`)
+				return {
+					runDate: date,
+					runIndex: null,
+					availableRunIndexes: [],
+					statusCounts: {},
+					total: 0,
+					error: error instanceof Error ? error.message : String(error),
+				}
+			}
+		},
+	)
+}
+
+async function handleGetMinDataTaskStatus() {
+	ipcMain.handle(
+		"get-min-data-task-status",
+		async (
+			_event,
+			tableType: "accurate" | "fuzzy",
+			params: {
+				runDate?: string
+				runIndex?: number
+				status?: string
+				search?: string
+				page: number
+				pageSize: number
+			},
+		) => {
+			const tableName =
+				tableType === "accurate"
+					? "min_data_update_task"
+					: "min_data_fuzzy_update_task"
+
+			const dbManager = DBManager.getInstance()
+			const db = await dbManager.getConnection([tableName])
+			if (!db)
+				return {
+					datalist: [],
+					total: 0,
+					error: "数据库不可用",
+				}
+
+			const date = params.runDate ?? new Date().toISOString().slice(0, 10)
+
+			try {
+				const indexRows = db
+					.prepare(
+						`SELECT DISTINCT run_index FROM ${tableName} WHERE run_date = ? ORDER BY run_index DESC`,
+					)
+					.all(date) as { run_index: number }[]
+
+				let targetIndex: number
+				if (params.runIndex !== undefined && params.runIndex !== null) {
+					targetIndex = params.runIndex
+				} else if (indexRows.length > 0) {
+					targetIndex = indexRows[0].run_index
+				} else {
+					return { datalist: [], total: 0 }
+				}
+
+				const conditions = ["run_date = ?", "run_index = ?"]
+				const values: (string | number)[] = [date, targetIndex]
+
+				if (params.status) {
+					conditions.push("status = ?")
+					values.push(params.status)
+				}
+				if (params.search) {
+					conditions.push("stock_code LIKE ?")
+					values.push(`%${params.search}%`)
+				}
+
+				const whereClause = conditions.join(" AND ")
+
+				const countRow = db
+					.prepare(
+						`SELECT COUNT(*) as count FROM ${tableName} WHERE ${whereClause}`,
+					)
+					.get(...values) as { count: number }
+
+				const offset = (params.page - 1) * params.pageSize
+				const datalist = db
+					.prepare(
+						`SELECT * FROM ${tableName} WHERE ${whereClause} ORDER BY id LIMIT ? OFFSET ?`,
+					)
+					.all(...values, params.pageSize, offset) as Record<string, unknown>[]
+
+				return {
+					datalist,
+					total: countRow.count,
+				}
+			} catch (error) {
+				logger.error(`[min-data] 查询 ${tableName} 状态失败: ${error}`)
+				return {
+					datalist: [],
+					total: 0,
+					error: error instanceof Error ? error.message : String(error),
+				}
+			}
+		},
+	)
+}
+
 export const regDataIPC = () => {
 	handleFuelStatus()
 	handleLoadAccount()
@@ -265,5 +488,9 @@ export const regDataIPC = () => {
 	getTradingPlanListHandler()
 	fetchSelectedStrategiesList()
 	handleLoadAquaTradingInfo()
+	handleExecMinData()
+	handleExecMinDataFuzzy()
+	handleGetMinDataTaskStats()
+	handleGetMinDataTaskStatus()
 	console.log("[reg] data-ipc")
 }

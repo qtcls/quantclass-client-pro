@@ -69,6 +69,56 @@ export const dataIPC = {
 	// 数据库
 	checkDBFile: () => ipcRenderer.invoke("check-db-file"),
 
+	// 实时数据（QMT 分钟数据）
+	execMinData: (mode: "fast" | "stable") =>
+		ipcRenderer.invoke("exec-min-data", mode) as Promise<{
+			code: number
+			message: string
+		}>,
+	execMinDataFuzzy: () =>
+		ipcRenderer.invoke("exec-min-data-fuzzy") as Promise<{
+			code: number
+			message: string
+		}>,
+	getMinDataTaskStats: (
+		tableType: "accurate" | "fuzzy",
+		runDate?: string,
+		runIndex?: number,
+	) =>
+		ipcRenderer.invoke(
+			"get-min-data-task-stats",
+			tableType,
+			runDate,
+			runIndex,
+		) as Promise<{
+			runDate: string | null
+			runIndex: number | null
+			availableRunIndexes: number[]
+			statusCounts: Record<string, number>
+			total: number
+			error?: string
+		}>,
+	getMinDataTaskStatus: (
+		tableType: "accurate" | "fuzzy",
+		params: {
+			runDate?: string
+			runIndex?: number
+			status?: string
+			search?: string
+			page: number
+			pageSize: number
+		},
+	) =>
+		ipcRenderer.invoke(
+			"get-min-data-task-status",
+			tableType,
+			params,
+		) as Promise<{
+			datalist: Record<string, unknown>[]
+			total: number
+			error?: string
+		}>,
+
 	// 监控
 	fetchMonitorProcesses: () => ipcRenderer.invoke("fetch-monitor-processes"),
 

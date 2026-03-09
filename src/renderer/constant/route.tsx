@@ -15,6 +15,7 @@ import {
 	FUSION_STRATEGY_LIBRARY_PAGE,
 	HOME_PAGE,
 	POSITION_INFO_PAGE,
+	REALTIME_DATA_PAGE,
 	REAL_MARKET_CONFIG_PAGE,
 	SETTINGS_PAGE,
 	STRATEGY_LIBRARY_PAGE,
@@ -28,11 +29,13 @@ import Home from "@/renderer/page/home"
 import StrategyLibrary from "@/renderer/page/library"
 import FusionStrategyLibrary from "@/renderer/page/library/fusion"
 import PositionInfo from "@/renderer/page/position"
+import RealtimeData from "@/renderer/page/realtime-data"
 import StrategySubscription from "@/renderer/page/subscription"
 import TradingPlan from "@/renderer/page/trading/plan"
 import { ListBulletIcon } from "@radix-ui/react-icons"
 
 import {
+	Activity,
 	BarChartIcon,
 	DatabaseIcon,
 	HelpCircleIcon,
@@ -55,8 +58,14 @@ export const ROUTES = [
 	{
 		key: DATA_PAGE,
 		icon: DatabaseIcon,
-		label: "数据订阅",
+		label: "历史数据",
 		element: Data,
+	},
+	{
+		key: REALTIME_DATA_PAGE,
+		icon: Activity,
+		label: "实时数据",
+		element: RealtimeData,
 	},
 	{
 		key: STRATEGY_PAGE,

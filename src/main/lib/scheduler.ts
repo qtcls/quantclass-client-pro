@@ -429,6 +429,19 @@ async function wakeUpMinData() {
 		return
 	}
 
+	if (systemState.minDataFuzzy) {
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "executing",
+			task: "fuzzy",
+		})
+		try {
+			await execBin(["min_data_fuzzy"], "定时获取模糊QMT数据")
+			logger.info("[min-data] 模糊数据获取完成")
+		} catch (error) {
+			logger.error(`[min-data] 模糊数据获取失败: ${error}`)
+		}
+	}
+
 	if (systemState.minDataAccurate) {
 		mw?.webContents.send("min-data-schedule-status", {
 			type: "executing",
@@ -444,19 +457,6 @@ async function wakeUpMinData() {
 			logger.info("[min-data] 准确数据获取完成")
 		} catch (error) {
 			logger.error(`[min-data] 准确数据获取失败: ${error}`)
-		}
-	}
-
-	if (systemState.minDataFuzzy) {
-		mw?.webContents.send("min-data-schedule-status", {
-			type: "executing",
-			task: "fuzzy",
-		})
-		try {
-			await execBin(["min_data_fuzzy"], "定时获取模糊QMT数据")
-			logger.info("[min-data] 模糊数据获取完成")
-		} catch (error) {
-			logger.error(`[min-data] 模糊数据获取失败: ${error}`)
 		}
 	}
 

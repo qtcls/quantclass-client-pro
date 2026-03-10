@@ -1,0 +1,75 @@
+/**
+ * quantclass-client
+ * Copyright (c) 2025 量化小讲堂
+ *
+ * Licensed under the Business Source License 1.1 (BUSL-1.1).
+ * Additional Use Grant: None
+ * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
+ * See the LICENSE file and https://mariadb.com/bsl11/
+ */
+
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/renderer/components/ui/alert-dialog"
+
+interface MinDataExecConfirmDialogProps {
+	open: boolean
+	onOpenChange: (open: boolean) => void
+	type: "accurate" | "fuzzy" | null
+	onConfirm: () => void
+}
+
+export function MinDataExecConfirmDialog({
+	open,
+	onOpenChange,
+	type,
+	onConfirm,
+}: MinDataExecConfirmDialogProps) {
+	return (
+		<AlertDialog open={open} onOpenChange={onOpenChange}>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogTitle>确认手动执行</AlertDialogTitle>
+					<AlertDialogDescription asChild>
+						<div className="space-y-3 text-base leading-relaxed">
+							{type === "accurate" && (
+								<>
+									<p className="font-medium text-foreground">
+										即将手动获取准确 QMT 数据
+									</p>
+									<ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
+										<li>将拉取 5 分钟准确 QMT 数据</li>
+										<li>极速模式约需 50 秒，稳定模式约需 2–3 分钟</li>
+									</ul>
+									<p className="text-muted-foreground">确定要现在执行吗？</p>
+								</>
+							)}
+							{type === "fuzzy" && (
+								<>
+									<p className="font-medium text-foreground">
+										即将手动获取模糊 QMT 数据
+									</p>
+									<ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
+										<li>将拉取模糊 QMT 数据</li>
+									</ul>
+									<p className="text-muted-foreground">确定要现在执行吗？</p>
+								</>
+							)}
+						</div>
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				<AlertDialogFooter>
+					<AlertDialogCancel>取消</AlertDialogCancel>
+					<AlertDialogAction onClick={onConfirm}>确认</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+	)
+}

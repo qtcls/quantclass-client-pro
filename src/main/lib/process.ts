@@ -353,6 +353,10 @@ function handlePythonProcess<T = any>(
 
 	pythonProcess.stderr.on("data", (data: any) => {
 		const utf8Data = `${data.toString("utf8")}`
+
+		const isProgressBar = utf8Data.includes("\r") || /\d+%\|/.test(utf8Data)
+		if (isProgressBar) return
+
 		logger.error(`[${kernel}] ${action} 标准错误: ${utf8Data}`)
 
 		reject?.(new Error(`${kernel} ${action} 错误: ${utf8Data}`))

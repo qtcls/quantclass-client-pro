@@ -85,7 +85,7 @@ class DBManager {
 		// 需要创建新连接
 		if (!this.db) {
 			try {
-				this.db = new Database(dbPath, { readonly: true })
+				this.db = new Database(dbPath)
 				this.dbIno = stat.ino
 				logger.info(`[DBManager] 数据库连接已建立: ${dbPath}`)
 			} catch (error) {

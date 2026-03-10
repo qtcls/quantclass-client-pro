@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { MinDataExecConfirmDialog } from "@/renderer/components/MinDataExecConfirmDialog"
 import { SelectTabs } from "@/renderer/components/select-tabs"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
@@ -153,6 +154,44 @@ function getVisiblePages(
 	return pages
 }
 
+function formatDuration(start?: string, end?: string): string {
+	if (!start || !end) return "-"
+	try {
+		const a = new Date(start).getTime()
+		const b = new Date(end).getTime()
+		if (Number.isNaN(a) || Number.isNaN(b) || b < a) return "-"
+		const ms = b - a
+		if (ms < 1000) return `${ms}ms`
+		const sec = Math.floor(ms / 1000)
+		if (sec < 60) return `${(ms / 1000).toFixed(2)}秒`
+		const m = Math.floor(sec / 60)
+		const s = sec % 60
+		return s > 0 ? `${m}分${s}秒` : `${m}分`
+	} catch {
+		return "-"
+	}
+}
+
+function formatTqdmTime(seconds: number): string {
+	const s = Math.round(seconds)
+	if (s < 3600) {
+		const m = Math.floor(s / 60)
+		const sec = s % 60
+		return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+	}
+	const h = Math.floor(s / 3600)
+	const m = Math.floor((s % 3600) / 60)
+	const sec = s % 60
+	return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+}
+
+function formatSpeed(speed: number | null): string {
+	if (speed === null) return "?只/s"
+	if (speed >= 1) return `${speed.toFixed(2)}只/s`
+	if (speed > 0) return `${(1 / speed).toFixed(2)}s/只`
+	return "?只/s"
+}
+
 function StatusBadge({ status }: { status: string }) {
 	const config = STATUS_MAP[status] ?? {
 		label: status,
@@ -164,21 +203,58 @@ function StatusBadge({ status }: { status: string }) {
 function TaskProgress({
 	statusCounts,
 	total,
+	isExecuting,
 }: {
 	statusCounts: Record<string, number>
 	total: number
+	isExecuting: boolean
 }) {
+	const [elapsedMs, setElapsedMs] = useState<number | null>(null)
+	const startTimeRef = useRef<number>(0)
+
 	const completed =
 		(statusCounts.success ?? 0) +
 		(statusCounts.failed ?? 0) +
 		(statusCounts.skipped ?? 0)
 	const percent = total > 0 ? Math.round((completed / total) * 100) : 0
 
+	useEffect(() => {
+		if (!isExecuting) return
+		startTimeRef.current = Date.now()
+		setElapsedMs(0)
+		const timer = setInterval(() => {
+			setElapsedMs(Date.now() - startTimeRef.current)
+		}, 1000)
+		return () => {
+			setElapsedMs(Date.now() - startTimeRef.current)
+			clearInterval(timer)
+		}
+	}, [isExecuting])
+
+	const elapsedSec = elapsedMs !== null ? elapsedMs / 1000 : null
+	const hasTiming = elapsedSec !== null && total > 0
+
+	const speed =
+		hasTiming && elapsedSec > 1 && completed > 0 ? completed / elapsedSec : null
+
+	const remaining = total - completed
+	const eta = speed !== null && remaining > 0 ? remaining / speed : null
+
+	let timeInfo = ""
+	if (hasTiming) {
+		const elapsedStr = formatTqdmTime(elapsedSec)
+		const etaStr =
+			eta !== null ? formatTqdmTime(eta) : remaining === 0 ? "00:00" : "?"
+		const speedStr = formatSpeed(speed)
+		timeInfo = ` [${elapsedStr}<${etaStr}, ${speedStr}]`
+	}
+
 	return (
 		<div className="space-y-2">
 			<div className="flex items-center justify-between text-sm">
 				<span className="text-muted-foreground">
 					已完成 {completed} / {total}
+					{timeInfo}
 				</span>
 				<span className="font-medium">{percent}%</span>
 			</div>
@@ -361,31 +437,34 @@ function TaskTable({
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex items-center justify-between">
-					<div className="space-y-1">
-						<CardTitle>{title}</CardTitle>
+				<div className="flex items-start justify-between gap-4">
+					<div className="space-y-1.5">
+						<div className="flex items-center gap-4 flex-wrap">
+							<CardTitle className="leading-tight">{title}</CardTitle>
+							<Button
+								onClick={onExecute}
+								disabled={isExecuting}
+								size="sm"
+								className="hover:cursor-pointer shrink-0"
+							>
+								{isExecuting ? (
+									<>
+										<Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+										执行中
+									</>
+								) : (
+									<>
+										<Play className="mr-1.5 h-3.5 w-3.5" />
+										手动执行
+									</>
+								)}
+							</Button>
+						</div>
 						<CardDescription>{description}</CardDescription>
 					</div>
-					<div className="flex items-center gap-2">
-						{children}
-						<Button
-							onClick={onExecute}
-							disabled={isExecuting}
-							className="hover:cursor-pointer"
-						>
-							{isExecuting ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									执行中...
-								</>
-							) : (
-								<>
-									<Play className="mr-2 h-4 w-4" />
-									执行
-								</>
-							)}
-						</Button>
-					</div>
+					{children && (
+						<div className="flex items-center gap-2 shrink-0">{children}</div>
+					)}
 				</div>
 			</CardHeader>
 			<CardContent className="space-y-4">
@@ -426,7 +505,11 @@ function TaskTable({
 				)}
 
 				{stats.total > 0 && (
-					<TaskProgress statusCounts={stats.statusCounts} total={stats.total} />
+					<TaskProgress
+						statusCounts={stats.statusCounts}
+						total={stats.total}
+						isExecuting={isExecuting}
+					/>
 				)}
 
 				{stats.total > 0 && (
@@ -498,7 +581,15 @@ function TaskTable({
 												<TableHead className="z-[1] bg-background border-b sticky top-0">
 													结束时间
 												</TableHead>
+												<TableHead className="z-[1] bg-background border-b sticky top-0 w-[80px]">
+													持续时间
+												</TableHead>
 											</>
+										)}
+										{!isAccurate && (
+											<TableHead className="z-[1] bg-background border-b sticky top-0 w-[80px]">
+												持续时间
+											</TableHead>
 										)}
 										<TableHead className="z-[1] bg-background border-b sticky top-0">
 											错误信息
@@ -525,7 +616,21 @@ function TaskTable({
 													<TableCell className="text-muted-foreground">
 														{row.fetch_end_time ?? "-"}
 													</TableCell>
+													<TableCell className="text-muted-foreground">
+														{formatDuration(
+															row.fetch_start_time,
+															row.fetch_end_time,
+														)}
+													</TableCell>
 												</>
+											)}
+											{!isAccurate && (
+												<TableCell className="text-muted-foreground">
+													{formatDuration(
+														row.fetch_start_time,
+														row.fetch_end_time,
+													)}
+												</TableCell>
 											)}
 											<TableCell className="text-destructive max-w-[200px]">
 												{row.error_msg ? (
@@ -637,6 +742,10 @@ const RealtimeData: FC = () => {
 	const [isScheduleOn, setIsScheduleOn] = useAtom(isMinDataUpdatingAtom)
 	const [isAccurateExecuting, setIsAccurateExecuting] = useState(false)
 	const [isFuzzyExecuting, setIsFuzzyExecuting] = useState(false)
+	const [execConfirmOpen, setExecConfirmOpen] = useState(false)
+	const [execConfirmType, setExecConfirmType] = useState<
+		"accurate" | "fuzzy" | null
+	>(null)
 
 	useEffect(() => {
 		getMinDataScheduleStatus().then((status) => {
@@ -654,10 +763,19 @@ const RealtimeData: FC = () => {
 			if (status.type === "skipped") {
 				toast.info("自动更新：Fuel 内核正忙，跳过本轮")
 			} else if (status.type === "executing") {
+				if (status.task === "accurate") {
+					setIsFuzzyExecuting(false)
+					setIsAccurateExecuting(true)
+				} else if (status.task === "fuzzy") {
+					setIsAccurateExecuting(false)
+					setIsFuzzyExecuting(true)
+				}
 				toast.info(
 					`自动更新：正在获取${status.task === "accurate" ? "准确" : "模糊"}数据...`,
 				)
 			} else if (status.type === "done") {
+				setIsAccurateExecuting(false)
+				setIsFuzzyExecuting(false)
 				toast.success("自动更新：本轮数据获取完成")
 			}
 		})
@@ -721,12 +839,25 @@ const RealtimeData: FC = () => {
 		}
 	}, [])
 
+	const handleExecConfirmClick = useCallback((type: "accurate" | "fuzzy") => {
+		setExecConfirmType(type)
+		setExecConfirmOpen(true)
+	}, [])
+
+	const handleConfirmExec = useCallback(() => {
+		setExecConfirmOpen(false)
+		const t = execConfirmType
+		setExecConfirmType(null)
+		if (t === "accurate") handleExecAccurate()
+		else if (t === "fuzzy") handleExecFuzzy()
+	}, [execConfirmType, handleExecAccurate, handleExecFuzzy])
+
 	return (
 		<div className="h-full flex-1 flex-col space-y-4 md:flex pt-3">
 			<div className="space-y-2">
 				<H2>实时数据</H2>
 				<p className="text-muted-foreground text-sm">
-					获取 QMT 5 分钟 K 线数据，支持准确数据和模糊数据两种模式
+					获取 QMT 分钟级 K 线数据，支持准确数据和模糊数据两种模式
 				</p>
 				<p className="text-muted-foreground text-sm">
 					{isScheduleOn
@@ -799,8 +930,18 @@ const RealtimeData: FC = () => {
 				onValueChange={(v) => setActiveTab(v as "accurate" | "fuzzy")}
 			>
 				<TabsList>
-					<TabsTrigger value="accurate">准确 QMT 数据</TabsTrigger>
-					<TabsTrigger value="fuzzy">模糊 QMT 数据</TabsTrigger>
+					<TabsTrigger value="accurate" className="relative">
+						准确 QMT 数据
+						{isAccurateExecuting && (
+							<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+						)}
+					</TabsTrigger>
+					<TabsTrigger value="fuzzy" className="relative">
+						模糊 QMT 数据
+						{isFuzzyExecuting && (
+							<span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+						)}
+					</TabsTrigger>
 				</TabsList>
 				<TabsContent value="accurate">
 					<TaskTable
@@ -808,7 +949,7 @@ const RealtimeData: FC = () => {
 						description="获取5分钟准确K线数据，可选极速模式或稳定模式"
 						tableType="accurate"
 						isExecuting={isAccurateExecuting}
-						onExecute={handleExecAccurate}
+						onExecute={() => handleExecConfirmClick("accurate")}
 					>
 						<div className="flex items-center gap-2">
 							<span className="font-semibold whitespace-nowrap flex items-center gap-1">
@@ -854,10 +995,20 @@ const RealtimeData: FC = () => {
 						description="获取模糊K线数据"
 						tableType="fuzzy"
 						isExecuting={isFuzzyExecuting}
-						onExecute={handleExecFuzzy}
+						onExecute={() => handleExecConfirmClick("fuzzy")}
 					/>
 				</TabsContent>
 			</Tabs>
+
+			<MinDataExecConfirmDialog
+				open={execConfirmOpen}
+				onOpenChange={(open) => {
+					setExecConfirmOpen(open)
+					if (!open) setExecConfirmType(null)
+				}}
+				type={execConfirmType}
+				onConfirm={handleConfirmExec}
+			/>
 		</div>
 	)
 }

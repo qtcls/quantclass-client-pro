@@ -24,7 +24,7 @@ import {
 import { updateStrategies } from "@/main/core/strategy/index.js"
 import DBManager from "@/main/lib/db-manager.js"
 import { execBin } from "@/main/lib/process.js"
-import { isKernalBusy, isKernalRunning } from "@/main/utils/tools.js"
+import { isKernalRunning } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { ipcMain } from "electron"
 
@@ -249,11 +249,6 @@ async function handleLoadAquaTradingInfo() {
 async function handleExecMinData() {
 	ipcMain.handle("exec-min-data", async (_event, mode: "fast" | "stable") => {
 		try {
-			const isFuelBusy = await isKernalBusy("fuel")
-			if (isFuelBusy) {
-				return { code: 300, message: "Fuel 内核正忙，请稍后再试" }
-			}
-
 			const args = mode === "stable" ? ["min_data", "thread"] : ["min_data"]
 			const action =
 				mode === "stable"
@@ -275,11 +270,6 @@ async function handleExecMinData() {
 async function handleExecMinDataFuzzy() {
 	ipcMain.handle("exec-min-data-fuzzy", async () => {
 		try {
-			const isFuelBusy = await isKernalBusy("fuel")
-			if (isFuelBusy) {
-				return { code: 300, message: "Fuel 内核正忙，请稍后再试" }
-			}
-
 			await execBin(["min_data_fuzzy"], "获取模糊QMT数据")
 			return { code: 200, message: "获取模糊QMT数据执行完毕" }
 		} catch (error) {

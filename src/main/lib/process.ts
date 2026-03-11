@@ -242,12 +242,14 @@ export const execBin = async (
 			`[exec-${kernel}] fuel(${fuelRunning})、rocket(${rocketRunning})、aqua(${aquaRunning})、zeus(${zeusRunning})`,
 		)
 
+		// 仅阻止重复启动「自动更新所有数据」，允许历史数据与实时数据更新（min_data）同时执行
 		if (
 			fuelRunning &&
 			kernel === "fuel" &&
+			action === "自动更新所有数据" &&
 			process_manager.hasProcessWithAction("自动更新所有数据")
 		) {
-			logger.warn(`[exec-${kernel}] 仍在运行中，退出 execBin`)
+			logger.warn(`[exec-${kernel}] 自动更新所有数据仍在运行中，退出 execBin`)
 			return
 		}
 		if (aquaRunning && kernel === "aqua") {

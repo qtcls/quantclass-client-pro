@@ -46,7 +46,7 @@ export function MinDataExecConfirmDialog({
 									</p>
 									<ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
 										<li>将拉取 5 分钟准确 QMT 数据</li>
-										<li>极速模式约需 50 秒，稳定模式约需 2–3 分钟</li>
+										<li>极速模式约需 1 分钟，稳定模式约需 3 分钟</li>
 									</ul>
 									<p className="text-muted-foreground">确定要现在执行吗？</p>
 								</>

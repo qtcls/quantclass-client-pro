@@ -8,29 +8,15 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { RebTimeConfigContent } from "@/renderer/components/RebTimeConfigModal"
 import TradeCtrlBtn from "@/renderer/components/trade-ctrl-btn"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/renderer/components/ui/dialog"
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@/renderer/components/ui/tabs"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
-import { TradingConfigForm } from "@/renderer/page/trading/config-form"
 import { csvFileNameAtom, realConfigEditModalAtom } from "@/renderer/store"
 import { backtestConfigAtom, libraryTypeAtom } from "@/renderer/store/storage"
 import { useQuery } from "@tanstack/react-query"
-import { useAtom, useAtomValue } from "jotai"
-import { Clock, Settings, TvMinimalPlay } from "lucide-react"
+import { useAtomValue, useSetAtom } from "jotai"
+import { Settings } from "lucide-react"
 import { useEffect, useState } from "react"
 import { RealResultProvider } from "../backtest/context"
 import { RunResultTable } from "../backtest/results"
@@ -40,9 +26,7 @@ export default function TradingControl() {
 	const backtestConfig = useAtomValue(backtestConfigAtom)
 	const [_, setSelectModuleTimes] = useState<string[]>([])
 
-	const [realConfigEditModal, setRealConfigEditModal] = useAtom(
-		realConfigEditModalAtom,
-	)
+	const setRealConfigEditModal = useSetAtom(realConfigEditModalAtom)
 
 	const { isAutoRocket } = useToggleAutoRealTrading()
 
@@ -139,38 +123,6 @@ export default function TradingControl() {
 					</div>
 				</RealResultProvider>
 			</div>
-
-			<Dialog
-				open={realConfigEditModal}
-				onOpenChange={(value) => setRealConfigEditModal(value)}
-			>
-				<DialogContent className="p-4 max-w-4xl max-h-[90vh] overflow-y-auto">
-					<DialogHeader>
-						<DialogTitle className="flex items-center">
-							<TvMinimalPlay className="mr-2" size={22} />
-							<span>实盘配置</span>
-						</DialogTitle>
-					</DialogHeader>
-					<Tabs defaultValue="config" className="w-full">
-						<TabsList className="grid w-full grid-cols-2">
-							<TabsTrigger value="config" className="gap-1">
-								<Settings className="size-4" />
-								实盘配置
-							</TabsTrigger>
-							<TabsTrigger value="rebtime" className="gap-1">
-								<Clock className="size-4" />
-								换仓时间配置
-							</TabsTrigger>
-						</TabsList>
-						<TabsContent value="config" className="mt-4">
-							<TradingConfigForm />
-						</TabsContent>
-						<TabsContent value="rebtime" className="mt-4">
-							<RebTimeConfigContent />
-						</TabsContent>
-					</Tabs>
-				</DialogContent>
-			</Dialog>
 		</>
 	)
 }

@@ -378,7 +378,7 @@ function isMinDataScheduleTime(): boolean {
 
 	const timeInMinutes = now.hour() * 60 + now.minute()
 	const isMorning =
-		timeInMinutes >= 9 * 60 + 36 && timeInMinutes <= 11 * 60 + 26
+		timeInMinutes >= 9 * 60 + 31 && timeInMinutes <= 11 * 60 + 26
 	const isAfternoon =
 		timeInMinutes >= 13 * 60 + 1 && timeInMinutes <= 15 * 60 + 1
 	return isMorning || isAfternoon

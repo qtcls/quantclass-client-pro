@@ -27,6 +27,7 @@ import {
 } from "@/renderer/store"
 
 import LoadingAnime from "@/renderer/components/LoadingAnime"
+import { RealConfigDialog } from "@/renderer/components/RealConfigDialog"
 import MonitorDialog from "@/renderer/components/MonitorDialog"
 import {
 	Sidebar,
@@ -106,6 +107,7 @@ const Layout: FC = () => {
 				/>
 			</SidebarProvider>
 			<VersionUpgrade />
+			<RealConfigDialog />
 		</div>
 	)
 }

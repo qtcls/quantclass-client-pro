@@ -110,10 +110,8 @@ export function LogViewer({
 		const cleanup = () => {
 			if (isIndependentWindow) {
 				unwatchIndividualKernelLog(logType as "fuel" | "rocket" | "select")
-				offIndividualKernelLogChanged()
 			} else {
 				unwatchKernelLog(logType as "fuel" | "rocket" | "select")
-				offKernelLogChanged()
 			}
 		}
 

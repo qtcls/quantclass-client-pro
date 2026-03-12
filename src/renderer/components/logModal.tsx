@@ -5,7 +5,7 @@ import {
 } from "@/renderer/store"
 import { useAtom } from "jotai"
 import { ExternalLink } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { LogViewer } from "./logViewer"
 import { Button } from "./ui/button"
 import { Checkbox } from "./ui/checkbox"
@@ -19,6 +19,9 @@ interface LogDashboardProps {
 	onClose?: () => void
 	isIndependentWindow?: boolean
 }
+
+const { offIndividualKernelLogChanged, offKernelLogChanged } =
+	window.electronAPI
 
 export function LogDashboard({
 	isShowTitle = true,
@@ -43,6 +46,24 @@ export function LogDashboard({
 		await window.electronAPI.createTerminalWindow()
 		onClose?.()
 	}
+
+	useEffect(() => {
+		const cleanup = () => {
+			if (isIndependentWindow) {
+				offIndividualKernelLogChanged()
+			} else {
+				offKernelLogChanged()
+			}
+		}
+
+		window.addEventListener("beforeunload", cleanup)
+
+		// 清理函数
+		return () => {
+			window.removeEventListener("beforeunload", cleanup)
+			cleanup()
+		}
+	}, [isIndependentWindow])
 
 	const activeCount = Object.values(visibleLogs).filter(Boolean).length
 	const gridCols =

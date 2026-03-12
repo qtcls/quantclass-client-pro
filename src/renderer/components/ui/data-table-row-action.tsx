@@ -42,7 +42,7 @@ import {
 	RefreshCcwDot,
 	Trash2,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import ButtonTooltip from "./button-tooltip"
 
@@ -57,6 +57,7 @@ const {
 	minimizeApp,
 	onDownloadProgress,
 	removeDownloadProgressListener,
+	offKernelLogChanged,
 } = window.electronAPI
 
 interface DataTableRowActionsProps<TData> {
@@ -176,6 +177,20 @@ export function DataTableRowActions<TData>({
 			: task.canAutoUpdate !== 1
 				? "该产品不支持增量更新"
 				: "正在更新中，请稍候"
+
+	useEffect(() => {
+		const cleanup = () => {
+			!isIncrementalUpdateDisabled && offKernelLogChanged()
+		}
+
+		window.addEventListener("beforeunload", cleanup)
+
+		// 清理函数
+		return () => {
+			window.removeEventListener("beforeunload", cleanup)
+			cleanup()
+		}
+	}, [isIncrementalUpdateDisabled])
 
 	return (
 		<div className="flex items-center gap-2" key={task.name}>

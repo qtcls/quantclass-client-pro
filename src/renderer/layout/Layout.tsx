@@ -45,6 +45,7 @@ import WindowsBar from "./WindowsBar"
 import { useReportErr } from "./hooks/useReportErr"
 
 // -- Utils & Constants
+import { CapWeightMigrateHandler } from "@/renderer/components/CapWeightMigrateHandler"
 import { AlertDialogProvider } from "@/renderer/context/alert-dialog"
 import VersionUpgrade from "@/renderer/layout/version-upgrade"
 import { cn } from "@/renderer/lib/utils"
@@ -108,6 +109,7 @@ const Layout: FC = () => {
 			</SidebarProvider>
 			<VersionUpgrade />
 			<RealConfigDialog />
+			<CapWeightMigrateHandler />
 		</div>
 	)
 }

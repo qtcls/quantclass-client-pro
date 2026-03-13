@@ -15,15 +15,16 @@ import logger from "@/main/utils/wiston.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
 import { BrowserWindow, ipcMain } from "electron"
 
+const POLL_INTERVAL_MS = 1000
+
 const activeWatchers = new Map<
 	string,
-	{ watcher: fs.FSWatcher | ReturnType<typeof fs.watchFile>; lastSize: number }
+	{ timer: ReturnType<typeof setInterval>; lastSize: number }
 >()
 
-// -- 独立窗口的 watcher
 const activeWatchersIndependent = new Map<
 	string,
-	{ watcher: fs.FSWatcher | ReturnType<typeof fs.watchFile>; lastSize: number }
+	{ timer: ReturnType<typeof setInterval>; lastSize: number }
 >()
 
 const KERNEL_LOG_PATH_MAP: Record<string, string[]> = {
@@ -87,13 +88,9 @@ async function watchOneKernel(
 		return { success: false, error: `未知的内核类型: ${kernelType}` }
 	}
 
-	const existingWatcher = activeWatchers.get(kernelType)
-	if (existingWatcher) {
-		try {
-			if ("close" in existingWatcher.watcher) {
-				;(existingWatcher.watcher as fs.FSWatcher).close()
-			}
-		} catch {}
+	const existing = activeWatchers.get(kernelType)
+	if (existing) {
+		clearInterval(existing.timer)
 		activeWatchers.delete(kernelType)
 	}
 
@@ -123,68 +120,56 @@ async function watchOneKernel(
 
 	const lastSize = fs.statSync(logFilePath).size
 
-	try {
-		const watcher = fs.watch(logFilePath, (eventType) => {
-			if (eventType !== "change" && eventType !== "rename") return
+	const timer = setInterval(() => {
+		try {
+			const current = activeWatchers.get(kernelType)
+			if (!current) return
 
-			try {
-				const currentWatcher = activeWatchers.get(kernelType)
-				if (!currentWatcher) return
+			if (!fs.existsSync(logFilePath)) return
+			const stat = fs.statSync(logFilePath)
 
-				if (!fs.existsSync(logFilePath)) return
-				const stat = fs.statSync(logFilePath)
+			if (stat.size > current.lastSize) {
+				const newContent = readFromOffset(logFilePath, current.lastSize)
+				current.lastSize = stat.size
 
-				if (stat.size > currentWatcher.lastSize) {
-					const newContent = readFromOffset(
-						logFilePath,
-						currentWatcher.lastSize,
+				if (newContent && senderWindow && !senderWindow.isDestroyed()) {
+					senderWindow.webContents.send(
+						"kernel-log-changed",
+						newContent,
+						kernelType,
+						false,
 					)
-					currentWatcher.lastSize = stat.size
-
-					if (newContent && senderWindow && !senderWindow.isDestroyed()) {
-						senderWindow.webContents.send(
-							"kernel-log-changed",
-							newContent,
-							kernelType,
-							false,
-						)
-					}
-				} else if (stat.size < currentWatcher.lastSize) {
-					const content = readLastNLines(logFilePath, 1000)
-					currentWatcher.lastSize = stat.size
-					if (senderWindow && !senderWindow.isDestroyed()) {
-						senderWindow.webContents.send(
-							"kernel-log-changed",
-							content,
-							kernelType,
-							true,
-						)
-					}
 				}
-			} catch (error) {
-				logger.error(`[kernel-log] 监听 ${kernelType} 变化时出错: ${error}`)
+			} else if (stat.size < current.lastSize) {
+				const content = readLastNLines(logFilePath, 1000)
+				current.lastSize = stat.size
+				if (senderWindow && !senderWindow.isDestroyed()) {
+					senderWindow.webContents.send(
+						"kernel-log-changed",
+						content,
+						kernelType,
+						true,
+					)
+				}
+			}
+		} catch (error) {
+			logger.error(`[kernel-log] 轮询 ${kernelType} 时出错: ${error}`)
+		}
+	}, POLL_INTERVAL_MS)
+
+	activeWatchers.set(kernelType, { timer, lastSize })
+
+	if (senderWindow) {
+		senderWindow.once("closed", () => {
+			const w = activeWatchers.get(kernelType)
+			if (w) {
+				clearInterval(w.timer)
+				activeWatchers.delete(kernelType)
 			}
 		})
-
-		activeWatchers.set(kernelType, { watcher, lastSize })
-
-		if (senderWindow) {
-			senderWindow.once("closed", () => {
-				const w = activeWatchers.get(kernelType)
-				if (w) {
-					try {
-						;(w.watcher as fs.FSWatcher).close()
-					} catch {}
-					activeWatchers.delete(kernelType)
-				}
-			})
-		}
-
-		return { success: true }
-	} catch (error) {
-		logger.error(`[kernel-log] 启动 ${kernelType} watcher 失败: ${error}`)
-		return { success: false, error: `启动 watcher 失败: ${error}` }
 	}
+
+	return { success: true }
 }
 
 async function watchKernelLogHandler(): Promise<void> {
@@ -205,18 +190,13 @@ async function unwatchKernelLogHandler(): Promise<void> {
 		if (kernelType) {
 			const w = activeWatchers.get(kernelType)
 			if (w) {
-				try {
-					;(w.watcher as fs.FSWatcher).close()
-				} catch {}
+				clearInterval(w.timer)
 				activeWatchers.delete(kernelType)
 				logger.info(`[kernel-log] 停止监听 ${kernelType}`)
 			}
 		} else {
-			// -- 停止所有 watcher
 			for (const [key, w] of activeWatchers) {
-				try {
-					;(w.watcher as fs.FSWatcher).close()
-				} catch {}
+				clearInterval(w.timer)
 				logger.info(`[kernel-log] 停止监听 ${key}`)
 			}
 			activeWatchers.clear()
@@ -236,13 +216,9 @@ async function watchOneKernelIndependent(
 		return { success: false, error: `未知的内核类型: ${kernelType}` }
 	}
 
-	const existingWatcher = activeWatchersIndependent.get(kernelType)
-	if (existingWatcher) {
-		try {
-			if ("close" in existingWatcher.watcher) {
-				;(existingWatcher.watcher as fs.FSWatcher).close()
-			}
-		} catch {}
+	const existing = activeWatchersIndependent.get(kernelType)
+	if (existing) {
+		clearInterval(existing.timer)
 		activeWatchersIndependent.delete(kernelType)
 	}
 
@@ -274,72 +250,58 @@ async function watchOneKernelIndependent(
 
 	const lastSize = fs.statSync(logFilePath).size
 
-	try {
-		const watcher = fs.watch(logFilePath, (eventType) => {
-			if (eventType !== "change" && eventType !== "rename") return
+	const timer = setInterval(() => {
+		try {
+			const current = activeWatchersIndependent.get(kernelType)
+			if (!current) return
 
-			try {
-				const currentWatcher = activeWatchersIndependent.get(kernelType)
-				if (!currentWatcher) return
+			if (!fs.existsSync(logFilePath)) return
+			const stat = fs.statSync(logFilePath)
 
-				if (!fs.existsSync(logFilePath)) return
-				const stat = fs.statSync(logFilePath)
+			if (stat.size > current.lastSize) {
+				const newContent = readFromOffset(logFilePath, current.lastSize)
+				current.lastSize = stat.size
 
-				if (stat.size > currentWatcher.lastSize) {
-					const newContent = readFromOffset(
-						logFilePath,
-						currentWatcher.lastSize,
+				if (newContent && senderWindow && !senderWindow.isDestroyed()) {
+					senderWindow.webContents.send(
+						"kernel-log-changed-individual",
+						newContent,
+						kernelType,
+						false,
 					)
-					currentWatcher.lastSize = stat.size
-
-					if (newContent && senderWindow && !senderWindow.isDestroyed()) {
-						senderWindow.webContents.send(
-							"kernel-log-changed-individual",
-							newContent,
-							kernelType,
-							false,
-						)
-					}
-				} else if (stat.size < currentWatcher.lastSize) {
-					const content = readLastNLines(logFilePath, 1000)
-					currentWatcher.lastSize = stat.size
-					if (senderWindow && !senderWindow.isDestroyed()) {
-						senderWindow.webContents.send(
-							"kernel-log-changed-individual",
-							content,
-							kernelType,
-							true,
-						)
-					}
 				}
-			} catch (error) {
-				logger.error(
-					`[kernel-log-individual] 监听 ${kernelType} 变化时出错: ${error}`,
-				)
+			} else if (stat.size < current.lastSize) {
+				const content = readLastNLines(logFilePath, 1000)
+				current.lastSize = stat.size
+				if (senderWindow && !senderWindow.isDestroyed()) {
+					senderWindow.webContents.send(
+						"kernel-log-changed-individual",
+						content,
+						kernelType,
+						true,
+					)
+				}
+			}
+		} catch (error) {
+			logger.error(
+				`[kernel-log-individual] 轮询 ${kernelType} 时出错: ${error}`,
+			)
+		}
+	}, POLL_INTERVAL_MS)
+
+	activeWatchersIndependent.set(kernelType, { timer, lastSize })
+
+	if (senderWindow) {
+		senderWindow.once("closed", () => {
+			const w = activeWatchersIndependent.get(kernelType)
+			if (w) {
+				clearInterval(w.timer)
+				activeWatchersIndependent.delete(kernelType)
 			}
 		})
-
-		activeWatchersIndependent.set(kernelType, { watcher, lastSize })
-
-		if (senderWindow) {
-			senderWindow.once("closed", () => {
-				const w = activeWatchersIndependent.get(kernelType)
-				if (w) {
-					try {
-						;(w.watcher as fs.FSWatcher).close()
-					} catch {}
-					activeWatchersIndependent.delete(kernelType)
-				}
-			})
-		}
-
-		return { success: true }
-	} catch (error) {
-		logger.error(
-			`[kernel-log-individual] 启动 ${kernelType} watcher 失败: ${error}`,
-		)
-		return { success: false, error: `启动 watcher 失败: ${error}` }
 	}
+
+	return { success: true }
 }
 
 async function watchIndividualKernelLogHandler(): Promise<void> {
@@ -365,17 +327,13 @@ async function unwatchIndividualKernelLogHandler(): Promise<void> {
 			if (kernelType) {
 				const w = activeWatchersIndependent.get(kernelType)
 				if (w) {
-					try {
-						;(w.watcher as fs.FSWatcher).close()
-					} catch {}
+					clearInterval(w.timer)
 					activeWatchersIndependent.delete(kernelType)
 					logger.info(`[kernel-log-individual] 停止监听 ${kernelType}`)
 				}
 			} else {
 				for (const [key, w] of activeWatchersIndependent) {
-					try {
-						;(w.watcher as fs.FSWatcher).close()
-					} catch {}
+					clearInterval(w.timer)
 					logger.info(`[kernel-log-individual] 停止监听 ${key}`)
 				}
 				activeWatchersIndependent.clear()

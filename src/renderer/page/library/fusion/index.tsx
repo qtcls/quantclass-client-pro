@@ -164,7 +164,7 @@ const FusionStrategyLibrary = () => {
 						<ButtonTooltip content={<div>{strategyGroup.name}资金占比</div>}>
 							<div>
 								<NumberInput
-									value={strategyGroup.cap_weight * 100}
+									value={Number((strategyGroup.cap_weight * 100).toFixed(2))}
 									size="sm"
 									// disabled={isAutoRocket}
 									aria-label={`输入${strategyGroup.name}资金占比`}

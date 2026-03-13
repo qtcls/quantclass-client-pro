@@ -127,8 +127,8 @@ export const useGenLibraryColumn = (
 					<EditableNumberCell
 						className="w-24 pr-1"
 						disabled={isAutoRocket}
-						// 显示时转换为百分比（乘以 100）
-						value={(row.original.cap_weight ?? 0) * 100}
+						// 显示时转换为百分比（乘以 100），toFixed 避免浮点精度问题
+						value={Number(((row.original.cap_weight ?? 0) * 100).toFixed(2))}
 						currentTableData={currentTableData}
 						onChange={async (newValue) => {
 							// 保存时转换为小数（除以 100）

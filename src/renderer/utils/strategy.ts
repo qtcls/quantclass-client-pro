@@ -87,7 +87,9 @@ const genSelectStgInfo = (strategy: SelectStgType, includeInfo = true) => {
 		select_num: Number.parseInt(String(strategy.select_num)),
 		factor_list: strategy.factor_list,
 		filter_list: strategy.filter_list,
-		filter_list_post: strategy.filter_list_post ?? [], // -- 后置过滤因子列表
+		...(strategy.filter_list_post !== undefined
+			? { filter_list_post: strategy.filter_list_post }
+			: {}),
 		cross_sections: strategy.cross_sections ?? [], // -- 截面因子配置
 		rebalance_time: strategy.rebalance_time,
 		timing: strategy.timing ?? null,

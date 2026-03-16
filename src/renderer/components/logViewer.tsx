@@ -8,12 +8,10 @@ const {
 	watchKernelLog,
 	unwatchKernelLog,
 	onKernelLogChanged,
-	offKernelLogChanged,
 	// 独立窗口
 	watchIndividualKernelLog,
 	unwatchIndividualKernelLog,
 	onIndividualKernelLogChanged,
-	offIndividualKernelLogChanged,
 	createTerminalWindow,
 } = window.electronAPI
 

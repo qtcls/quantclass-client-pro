@@ -42,7 +42,7 @@ import {
 	RefreshCcwDot,
 	Trash2,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 import ButtonTooltip from "./button-tooltip"
 
@@ -83,7 +83,7 @@ export function DataTableRowActions<TData>({
 	const showStepLoader = stepLoaderMap[task.name] ?? false
 	const handleTimeTask = useHandleTimeTask()
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
-	const { open: openAlert } = useAlertDialog()
+	const { open: openAlert, close } = useAlertDialog()
 	const { settings, updateSettings } = useSettings()
 	const { removeDataSubscribed } = useDataSubscribed()
 	const [downloadProgress, setDownloadProgress] = useState("")
@@ -178,20 +178,6 @@ export function DataTableRowActions<TData>({
 				? "该产品不支持增量更新"
 				: "正在更新中，请稍候"
 
-	useEffect(() => {
-		const cleanup = () => {
-			!isIncrementalUpdateDisabled && offKernelLogChanged()
-		}
-
-		window.addEventListener("beforeunload", cleanup)
-
-		// 清理函数
-		return () => {
-			window.removeEventListener("beforeunload", cleanup)
-			cleanup()
-		}
-	}, [isIncrementalUpdateDisabled])
-
 	return (
 		<div className="flex items-center gap-2" key={task.name}>
 			{!isIncrementalUpdateDisabled && (
@@ -266,7 +252,12 @@ export function DataTableRowActions<TData>({
 											if (needResume) {
 												await handleTimeTask(false)
 											}
+											offKernelLogChanged()
 											// await minimizeApp("terminal")
+										},
+										onCancel: () => {
+											offKernelLogChanged()
+											close()
 										},
 									})
 								}}

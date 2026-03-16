@@ -32,7 +32,6 @@ export const processLogUpdate = (
 	newOutput: string,
 	maxLines = 1000,
 ): string => {
-	// console.log("currentOutput", currentOutput)
 	const formattedOutput = formatOutput(newOutput)
 	let updatedOutput = currentOutput
 		? `${currentOutput}${formattedOutput}`

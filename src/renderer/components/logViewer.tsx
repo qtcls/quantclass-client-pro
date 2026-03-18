@@ -98,14 +98,13 @@ export function LogViewer({
 			}
 		}
 
-		// 注册监听器
-		if (isIndependentWindow) {
-			onIndividualKernelLogChanged(handler)
-		} else {
-			onKernelLogChanged(handler)
-		}
+		// 注册监听器，保存 off 函数，清除监听器
+		const offLogChanged = isIndependentWindow
+			? onIndividualKernelLogChanged(handler)
+			: onKernelLogChanged(handler)
 
 		const cleanup = () => {
+			offLogChanged()
 			if (isIndependentWindow) {
 				unwatchIndividualKernelLog(logType as "fuel" | "rocket" | "select")
 			} else {

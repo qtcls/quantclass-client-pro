@@ -22,9 +22,16 @@ export const kernelLogIPC = {
 			isInitial: boolean,
 		) => void,
 	) => {
-		ipcRenderer.on("kernel-log-changed", (_, content, kernelType, isInitial) =>
-			callback(content, kernelType, isInitial),
-		)
+		const handler = (
+			_: unknown,
+			content: string,
+			kernelType: "fuel" | "select" | "rocket",
+			isInitial: boolean,
+		) => callback(content, kernelType, isInitial)
+		ipcRenderer.on("kernel-log-changed", handler)
+		return () => {
+			ipcRenderer.removeListener("kernel-log-changed", handler)
+		}
 	},
 	offKernelLogChanged: () => {
 		ipcRenderer.removeAllListeners("kernel-log-changed")
@@ -42,11 +49,16 @@ export const kernelLogIPC = {
 			isInitial: boolean,
 		) => void,
 	) => {
-		ipcRenderer.on(
-			"kernel-log-changed-individual",
-			(_, content, kernelType, isInitial) =>
-				callback(content, kernelType, isInitial),
-		)
+		const handler = (
+			_: unknown,
+			content: string,
+			kernelType: "fuel" | "select" | "rocket",
+			isInitial: boolean,
+		) => callback(content, kernelType, isInitial)
+		ipcRenderer.on("kernel-log-changed-individual", handler)
+		return () => {
+			ipcRenderer.removeListener("kernel-log-changed-individual", handler)
+		}
 	},
 	offIndividualKernelLogChanged: () => {
 		ipcRenderer.removeAllListeners("kernel-log-changed-individual")

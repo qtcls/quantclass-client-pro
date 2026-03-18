@@ -12,7 +12,7 @@ import { isWindows } from "@/renderer/constant"
 import type { IDataListType } from "@/renderer/schemas/data-schema"
 import { atomWithQuery } from "jotai-tanstack-query"
 
-const { VITE_XBX_ENV, VITE_BASE_URL } = import.meta.env
+const { VITE_XBX_ENV } = import.meta.env
 const {
 	fetchMonitorProcesses,
 	fetchRocketStatus,
@@ -173,7 +173,7 @@ export const dataApiProductsAtom = atomWithQuery(() => ({
 	queryKey: ["data-api-products"],
 	queryFn: async () => {
 		const response = await fetch(
-			`${VITE_BASE_URL}/api/product/data/abstract/by_category/data-api-products`,
+			"https://qtcls.jpn-tky.ufileos.com/sapi/data/products-status-v2.json",
 		)
 		const json = await response.json()
 

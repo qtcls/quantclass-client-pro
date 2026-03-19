@@ -36,6 +36,7 @@ import {
 	realConfigEditModalAtom,
 } from "@/renderer/store"
 import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
+import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { CircleHelp, Play, RefreshCw, Settings } from "lucide-react"
 import { type FC, useCallback, useEffect, useState } from "react"
@@ -90,7 +91,9 @@ const RealtimeData: FC = () => {
 	const [activeTab, setActiveTab] = useAtom(minDataTabAtom)
 	const [autoAccurate, setAutoAccurate] = useAtom(minDataAutoAccurateAtom)
 	const [autoFuzzy, setAutoFuzzy] = useAtom(minDataAutoFuzzyAtom)
-	const [isMinDataUpdating, setIsMinDataUpdating] = useAtom(isMinDataUpdatingAtom)
+	const [isMinDataUpdating, setIsMinDataUpdating] = useAtom(
+		isMinDataUpdatingAtom,
+	)
 	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
 	const setRealConfigEditModal = useSetAtom(realConfigEditModalAtom)
 	const [isAccurateExecuting, setIsAccurateExecuting] = useState(false)
@@ -127,6 +130,12 @@ const RealtimeData: FC = () => {
 	const isQmtConfigured =
 		!!realMarketConfig?.account_id?.trim() &&
 		!!realMarketConfig?.qmt_path?.trim()
+
+	const brokerName = getBrokerNameByAccountId(
+		realMarketConfig?.account_id ?? "",
+	)
+	const brokerDisplay = brokerName || "未知"
+	const isCiccBroker = brokerName === "中金"
 
 	const handleStartAutoUpdate = useCallback(async () => {
 		if (!autoAccurate && !autoFuzzy) {
@@ -232,6 +241,19 @@ const RealtimeData: FC = () => {
 							<span className="truncate text-muted-foreground">
 								{realMarketConfig?.qmt_path?.trim() || "未配置"}
 							</span>
+						</div>
+						<div className="flex items-center gap-2">
+							<span className="font-medium">券商：</span>
+							{isCiccBroker ? (
+								<span className="text-yellow-600 dark:text-yellow-500 font-medium">
+									{brokerDisplay}
+									<span className="text-muted-foreground font-normal">
+										（已过滤北交所）
+									</span>
+								</span>
+							) : (
+								<span className="text-muted-foreground">{brokerDisplay}</span>
+							)}
 						</div>
 					</div>
 					<Button

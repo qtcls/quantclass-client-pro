@@ -34,6 +34,7 @@ import { realConfigEditModalAtom } from "@/renderer/store"
 import { rocketStatusQueryAtom } from "@/renderer/store/query"
 import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
+import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { zodResolver } from "@hookform/resolvers/zod"
 import dayjs from "dayjs"
 import { useDebounceFn } from "etc-hooks"
@@ -88,6 +89,8 @@ export function TradingConfigForm() {
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
 
 	const defaultValues = useMemo(() => {
+		const isCiccBroker =
+			getBrokerNameByAccountId(realMarketConfig.account_id ?? "") === "中金"
 		return {
 			...realMarketConfig,
 			date_start:
@@ -97,7 +100,7 @@ export function TradingConfigForm() {
 			qmt_port: "58610",
 			filter_kcb: realMarketConfig.filter_kcb,
 			filter_cyb: realMarketConfig.filter_cyb,
-			filter_bj: realMarketConfig.filter_bj,
+			filter_bj: isCiccBroker ? "1" : realMarketConfig.filter_bj,
 			performance_mode: realMarketConfig.performance_mode ?? "EQUAL",
 			use_fuzzy: realMarketConfig.use_fuzzy ?? "1",
 			reverse_repo_keep: realMarketConfig.reverse_repo_keep ?? 1000,
@@ -109,6 +112,15 @@ export function TradingConfigForm() {
 		resolver: zodResolver(RealMarketConfigSchema),
 		defaultValues,
 	})
+
+	const accountId = form.watch("account_id")
+	const isCiccBroker = getBrokerNameByAccountId(accountId ?? "") === "中金"
+
+	useEffect(() => {
+		if (isCiccBroker) {
+			form.setValue("filter_bj", "1")
+		}
+	}, [isCiccBroker, form])
 
 	const handleSave = async () => {
 		try {
@@ -242,8 +254,8 @@ export function TradingConfigForm() {
 										<FormControl>
 											<RadioGroup
 												disabled={!user?.isMember}
+												value={field.value}
 												onValueChange={field.onChange}
-												defaultValue={field.value}
 												className="flex space-x-1"
 											>
 												<FormItem className="flex items-center space-x-1 space-y-0">
@@ -317,8 +329,8 @@ export function TradingConfigForm() {
 										<FormControl>
 											<RadioGroup
 												disabled={!user?.isMember}
+												value={field.value}
 												onValueChange={field.onChange}
-												defaultValue={field.value}
 												className="flex space-x-1"
 											>
 												<FormItem className="flex items-center space-x-1 space-y-0">
@@ -357,13 +369,18 @@ export function TradingConfigForm() {
 										<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
 											<span className="font-semibold">过滤北交所</span>{" "}
 											<span className="text-destructive">*</span>
+											{isCiccBroker && (
+												<span className="text-yellow-600 dark:text-yellow-500 text-xs font-normal">
+													（中金已强制过滤）
+												</span>
+											)}
 										</FormLabel>
 
 										<FormControl>
 											<RadioGroup
-												disabled={!user?.isMember}
+												disabled={!user?.isMember || isCiccBroker}
+												value={field.value}
 												onValueChange={field.onChange}
-												defaultValue={field.value}
 												className="flex space-x-1"
 											>
 												<FormItem className="flex items-center space-x-1 space-y-0">

@@ -45,7 +45,6 @@ const {
 	execMinData,
 	execMinDataFuzzy,
 	toggleMinDataSchedule,
-	getMinDataScheduleStatus,
 	onMinDataScheduleStatus,
 	removeMinDataScheduleStatusListener,
 } = window.electronAPI
@@ -91,7 +90,7 @@ const RealtimeData: FC = () => {
 	const [activeTab, setActiveTab] = useAtom(minDataTabAtom)
 	const [autoAccurate, setAutoAccurate] = useAtom(minDataAutoAccurateAtom)
 	const [autoFuzzy, setAutoFuzzy] = useAtom(minDataAutoFuzzyAtom)
-	const [isScheduleOn, setIsScheduleOn] = useAtom(isMinDataUpdatingAtom)
+	const [isMinDataUpdating, setIsMinDataUpdating] = useAtom(isMinDataUpdatingAtom)
 	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
 	const setRealConfigEditModal = useSetAtom(realConfigEditModalAtom)
 	const [isAccurateExecuting, setIsAccurateExecuting] = useState(false)
@@ -100,17 +99,6 @@ const RealtimeData: FC = () => {
 	const [execConfirmType, setExecConfirmType] = useState<
 		"accurate" | "fuzzy" | null
 	>(null)
-
-	useEffect(() => {
-		getMinDataScheduleStatus().then((status) => {
-			setIsScheduleOn(status.isRunning)
-			if (status.isRunning) {
-				setMode(status.mode)
-				setAutoAccurate(status.autoAccurate)
-				setAutoFuzzy(status.autoFuzzy)
-			}
-		})
-	}, [setIsScheduleOn, setMode, setAutoAccurate, setAutoFuzzy])
 
 	useEffect(() => {
 		onMinDataScheduleStatus((_event, status) => {
@@ -155,15 +143,15 @@ const RealtimeData: FC = () => {
 			autoAccurate,
 			autoFuzzy,
 		})
-		setIsScheduleOn(true)
+		setIsMinDataUpdating(true)
 		toast.success("自动更新数据已启动")
-	}, [mode, autoAccurate, autoFuzzy, setIsScheduleOn, isQmtConfigured])
+	}, [mode, autoAccurate, autoFuzzy, setIsMinDataUpdating, isQmtConfigured])
 
 	const handleStopAutoUpdate = useCallback(async () => {
 		await toggleMinDataSchedule({ isOn: false })
-		setIsScheduleOn(false)
+		setIsMinDataUpdating(false)
 		toast.success("自动更新数据已停止")
-	}, [setIsScheduleOn])
+	}, [setIsMinDataUpdating])
 
 	const handleExecAccurate = useCallback(async () => {
 		setIsAccurateExecuting(true)
@@ -225,7 +213,7 @@ const RealtimeData: FC = () => {
 		<div className="h-full flex-1 flex-col space-y-4 md:flex pt-3">
 			<p className="font-bold text-base">
 				获取 QMT 分钟级 K 线数据，支持准确数据和模糊数据两种模式。
-				{isScheduleOn
+				{isMinDataUpdating
 					? "自动更新中"
 					: "点击启动自动更新数据，在交易时段内自动更新数据"}
 			</p>
@@ -268,7 +256,7 @@ const RealtimeData: FC = () => {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-4">
 					<div>
-						{isScheduleOn ? (
+						{isMinDataUpdating ? (
 							<ButtonTooltip content="停止自动更新数据">
 								<Button
 									variant="default"
@@ -297,7 +285,7 @@ const RealtimeData: FC = () => {
 								id="auto-accurate"
 								checked={autoAccurate}
 								onCheckedChange={(v) => setAutoAccurate(v === true)}
-								disabled={isScheduleOn}
+								disabled={isMinDataUpdating}
 							/>
 							<Label
 								htmlFor="auto-accurate"
@@ -311,7 +299,7 @@ const RealtimeData: FC = () => {
 								id="auto-fuzzy"
 								checked={autoFuzzy}
 								onCheckedChange={(v) => setAutoFuzzy(v === true)}
-								disabled={isScheduleOn}
+								disabled={isMinDataUpdating}
 							/>
 							<Label
 								htmlFor="auto-fuzzy"
@@ -375,7 +363,7 @@ const RealtimeData: FC = () => {
 									toast.success(
 										`已切换为${value === "fast" ? "极速" : "稳定"}模式`,
 									)
-									if (isScheduleOn) {
+									if (isMinDataUpdating) {
 										toggleMinDataSchedule({
 											isOn: true,
 											mode: value as "fast" | "stable",

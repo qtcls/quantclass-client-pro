@@ -75,23 +75,11 @@ async function toggleMinDataScheduleHandler(): Promise<void> {
 	)
 }
 
-async function getMinDataScheduleStatusHandler(): Promise<void> {
-	ipcMain.handle("get-min-data-schedule-status", () => {
-		return {
-			isRunning: systemState.isSetAutoMinData,
-			mode: systemState.minDataMode,
-			autoAccurate: systemState.minDataAccurate,
-			autoFuzzy: systemState.minDataFuzzy,
-		}
-	})
-}
-
 export const regCoreIPC = () => {
 	toggleHandler()
 	setAutoTradingHandler()
 	getMacAddressHandler()
 	syncNetworkStatusHandler()
 	toggleMinDataScheduleHandler()
-	getMinDataScheduleStatusHandler()
 	console.log("[reg] core-ipc")
 }

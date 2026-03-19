@@ -24,7 +24,13 @@ import { usePermissionCheck } from "@/renderer/hooks"
 import { useHandleTimeTask } from "@/renderer/hooks"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 import BuyBlacklist from "@/renderer/page/trading/buy-blacklist"
-import { isUpdatingAtom } from "@/renderer/store"
+import {
+	isMinDataUpdatingAtom,
+	isUpdatingAtom,
+	minDataAutoAccurateAtom,
+	minDataAutoFuzzyAtom,
+	minDataModeAtom,
+} from "@/renderer/store"
 // import { realTradingTabAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import {
@@ -41,7 +47,7 @@ import { useEffect, useState } from "react"
 import TradeCtrlBtn from "../../components/trade-ctrl-btn"
 // import { useNavigate } from "react-router"
 
-const { getStoreValue } = window.electronAPI
+const { getStoreValue, toggleMinDataSchedule } = window.electronAPI
 
 export const RealMarketKanban = () => {
 	// const navigate = useNavigate()
@@ -50,6 +56,10 @@ export const RealMarketKanban = () => {
 	const [showMoney, setShowMoney] = useAtom(showMoneyAtom)
 	const totalWeight = useAtomValue(totalWeightAtom)
 	const isUpdating = useAtomValue(isUpdatingAtom)
+	const [isMinDataUpdating, setIsMinDataUpdating] = useAtom(isMinDataUpdatingAtom)
+	const minDataMode = useAtomValue(minDataModeAtom)
+	const minDataAutoAccurate = useAtomValue(minDataAutoAccurateAtom)
+	const minDataAutoFuzzy = useAtomValue(minDataAutoFuzzyAtom)
 	const { apiKey, uuid } = useAtomValue(accountKeyAtom)
 	// const navigate = useNavigate()
 	// const [_, setActiveTab] = useAtom(activeTabAtom)
@@ -267,8 +277,14 @@ export const RealMarketKanban = () => {
 					<div className="text-primary leading-relaxed space-y-2">
 						{!isUpdating && (
 							<p>
-								<span className="font-bold">自动更新数据</span>
+								<span className="font-bold">自动更新历史数据</span>
 								：会实时检查并自动完成数据的处理与存储，尽量保证本地数据是最新的。
+							</p>
+						)}
+						{!isMinDataUpdating && (
+							<p>
+								<span className="font-bold">自动更新实时数据</span>
+								：会在交易时段内自动获取分钟级 K 线数据，保证选股和交易所需数据是最新的。
 							</p>
 						)}
 						<p>
@@ -286,6 +302,17 @@ export const RealMarketKanban = () => {
 							onClick={async () => {
 								if (!isUpdating) {
 									await handleTimeTask(false)
+								}
+								if (!isMinDataUpdating) {
+									await toggleMinDataSchedule({
+										isOn: true,
+										mode: minDataMode,
+										autoAccurate: minDataAutoAccurate,
+										autoFuzzy: minDataAutoFuzzy,
+									})
+									setIsMinDataUpdating(true)
+								}
+								if (!isUpdating || !isMinDataUpdating) {
 									await handleToggleAutoRocket(true, true, true)
 								} else {
 									await handleToggleAutoRocket(true)

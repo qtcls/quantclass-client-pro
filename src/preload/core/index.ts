@@ -31,13 +31,6 @@ export const coreIPC = {
 		autoAccurate?: boolean
 		autoFuzzy?: boolean
 	}) => ipcRenderer.invoke("toggle-min-data-schedule", options),
-	getMinDataScheduleStatus: () =>
-		ipcRenderer.invoke("get-min-data-schedule-status") as Promise<{
-			isRunning: boolean
-			mode: "fast" | "stable"
-			autoAccurate: boolean
-			autoFuzzy: boolean
-		}>,
 	onMinDataScheduleStatus: (
 		callback: (
 			event: Electron.IpcRendererEvent,

@@ -90,7 +90,19 @@ export const isMinDataUpdatingAtom = atom(false)
 export const minDataModeAtom = atomWithStorage<"fast" | "stable">(
 	"minDataMode",
 	"fast",
+	undefined,
+	{ getOnInit: true },
 )
-export const minDataAutoAccurateAtom = atom(true)
-export const minDataAutoFuzzyAtom = atom(true)
+export const minDataAutoAccurateAtom = atomWithStorage<boolean>(
+	"minDataAutoAccurate",
+	true,
+	undefined,
+	{ getOnInit: true },
+)
+export const minDataAutoFuzzyAtom = atomWithStorage<boolean>(
+	"minDataAutoFuzzy",
+	true,
+	undefined,
+	{ getOnInit: true },
+)
 export const minDataTabAtom = atom<"accurate" | "fuzzy">("accurate")

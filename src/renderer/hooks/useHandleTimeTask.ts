@@ -68,7 +68,7 @@ export const useHandleTimeTask = () => {
 					toast.info(pauseInfo, {
 						description: "自动更新会在本次更新结束后停止",
 					})
-					isAutoRocket && handleToggleAutoRocket(false)
+					isAutoRocket && (await handleToggleAutoRocket(false))
 				} else {
 					toast.success(successInfo)
 				}

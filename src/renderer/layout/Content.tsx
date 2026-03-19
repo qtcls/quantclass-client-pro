@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { GlowDot } from "@/renderer/components/ui/glow-dot"
 import { Badge } from "@/renderer/components/ui/badge"
 import {
 	SidebarContent,
@@ -31,7 +32,12 @@ import {
 	// TRADING_PLAN_PAGE,
 } from "@/renderer/constant"
 import { cn } from "@/renderer/lib/utils"
-import { activeTabAtom } from "@/renderer/store"
+import {
+	activeTabAtom,
+	isAutoRocketAtom,
+	isMinDataUpdatingAtom,
+	isUpdatingAtom,
+} from "@/renderer/store"
 import { libraryTypeAtom } from "@/renderer/store/storage"
 import { useAtomValue, useSetAtom } from "jotai"
 import {
@@ -132,6 +138,9 @@ export const _SidebarContent = () => {
 	const [_, setHoveredItems] = useState<Record<string, boolean>>({})
 	const setActiveTab = useSetAtom(activeTabAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
+	const isUpdating = useAtomValue(isUpdatingAtom)
+	const isMinDataUpdating = useAtomValue(isMinDataUpdatingAtom)
+	const isAutoRocket = useAtomValue(isAutoRocketAtom)
 
 	return (
 		<SidebarContent className="min-w-48">
@@ -192,6 +201,14 @@ export const _SidebarContent = () => {
 									<item.icon />
 								)}
 								<span>{item.title}</span>
+								{(item.url === "/data" && isUpdating) ||
+								(item.url === "/realtime_data" && isMinDataUpdating) ? (
+									<GlowDot
+										size="sm"
+										color="green"
+										className="ml-auto shrink-0"
+									/>
+								) : null}
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					))}
@@ -229,6 +246,13 @@ export const _SidebarContent = () => {
 										{/* <span className="text-[10px] dark:text-white">已启用</span> */}
 										<Check size={12} />
 									</Badge>
+								)}
+								{item.url === REAL_MARKET_CONFIG_PAGE && isAutoRocket && (
+									<GlowDot
+										size="sm"
+										color="green"
+										className="ml-auto shrink-0"
+									/>
 								)}
 							</SidebarMenuButton>
 						</SidebarMenuItem>

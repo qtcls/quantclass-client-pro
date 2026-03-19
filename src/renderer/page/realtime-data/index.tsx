@@ -35,6 +35,7 @@ import {
 	minDataTabAtom,
 	realConfigEditModalAtom,
 } from "@/renderer/store"
+import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
 import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
@@ -96,6 +97,7 @@ const RealtimeData: FC = () => {
 	)
 	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
 	const setRealConfigEditModal = useSetAtom(realConfigEditModalAtom)
+	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
 	const [isAccurateExecuting, setIsAccurateExecuting] = useState(false)
 	const [isFuzzyExecuting, setIsFuzzyExecuting] = useState(false)
 	const [execConfirmOpen, setExecConfirmOpen] = useState(false)
@@ -159,8 +161,9 @@ const RealtimeData: FC = () => {
 	const handleStopAutoUpdate = useCallback(async () => {
 		await toggleMinDataSchedule({ isOn: false })
 		setIsMinDataUpdating(false)
-		toast.success("自动更新数据已停止")
-	}, [setIsMinDataUpdating])
+		toast.info("自动更新数据已停止")
+		isAutoRocket && (await handleToggleAutoRocket(false))
+	}, [setIsMinDataUpdating, isAutoRocket, handleToggleAutoRocket])
 
 	const handleExecAccurate = useCallback(async () => {
 		setIsAccurateExecuting(true)
@@ -281,7 +284,7 @@ const RealtimeData: FC = () => {
 						{isMinDataUpdating ? (
 							<ButtonTooltip content="停止自动更新数据">
 								<Button
-									variant="default"
+									variant="success"
 									size="icon"
 									className="hover:cursor-pointer w-12 h-10 flex items-center justify-center"
 									onClick={handleStopAutoUpdate}

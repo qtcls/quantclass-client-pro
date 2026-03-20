@@ -732,6 +732,15 @@ export default function StrategyStatusTimeline() {
 		setOpenItem(value)
 	}
 
+	// 周六、周日为非交易日
+	const displayDate =
+		selectedDate ||
+		dayjs(new Date(new Date().getTime() + 8.5 * 60 * 60 * 1000)).format(
+			"YYYY-MM-DD",
+		)
+	const isNonTradingDay =
+		dayjs(displayDate).day() === 0 || dayjs(displayDate).day() === 6
+
 	const scrollLeft = (i: number) => {
 		const el = scrollRefs.current[i]
 		el?.scrollBy({ left: -200, behavior: "smooth" })
@@ -812,14 +821,16 @@ export default function StrategyStatusTimeline() {
 													{strategyIndex + 1}. {strategyItem[0].strategyName}
 												</span>
 												{summaryList.length > 0 &&
-													summaryList[strategyIndex].overallStatus && (
+													(summaryList[strategyIndex].overallStatus ||
+														isNonTradingDay) && (
 														<div className="flex-1 min-w-0 flex items-center gap-2 ">
 															{/* 总统状态 */}
 															<Badge
 																variant="outline"
 																className={cn(
 																	"text-xs px-2 py-0.5",
-																	summaryList[strategyIndex].capWeight === 0
+																	isNonTradingDay ||
+																		summaryList[strategyIndex].capWeight === 0
 																		? "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-200 border-gray-200 dark:border-gray-700"
 																		: statusStyleMap[
 																				summaryList[strategyIndex]
@@ -827,11 +838,13 @@ export default function StrategyStatusTimeline() {
 																			],
 																)}
 															>
-																{summaryList[strategyIndex].capWeight === 0
-																	? "非实盘"
-																	: StrategyStatusLabelEnum[
-																			summaryList[strategyIndex].overallStatus!
-																		]}
+																{isNonTradingDay
+																	? "非交易日"
+																	: summaryList[strategyIndex].capWeight === 0
+																		? "非实盘"
+																		: StrategyStatusLabelEnum[
+																				summaryList[strategyIndex].overallStatus!
+																			]}
 															</Badge>
 															{/* 描述title */}
 															{summaryList[strategyIndex].descList.length >

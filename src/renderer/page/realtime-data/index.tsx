@@ -295,7 +295,6 @@ const RealtimeData: FC = () => {
 						) : (
 							<ButtonTooltip content="启动自动更新数据">
 								<Button
-									size="icon"
 									className="hover:cursor-pointer w-12 h-10 flex items-center justify-center"
 									onClick={handleStartAutoUpdate}
 								>

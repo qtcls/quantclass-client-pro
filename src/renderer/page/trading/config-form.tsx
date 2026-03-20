@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { CiccBseNoticeDialog } from "@/renderer/components/CiccBseNoticeDialog"
 import { PerformanceModeSelectTabs } from "@/renderer/components/select-tabs"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
@@ -32,7 +33,10 @@ import { usePermissionCheck, useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useRealMarketConfig } from "@/renderer/hooks/useRealMarketConfig"
 import { realConfigEditModalAtom } from "@/renderer/store"
 import { rocketStatusQueryAtom } from "@/renderer/store/query"
-import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
+import {
+	ciccBseNoticeDismissedAtom,
+	realMarketConfigSchemaAtom,
+} from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -87,6 +91,8 @@ export function TradingConfigForm() {
 
 	const setRealConfigEditModal = useSetAtom(realConfigEditModalAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
+	const [ciccDismissed, setCiccDismissed] = useAtom(ciccBseNoticeDismissedAtom)
+	const [showCiccNotice, setShowCiccNotice] = useState(false)
 
 	const defaultValues = useMemo(() => {
 		const isCiccBroker =
@@ -719,7 +725,16 @@ export function TradingConfigForm() {
 			</Form>
 			<hr />
 			<div className="flex justify-center gap-2">
-				<Button size="sm" onClick={() => handleSave()}>
+				<Button
+					size="sm"
+					onClick={() => {
+						if (isCiccBroker && !ciccDismissed) {
+							setShowCiccNotice(true)
+						} else {
+							void handleSave()
+						}
+					}}
+				>
 					<Save className="mr-2 size-4" />
 					保存实盘配置
 				</Button>
@@ -727,11 +742,14 @@ export function TradingConfigForm() {
 					size="sm"
 					variant="success"
 					onClick={async () => {
-						const isSuccess = await handleSave()
-						if (!isSuccess) return
-						if (await handleToggleAutoRocket(true))
-							// 如果成功启动
-							setRealConfigEditModal(false)
+						if (isCiccBroker && !ciccDismissed) {
+							setShowCiccNotice(true)
+						} else {
+							const isSuccess = await handleSave()
+							if (!isSuccess) return
+							if (await handleToggleAutoRocket(true))
+								setRealConfigEditModal(false)
+						}
 					}}
 					disabled={isAutoRocket}
 				>
@@ -739,6 +757,11 @@ export function TradingConfigForm() {
 					{isAutoRocket ? "正在实盘自动更新" : "保存配置并启动"}
 				</Button>
 			</div>
+			<CiccBseNoticeDialog
+				open={showCiccNotice}
+				onOpenChange={setShowCiccNotice}
+				onConfirm={() => setCiccDismissed(true)}
+			/>
 		</>
 		// 		</ScrollArea>
 		// 	</CardContent>

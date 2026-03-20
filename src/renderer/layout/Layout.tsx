@@ -9,7 +9,7 @@
  */
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { type FC, useEffect } from "react"
+import { type FC, useEffect, useState } from "react"
 import { Outlet, useLocation } from "react-router"
 
 import {
@@ -25,10 +25,15 @@ import {
 	isShowMonitorPanelAtom,
 	loadingAnimeAtom,
 } from "@/renderer/store"
+import {
+	ciccBseNoticeDismissedAtom,
+	realMarketConfigSchemaAtom,
+} from "@/renderer/store/storage"
+import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 
 import LoadingAnime from "@/renderer/components/LoadingAnime"
-import { RealConfigDialog } from "@/renderer/components/RealConfigDialog"
 import MonitorDialog from "@/renderer/components/MonitorDialog"
+import { RealConfigDialog } from "@/renderer/components/RealConfigDialog"
 import {
 	Sidebar,
 	SidebarInset,
@@ -46,6 +51,7 @@ import { useReportErr } from "./hooks/useReportErr"
 
 // -- Utils & Constants
 import { CapWeightMigrateHandler } from "@/renderer/components/CapWeightMigrateHandler"
+import { CiccBseNoticeDialog } from "@/renderer/components/CiccBseNoticeDialog"
 import { AlertDialogProvider } from "@/renderer/context/alert-dialog"
 import VersionUpgrade from "@/renderer/layout/version-upgrade"
 import { cn } from "@/renderer/lib/utils"
@@ -72,6 +78,18 @@ const Layout: FC = () => {
 	// -- State & Atoms
 	const { pathname } = useLocation()
 	const [loading] = useAtom(loadingAnimeAtom)
+	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
+	const [ciccDismissed, setCiccDismissed] = useAtom(ciccBseNoticeDismissedAtom)
+	const [showCiccNotice, setShowCiccNotice] = useState(false)
+
+	// 启动时检测：中金且未点击过「不再提示」则弹框
+	useEffect(() => {
+		const accountId = realMarketConfig?.account_id ?? ""
+		const isCicc = getBrokerNameByAccountId(accountId) === "中金"
+		if (isCicc && !ciccDismissed && accountId) {
+			setShowCiccNotice(true)
+		}
+	}, [realMarketConfig?.account_id, ciccDismissed])
 	const setIsFullscreen = useSetAtom(isFullscreenAtom)
 	const isShowMonitorPanel = useAtomValue(isShowMonitorPanelAtom)
 	const { content } = useReportErr()
@@ -110,6 +128,11 @@ const Layout: FC = () => {
 			<VersionUpgrade />
 			<RealConfigDialog />
 			<CapWeightMigrateHandler />
+			<CiccBseNoticeDialog
+				open={showCiccNotice}
+				onOpenChange={setShowCiccNotice}
+				onConfirm={() => setCiccDismissed(true)}
+			/>
 		</div>
 	)
 }

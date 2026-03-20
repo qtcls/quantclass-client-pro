@@ -172,3 +172,11 @@ export const showMoneyAtom = atomWithStorage<boolean>(
 	undefined,
 	{ getOnInit: true },
 )
+
+// 中金是否已点击「我已知晓不再提示」
+export const ciccBseNoticeDismissedAtom = atomWithStorage<boolean>(
+	"ciccBseNoticeDismissed",
+	false,
+	undefined,
+	{ getOnInit: true },
+)

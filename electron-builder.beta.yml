@@ -1,0 +1,105 @@
+appId: Quantclass
+productName: QuantclassClient
+directories:
+  buildResources: build
+extraResources:
+  - from: build
+    to: resources
+  - from: node_modules/monaco-editor/min/vs
+    to: resources
+  - from: CHANGELOG.md
+    to: CHANGELOG.md
+extraFiles: build
+afterPack: bin/remove.js
+afterSign: bin/notarize.js
+files:
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "out/**/*"
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*.d.ts"
+  - "!**/node_modules/.bin"
+  - "!**/.pnpm/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/.pnpm/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/.pnpm/*/*.d.ts"
+  - "!**/.pnpm/*/.bin"
+  - "node_modules/monaco-editor/min/**/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{biome.json,dev-app-update.yml,README.md,components.json}"
+  - "!{.env,.env.*,.npmrc,pnpm-lock.yaml,.cursorignore,.cursorrules}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+artifactName: ${productName}-${version}-${arch}.${ext}
+asarUnpack:
+  - resources/**
+releaseInfo:
+  releaseNotesFile: CHANGELOG.md
+win:
+  executableName: quantclass
+nsis:
+  include: win/installer.nsh
+  artifactName: ${productName}-${version}-${env.BUILD_TIMESTAMP}.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: true
+  oneClick: false
+  perMachine: true
+  license: build/win/license.txt
+mac:
+  target:
+    - target: default
+      arch:
+        - arm64
+        - x64
+  entitlements: build/mac/entitlements.mac.plist
+  entitlementsInherit: build/mac/entitlements.mac.plist
+  artifactName: "${productName}-${version}-mac-${arch}.${ext}"
+  extendInfo:
+    - NSAppleEventsUsageDescription: Quantclass 需要使用 AppleScript。
+    - NSCalendarsUsageDescription: Quantclass 需要访问日历数据。
+    - NSCameraUsageDescription: Quantclass 需要使用摄像头。
+    - NSContactsUsageDescription: Quantclass 需要访问您的联系人。
+    - NSDesktopFolderUsageDescription: Quantclass 需要访问桌面文件夹。
+    - NSDocumentsFolderUsageDescription: Quantclass 需要访问文档文件夹。
+    - NSDownloadsFolderUsageDescription: Quantclass 需要访问下载文件夹。
+    - NSFileProviderDomainUsageDescription: Quantclass 需要访问文件提供程序管理的文件。
+    - NSFileProviderPresenceUsageDescription: Quantclass 需要在其他应用访问其管理的文件时得到通知。
+    - NSLocationUsageDescription: Quantclass 需要访问您的位置信息。
+    - NSMicrophoneUsageDescription: Quantclass 需要使用您的麦克风。
+    - NSMotionUsageDescription: Quantclass 需要使用设备的加速度计。
+    - NSNetworkVolumesUsageDescription: Quantclass 需要访问网络卷上的文件。
+    - NSPhotoLibraryUsageDescription: Quantclass 需要访问照片库。
+    - NSRemindersUsageDescription: Quantclass 需要访问您的提醒事项。
+    - NSRemovableVolumesUsageDescription: Quantclass 需要访问可移动卷上的文件。
+    - NSSpeechRecognitionUsageDescription: Quantclass 需要将用户数据发送到 Apple 的语音识别服务器。
+    - NSSystemAdministrationUsageDescription: Quantclass 执行的操作需要提升权限。
+  notarize: false
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  format: ULFO
+  contents:
+    - x: 150
+      y: 130
+    - x: 448
+      y: 130
+      type: link
+      path: /Applications
+    - x: 299
+      y: 245
+      type: file
+      path: build/fix-corrupted
+linux:
+  target:
+    - AppImage
+    - snap
+    - deb
+  maintainer: simons
+  category: Utility
+appImage:
+  artifactName: ${productName}-${version}.${ext}
+npmRebuild: true
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/

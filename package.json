@@ -31,7 +31,7 @@
 		"postinstall": "electron-builder install-app-deps",
 		"build:unpack": "cross-env VITE_XBX_ENV=production electron-vite build && electron-builder --dir",
 		"build:win": "chcp 65001 && cross-env VITE_XBX_ENV=production electron-vite build && electron-builder --win",
-		"build:win:beta": "node -e \"const{execSync}=require('child_process');const v=require('./package.json').version,t=new Date().toISOString().slice(0,19).replace(/[-:T]/g,'');try{execSync('pnpm version '+v+'-'+t+' --no-git-tag-version',{stdio:'inherit'});execSync('pnpm run build:win',{stdio:'inherit'})}finally{execSync('pnpm version '+v+' --no-git-tag-version',{stdio:'inherit'})}\"",
+		"build:win:beta": "node scripts/build-win-beta.cjs",
 		"build:mac": "cross-env VITE_XBX_ENV=production electron-vite build && electron-builder --mac",
 		"build:linux": "cross-env VITE_XBX_ENV=production electron-vite build && electron-builder --linux",
 		"publish:win": "chcp 65001 && cross-env VITE_XBX_ENV=production electron-vite build && electron-builder --win --publish always",

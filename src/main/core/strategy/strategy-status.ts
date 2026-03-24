@@ -159,6 +159,12 @@ function getStrategyTiming(strategy: any): {
 	return { latestTime, hasTimingOrOverride }
 }
 
+// 检查策略是否配置了 stock_timing_list
+function hasStockTimingListConfig(strategy: any): boolean {
+	const list = strategy?.stock_timing_list
+	return Array.isArray(list) && list.length > 0
+}
+
 /**
  * 将时间字符串转换为Date对象
  * @param timeStr 时间字符串，如 "0945" (HHMM) 或 "094530" (HHMMSS)
@@ -287,6 +293,7 @@ async function generateSingleStrategyStatus(
 	isOvernightRebalance: boolean, // 是否隔日换仓
 	isStrategyPool = false, // 是否为 pos 类型策略
 	capWeight = 1, // 策略权重，0 表示非实盘
+	hasStockTimingList = false,
 ): Promise<StrategyStatus[]> {
 	const selectKernel = await detectSelectKernel(date)
 
@@ -369,29 +376,6 @@ async function generateSingleStrategyStatus(
 			: undefined
 	}
 
-	// 整合 SELECT_TIMING_SIG0 的 stats
-	const mergeTimingSig0Stats = () => {
-		const rocketDataStats = findStatsByTag(
-			rocketStats,
-			"SELECT_TIMING_SIG0_DATA",
-		)
-		const selectSigStats = findStatsByTag(selectStats, "SELECT_TIMING_SIG0")
-		return [...rocketDataStats, ...selectSigStats]
-	}
-
-	// 整合 SELECT_TIMING_SIG1 的 stats
-	const mergeTimingSig1Stats = () => {
-		const rocketDataStats = findStatsByTag(
-			rocketStats,
-			"SELECT_TIMING_SIG1_DATA",
-		)
-		const selectSigStats = findStatsByTag(selectStats, "SELECT_TIMING_SIG1")
-		return [...rocketDataStats, ...selectSigStats]
-	}
-
-	const timingSig0Stats = mergeTimingSig0Stats()
-	const timingSig1Stats = mergeTimingSig1Stats()
-
 	const statusList: StrategyStatus[] = [
 		// {
 		// 	strategyName,
@@ -443,6 +427,44 @@ async function generateSingleStrategyStatus(
 		},
 	]
 
+	// stock_timing_list 不为空时显示个股择时
+	if (hasStockTimingList) {
+		statusList.push(
+			{
+				strategyName,
+				tag: "STOCK_TIMING_SIG1_0930",
+				title: "0930个股择时信号计算",
+				description: "0930个股择时信号计算",
+				status: determineStatus(
+					parseTimeToDate("0930", date),
+					parseTimeToDate("1030", date),
+					findLatestStatByTag(selectStats, "STOCK_TIMING_SIG1_0930"),
+				),
+				plan: {
+					time: parseTimeToDate("0930", date),
+				},
+				stat: findLatestStatByTag(selectStats, "STOCK_TIMING_SIG1_0930"),
+				stats: findStatsByTag(selectStats, "STOCK_TIMING_SIG1_0930"),
+			},
+			{
+				strategyName,
+				tag: "STOCK_TIMING_TRADE_0930",
+				title: "0930个股择时交易",
+				description: "0930个股择时交易买入卖出",
+				status: determineStatus(
+					parseTimeToDate("0930", date),
+					parseTimeToDate("1030", date),
+					findLatestStatByTag(rocketStats, "STOCK_TIMING_TRADE_0930"),
+				),
+				plan: {
+					time: parseTimeToDate("0930", date),
+				},
+				stat: findLatestStatByTag(rocketStats, "STOCK_TIMING_TRADE_0930"),
+				stats: findStatsByTag(rocketStats, "STOCK_TIMING_TRADE_0930"),
+			},
+		)
+	}
+
 	// 只有当存在 timing 或 override 时，添加择时信号状态
 	if (hasTimingOrOverride) {
 		statusList.push(
@@ -454,18 +476,13 @@ async function generateSingleStrategyStatus(
 				status: determineStatus(
 					qmtDataTime,
 					sellPlanTime,
-					timingSig0Stats.length > 0
-						? timingSig0Stats[timingSig0Stats.length - 1]
-						: undefined,
+					findLatestStatByTag(selectStats, "SELECT_TIMING_SIG0"),
 				),
 				plan: {
 					time: qmtDataTime,
 				},
-				stat:
-					timingSig0Stats.length > 0
-						? timingSig0Stats[timingSig0Stats.length - 1]
-						: undefined,
-				stats: timingSig0Stats,
+				stat: findLatestStatByTag(selectStats, "SELECT_TIMING_SIG0"),
+				stats: findStatsByTag(selectStats, "SELECT_TIMING_SIG0"),
 				isStrategyPool,
 			},
 			{
@@ -476,18 +493,13 @@ async function generateSingleStrategyStatus(
 				status: determineStatus(
 					qmtDataTime,
 					sellPlanTime,
-					timingSig1Stats.length > 0
-						? timingSig1Stats[timingSig1Stats.length - 1]
-						: undefined,
+					findLatestStatByTag(selectStats, "SELECT_TIMING_SIG1"),
 				),
 				plan: {
 					time: qmtDataTime,
 				},
-				stat:
-					timingSig1Stats.length > 0
-						? timingSig1Stats[timingSig1Stats.length - 1]
-						: undefined,
-				stats: timingSig1Stats,
+				stat: findLatestStatByTag(selectStats, "SELECT_TIMING_SIG1"),
+				stats: findStatsByTag(selectStats, "SELECT_TIMING_SIG1"),
 				isStrategyPool,
 			},
 		)
@@ -560,23 +572,126 @@ async function generateSingleStrategyStatus(
 			stat: findLatestStatByTag(rocketStats, "TRADE_BUY"),
 			stats: findStatsByTag(rocketStats, "TRADE_BUY"),
 		},
-		{
-			strategyName,
-			tag: "REVERSE_REPO",
-			title: "收盘后",
-			description: "下单逆回购",
-			status: determineStatus(
-				tradeReverseRepoTime,
-				tradeReverseRepoDeadline,
-				findLatestStatByTag(rocketStats, "REVERSE_REPO"),
-			),
-			plan: {
-				time: tradeReverseRepoTime,
-			},
-			stat: findLatestStatByTag(rocketStats, "REVERSE_REPO"),
-			stats: findStatsByTag(rocketStats, "REVERSE_REPO"),
-		},
 	)
+
+	// stock_timing_list 不为空时显示个股择时
+	if (hasStockTimingList) {
+		statusList.push(
+			{
+				strategyName,
+				tag: "STOCK_TIMING_SIG1_1030",
+				title: "1030个股择时信号计算",
+				description: "1030个股择时信号计算",
+				status: determineStatus(
+					parseTimeToDate("1030", date),
+					parseTimeToDate("1130", date),
+					findLatestStatByTag(selectStats, "STOCK_TIMING_SIG1_1030"),
+				),
+				plan: {
+					time: parseTimeToDate("1030", date),
+				},
+				stat: findLatestStatByTag(selectStats, "STOCK_TIMING_SIG1_1030"),
+				stats: findStatsByTag(selectStats, "STOCK_TIMING_SIG1_1030"),
+			},
+			{
+				strategyName,
+				tag: "STOCK_TIMING_TRADE_1030",
+				title: "1030个股择时交易",
+				description: "1030个股择时交易买入卖出",
+				status: determineStatus(
+					parseTimeToDate("1030", date),
+					parseTimeToDate("1130", date),
+					findLatestStatByTag(rocketStats, "STOCK_TIMING_TRADE_1030"),
+				),
+				plan: {
+					time: parseTimeToDate("1030", date),
+				},
+				stat: findLatestStatByTag(rocketStats, "STOCK_TIMING_TRADE_1030"),
+				stats: findStatsByTag(rocketStats, "STOCK_TIMING_TRADE_1030"),
+			},
+			{
+				strategyName,
+				tag: "STOCK_TIMING_SIG1_1300",
+				title: "1300个股择时信号计算",
+				description: "1300个股择时信号计算",
+				status: determineStatus(
+					parseTimeToDate("1300", date),
+					parseTimeToDate("1400", date),
+					findLatestStatByTag(selectStats, "STOCK_TIMING_SIG1_1300"),
+				),
+				plan: {
+					time: parseTimeToDate("1300", date),
+				},
+				stat: findLatestStatByTag(selectStats, "STOCK_TIMING_SIG1_1300"),
+				stats: findStatsByTag(selectStats, "STOCK_TIMING_SIG1_1300"),
+			},
+			{
+				strategyName,
+				tag: "STOCK_TIMING_TRADE_1300",
+				title: "1300个股择时交易",
+				description: "1300个股择时交易买入卖出",
+				status: determineStatus(
+					parseTimeToDate("1300", date),
+					parseTimeToDate("1400", date),
+					findLatestStatByTag(rocketStats, "STOCK_TIMING_TRADE_1300"),
+				),
+				plan: {
+					time: parseTimeToDate("1300", date),
+				},
+				stat: findLatestStatByTag(rocketStats, "STOCK_TIMING_TRADE_1300"),
+				stats: findStatsByTag(rocketStats, "STOCK_TIMING_TRADE_1300"),
+			},
+			{
+				strategyName,
+				tag: "STOCK_TIMING_SIG1_1400",
+				title: "1400个股择时信号计算",
+				description: "1400个股择时信号计算",
+				status: determineStatus(
+					parseTimeToDate("1400", date),
+					parseTimeToDate("1500", date),
+					findLatestStatByTag(selectStats, "STOCK_TIMING_SIG1_1400"),
+				),
+				plan: {
+					time: parseTimeToDate("1400", date),
+				},
+				stat: findLatestStatByTag(selectStats, "STOCK_TIMING_SIG1_1400"),
+				stats: findStatsByTag(selectStats, "STOCK_TIMING_SIG1_1400"),
+			},
+			{
+				strategyName,
+				tag: "STOCK_TIMING_TRADE_1400",
+				title: "1400个股择时交易",
+				description: "1400个股择时交易买入卖出",
+				status: determineStatus(
+					parseTimeToDate("1400", date),
+					parseTimeToDate("1500", date),
+					findLatestStatByTag(rocketStats, "STOCK_TIMING_TRADE_1400"),
+				),
+				plan: {
+					time: parseTimeToDate("1400", date),
+				},
+				stat: findLatestStatByTag(rocketStats, "STOCK_TIMING_TRADE_1400"),
+				stats: findStatsByTag(rocketStats, "STOCK_TIMING_TRADE_1400"),
+			},
+		)
+	}
+
+	statusList.push({
+		strategyName,
+		tag: "REVERSE_REPO",
+		title: "收盘后",
+		description: "下单逆回购",
+		status: determineStatus(
+			tradeReverseRepoTime,
+			tradeReverseRepoDeadline,
+			findLatestStatByTag(rocketStats, "REVERSE_REPO"),
+		),
+		plan: {
+			time: tradeReverseRepoTime,
+		},
+		stat: findLatestStatByTag(rocketStats, "REVERSE_REPO"),
+		stats: findStatsByTag(rocketStats, "REVERSE_REPO"),
+	})
 
 	const result = sortBy(statusList, (s) => {
 		const t = s.plan.time
@@ -644,9 +759,10 @@ async function getStrategyStatusListForSelect(
 					!rebalanceTime || rebalanceTime === "close-open"
 
 				const capWeight = strategy.cap_weight ?? 1
+				const hasStockTimingList = hasStockTimingListConfig(strategy)
 
 				logger.info(
-					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}, cap_weight=${capWeight}`,
+					`[strategy-status] 策略 ${index}(${strategyName}): 卖出时间=${sellTimeStr}, 买入时间=${buyTimeStr}, timing时间=${latestTime}, hasTimingOrOverride=${hasTimingOrOverride}, rebalance_time=${rebalanceTime}, isOvernightRebalance=${isOvernightRebalance}, cap_weight=${capWeight}, hasStockTimingList=${hasStockTimingList}`,
 				)
 
 				return await generateSingleStrategyStatus(
@@ -659,6 +775,7 @@ async function getStrategyStatusListForSelect(
 					isOvernightRebalance,
 					false,
 					capWeight,
+					hasStockTimingList,
 				)
 			}),
 		)
@@ -709,6 +826,7 @@ async function getStrategyStatusListForPos(
 			isOvernightRebalance: boolean
 			isStrategyPool?: boolean
 			capWeight: number
+			hasStockTimingList: boolean
 		}
 
 		const posStrategies: PosStrategy[] = []
@@ -733,6 +851,7 @@ async function getStrategyStatusListForPos(
 
 				// 检查 strategy_pool 中是否有任何子策略包含 timing 或 override
 				let posHasTimingOrOverride = false
+				let posHasStockTimingList = false
 				const strategyPool = strategy.strategy_pool || []
 				for (const poolItem of strategyPool) {
 					// poolItem 可能是 group 或 select
@@ -742,7 +861,9 @@ async function getStrategyStatusListForPos(
 							const { hasTimingOrOverride } = getStrategyTiming(subStg)
 							if (hasTimingOrOverride) {
 								posHasTimingOrOverride = true
-								break
+							}
+							if (hasStockTimingListConfig(subStg)) {
+								posHasStockTimingList = true
 							}
 						}
 					} else {
@@ -750,10 +871,11 @@ async function getStrategyStatusListForPos(
 						const { hasTimingOrOverride } = getStrategyTiming(poolItem)
 						if (hasTimingOrOverride) {
 							posHasTimingOrOverride = true
-							break
+						}
+						if (hasStockTimingListConfig(poolItem)) {
+							posHasStockTimingList = true
 						}
 					}
-					if (posHasTimingOrOverride) break
 				}
 
 				const rebalanceTime = strategy.rebalance_time
@@ -771,6 +893,7 @@ async function getStrategyStatusListForPos(
 					isOvernightRebalance,
 					isStrategyPool: true, // 标记为 pos 类型
 					capWeight,
+					hasStockTimingList: posHasStockTimingList,
 				})
 
 				logger.info(
@@ -797,6 +920,7 @@ async function getStrategyStatusListForPos(
 						getStrategyTiming(subStrategy)
 
 					const capWeight = subStrategy.cap_weight ?? 1
+					const hasStockTimingList = hasStockTimingListConfig(subStrategy)
 
 					posStrategies.push({
 						name: dictKey,
@@ -809,6 +933,7 @@ async function getStrategyStatusListForPos(
 							!subStrategy.rebalance_time ||
 							subStrategy.rebalance_time === "close-open",
 						capWeight,
+						hasStockTimingList,
 					})
 
 					logger.info(
@@ -828,6 +953,7 @@ async function getStrategyStatusListForPos(
 					!rebalanceTime || rebalanceTime === "close-open"
 
 				const capWeight = strategy.cap_weight ?? 1
+				const hasStockTimingList = hasStockTimingListConfig(strategy)
 
 				posStrategies.push({
 					name: strategyName,
@@ -838,6 +964,7 @@ async function getStrategyStatusListForPos(
 					rebalanceTime,
 					isOvernightRebalance,
 					capWeight,
+					hasStockTimingList,
 				})
 
 				logger.info(
@@ -859,6 +986,7 @@ async function getStrategyStatusListForPos(
 					posStrategy.isOvernightRebalance,
 					posStrategy.isStrategyPool ?? false,
 					posStrategy.capWeight,
+					posStrategy.hasStockTimingList,
 				)
 			}),
 		)

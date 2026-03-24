@@ -985,6 +985,178 @@ export function SelectStgForm({
 								</FormItem>
 							)}
 						/>
+						<FormField
+							control={form.control}
+							name="stock_timing_list"
+							render={({ field }) => (
+								<FormItem className={cn("flex flex-col")}>
+									<div className="rounded-lg border  ">
+										<FormLabel className="flex items-center gap-1 p-2 py-3">
+											<Timer className="size-4 mr-1" />
+											个股择时列表
+											<span className="text-xs">（暂不支持直接编辑）</span>
+										</FormLabel>
+										<Separator />
+										<div className="px-4">
+											{(field.value ?? []).length > 0 ? (
+												<Accordion type="multiple" className="w-full pb-4">
+													{(field.value ?? []).map((stockTimingItem, index) => (
+														<AccordionItem
+															key={index}
+															value={`stock-timing-${index}`}
+														>
+															<AccordionTrigger className="!no-underline !hover:no-underline py-3">
+																<div className="flex items-center gap-2">
+																	<span className="hover:underline">
+																		{stockTimingItem.name}
+																	</span>
+																	{stockTimingItem.period && (
+																		<span className="text-xs text-muted-foreground">
+																			({stockTimingItem.period})
+																		</span>
+																	)}
+																</div>
+															</AccordionTrigger>
+															<AccordionContent className="flex flex-col gap-4 text-balance bg-gray-100 dark:bg-black border p-2 rounded-lg mb-2">
+																<div className="space-y-2">
+																	<div className="flex items-center gap-1">
+																		<CircuitBoard className="size-4 mr-1" />
+																		<span>依赖的时序因子列表</span>
+																		<span className="text-xs">
+																			（暂不支持直接编辑）
+																		</span>
+																	</div>
+
+																	{stockTimingItem?.factor_list?.length > 0 ? (
+																		<>
+																			<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+																				<span>因子名称</span>
+																				<span>排序方式</span>
+																				<span>因子参数</span>
+																				<span>因子计算参数（比如权重）</span>
+																			</div>
+																			<div className="space-y-2">
+																				{stockTimingItem?.factor_list?.map(
+																					(
+																						factor: [
+																							string,
+																							boolean,
+																							any,
+																							string | number | null,
+																						],
+																						idx: number,
+																					) => (
+																						<div
+																							key={idx}
+																							className="grid grid-cols-4 gap-2"
+																						>
+																							<FormControl>
+																								<InputUI
+																									value={factor[0]}
+																									className="text-muted-foreground text-xs"
+																									readOnly
+																								/>
+																							</FormControl>
+																							<FormControl>
+																								<InputUI
+																									value={
+																										factor[1]
+																											? "从小到大排序"
+																											: "从大到小排序"
+																									}
+																									className="text-muted-foreground text-xs"
+																									readOnly
+																								/>
+																							</FormControl>
+																							<FormControl>
+																								<InputUI
+																									value={
+																										factor[2] !== null
+																											? JSON.stringify(
+																													factor[2],
+																												)
+																											: "无参数"
+																									}
+																									className="text-muted-foreground text-xs font-mono"
+																									readOnly
+																								/>
+																							</FormControl>
+																							<FormControl>
+																								<InputUI
+																									value={factor[3] ?? ""}
+																									className="text-muted-foreground text-xs"
+																									readOnly
+																								/>
+																							</FormControl>
+																						</div>
+																					),
+																				)}
+																			</div>
+																		</>
+																	) : (
+																		<div className="text-muted-foreground ml-2 text-xs">
+																			暂无依赖因子，请先进行配置
+																		</div>
+																	)}
+																</div>
+
+																<Separator />
+
+																<div className="space-y-2">
+																	<div className="grid grid-cols-4 gap-2 text-xs ">
+																		<span>参数</span>
+																		<span>权重</span>
+																		<span>周期</span>
+																		<span />
+																	</div>
+																	<div className="space-y-2">
+																		<div className="grid grid-cols-4 gap-2">
+																			<FormControl>
+																				<InputUI
+																					value={
+																						stockTimingItem?.params ?? "无"
+																					}
+																					className="text-muted-foreground text-xs"
+																					readOnly
+																				/>
+																			</FormControl>
+																			<FormControl>
+																				<InputUI
+																					value={
+																						stockTimingItem?.weight ?? "无"
+																					}
+																					className="text-muted-foreground text-xs"
+																					readOnly
+																				/>
+																			</FormControl>
+																			<FormControl>
+																				<InputUI
+																					value={
+																						stockTimingItem?.period ?? "无"
+																					}
+																					className="text-muted-foreground text-xs"
+																					readOnly
+																				/>
+																			</FormControl>
+																			<span />
+																		</div>
+																	</div>
+																</div>
+															</AccordionContent>
+														</AccordionItem>
+													))}
+												</Accordion>
+											) : (
+												<div className="text-muted-foreground text-xs py-2">
+													暂无个股择时，请先进行配置
+												</div>
+											)}
+										</div>
+									</div>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<div className="flex flex-col gap-3 bg-gray-100 border p-2 rounded-lg dark:bg-black">
 							<h3 className="text-sm text-warning-600 dark:text-warning flex items-center gap-1">
 								<Biohazard className="size-4 mr-1 font-bold" />

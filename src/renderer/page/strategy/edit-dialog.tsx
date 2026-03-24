@@ -120,6 +120,7 @@ export default function StrategyEditDialog({
 								override: strategy.override,
 								scalein_targets: strategy.scalein_targets,
 								cross_sections: strategy.cross_sections || [],
+								stock_timing_list: strategy.stock_timing_list || [],
 							}}
 							onSave={async (values) => {
 								if (fusionIndex < 0) {

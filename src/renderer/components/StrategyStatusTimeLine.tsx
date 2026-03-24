@@ -229,8 +229,6 @@ export default function StrategyStatusTimeline() {
 			return
 		}
 
-		console.log("strategyStatusData", strategyStatusData)
-
 		const selected = dayjs(
 			selectedDate || new Date(new Date().getTime() + 8.5 * 60 * 60 * 1000),
 		)

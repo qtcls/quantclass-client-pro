@@ -31,6 +31,7 @@ export const settingsAtom = atomWithElectronStore<SettingsType>("settings", {
 	all_data_path: "",
 	strategy_result_path: "",
 	is_auto_launch_update: false,
+	is_auto_launch_min_data: false,
 	is_auto_launch_real_trading: false,
 	data_white_list: [],
 	hid: "",

@@ -39,6 +39,7 @@ import type { SettingsType } from "@/renderer/types"
 import type { KernalType } from "@/shared/types"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
+	Activity,
 	Blocks,
 	ChevronDown,
 	ChevronUp,
@@ -87,6 +88,10 @@ export default function SettingsPage() {
 		return settings.is_auto_launch_update
 	}, [settings.is_auto_launch_update])
 
+	const isAutoLaunchMinData = useMemo(() => {
+		return settings.is_auto_launch_min_data
+	}, [settings.is_auto_launch_min_data])
+
 	const handleSetIsAutoLaunchUpdate = (value: boolean) => {
 		const updates: Partial<SettingsType> = { is_auto_launch_update: value }
 		if (!value) {
@@ -94,7 +99,17 @@ export default function SettingsPage() {
 		}
 		updateSettings(updates)
 		toast.dismiss()
-		toast.success(value ? "自动更新已开启" : "自动更新已关闭")
+		toast.success(value ? "自动更新历史数据已开启" : "自动更新历史数据已关闭")
+	}
+
+	const handleSetIsAutoLaunchMinData = (value: boolean) => {
+		const updates: Partial<SettingsType> = { is_auto_launch_min_data: value }
+		if (!value) {
+			updates.is_auto_launch_real_trading = false
+		}
+		updateSettings(updates)
+		toast.dismiss()
+		toast.success(value ? "自动更新实时数据已开启" : "自动更新实时数据已关闭")
 	}
 
 	const handleSetIsAutoLaunchRealTrading = (value: boolean) => {
@@ -106,6 +121,7 @@ export default function SettingsPage() {
 		}
 		if (value) {
 			updates.is_auto_launch_update = true
+			updates.is_auto_launch_min_data = true
 		}
 		updateSettings(updates)
 		toast.dismiss()
@@ -420,10 +436,10 @@ export default function SettingsPage() {
 							className="font-medium text-sm hover:cursor-pointer flex items-center gap-1"
 						>
 							<Rss className="size-4" />
-							自动更新数据
+							自动更新历史数据
 						</Label>
 						<p className="text-xs text-muted-foreground">
-							应用启动时开启自动更新数据。
+							应用启动时开启自动更新历史数据。
 						</p>
 					</div>
 					<Switch
@@ -431,6 +447,27 @@ export default function SettingsPage() {
 						checked={isAutoLaunchUpdate}
 						disabled={!isMember}
 						onCheckedChange={handleSetIsAutoLaunchUpdate}
+					/>
+				</div>
+
+				<div className="flex items-center justify-between">
+					<div className="space-y-1">
+						<Label
+							htmlFor="is_auto_launch_min_data"
+							className="font-medium text-sm hover:cursor-pointer flex items-center gap-1"
+						>
+							<Activity className="size-4" />
+							自动更新实时数据
+						</Label>
+						<p className="text-xs text-muted-foreground">
+							应用启动时开启自动更新实时数据。
+						</p>
+					</div>
+					<Switch
+						id="is_auto_launch_min_data"
+						checked={isAutoLaunchMinData}
+						disabled={!isMember}
+						onCheckedChange={handleSetIsAutoLaunchMinData}
 					/>
 				</div>
 
@@ -445,7 +482,7 @@ export default function SettingsPage() {
 								启动自动实盘
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								应用启动时开启自动实盘(开启后默认会开启自动数据更新配置)。
+								应用启动时开启自动实盘（开启后默认会开启自动更新历史数据和实时数据）。
 							</p>
 						</div>
 						<Switch

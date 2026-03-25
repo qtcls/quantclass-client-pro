@@ -15,6 +15,7 @@ import {
 } from "@/renderer/constant"
 import { useConfig } from "@/renderer/hooks/useConfig"
 import { useHandleTimeTask } from "@/renderer/hooks/useHandleTimeTask"
+import { useMinDataSchedule } from "@/renderer/hooks/useMinDataSchedule"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 import { onPowerStatus, unPowerStatusListener } from "@/renderer/ipc/listener"
 
@@ -74,6 +75,7 @@ export const useLifeCycle = () => {
 	const { syncSelectStgList } = useStrategyManager()
 	const { syncFusion } = useFusionManager()
 	const { handleToggleAutoRocket } = useToggleAutoRealTrading()
+	const { startMinDataSchedule } = useMinDataSchedule()
 	// const { mutateAsync } = useExtraWorkStatus()
 	const handleTimeTask = useHandleTimeTask()
 
@@ -213,19 +215,38 @@ export const useLifeCycle = () => {
 
 	const initAutoLauncher = async (apiKey: string, uuid: string) => {
 		if (!apiKey || !uuid) return
-		const [isAutoLaunchUpdate, isAutoLaunchRealTrading] = await Promise.all([
-			getStoreValue("settings.is_auto_launch_update", false),
-			getStoreValue("settings.is_auto_launch_real_trading", false),
-		])
+		const [isAutoLaunchUpdate, isAutoLaunchRealTrading, isAutoLaunchMinData] =
+			await Promise.all([
+				getStoreValue("settings.is_auto_launch_update", false),
+				getStoreValue("settings.is_auto_launch_real_trading", false),
+				getStoreValue("settings.is_auto_launch_min_data", false),
+			])
+
 		if (isAutoLaunchUpdate) {
 			await handleTimeTask(false, false)
-			toast.success("已为您开启自动更新数据")
 		}
-		if (isAutoLaunchUpdate && isAutoLaunchRealTrading) {
+
+		if (isAutoLaunchMinData) {
+			await startMinDataSchedule(false)
+		}
+
+		const shouldStartRocket =
+			isAutoLaunchRealTrading &&
+			isAutoLaunchUpdate &&
+			isAutoLaunchMinData
+
+		if (shouldStartRocket) {
 			await handleToggleAutoRocket(true, false, true)
-			toast.success("已为您开启自动实盘和自动更新数据")
 		} else {
 			await handleToggleAutoRocket(false, false, true)
+		}
+
+		const parts: string[] = []
+		if (isAutoLaunchUpdate) parts.push("自动更新历史数据")
+		if (isAutoLaunchMinData) parts.push("自动更新实时数据")
+		if (shouldStartRocket) parts.push("自动实盘")
+		if (parts.length > 0) {
+			toast.success(`已为您开启：${parts.join("、")}`)
 		}
 	}
 

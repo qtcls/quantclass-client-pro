@@ -37,8 +37,15 @@ export function SelfStarting() {
 					className="flex items-center cursor-pointer"
 					onClick={() => navigate(SETTINGS_PAGE)}
 				>
-					<div>开机启动自动更新数据：</div>
+					<div>开机启动自动更新历史数据：</div>
 					<div>{settings.is_auto_launch_update ? "✅" : "🈚️"}</div>
+				</div>
+				<div
+					className="flex items-center cursor-pointer"
+					onClick={() => navigate(SETTINGS_PAGE)}
+				>
+					<div>开机启动自动更新实时数据：</div>
+					<div>{settings.is_auto_launch_min_data ? "✅" : "🈚️"}</div>
 				</div>
 				<div
 					className="flex items-center cursor-pointer"

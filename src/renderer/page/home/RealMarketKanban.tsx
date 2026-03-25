@@ -22,15 +22,10 @@ import { H3 } from "@/renderer/components/ui/typography"
 // import { POSITION_INFO_PAGE } from "@/renderer/constant"
 import { usePermissionCheck } from "@/renderer/hooks"
 import { useHandleTimeTask } from "@/renderer/hooks"
+import { useMinDataSchedule } from "@/renderer/hooks"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 import BuyBlacklist from "@/renderer/page/trading/buy-blacklist"
-import {
-	isMinDataUpdatingAtom,
-	isUpdatingAtom,
-	minDataAutoAccurateAtom,
-	minDataAutoFuzzyAtom,
-	minDataModeAtom,
-} from "@/renderer/store"
+import { isMinDataUpdatingAtom, isUpdatingAtom } from "@/renderer/store"
 // import { realTradingTabAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import {
@@ -47,7 +42,7 @@ import { useEffect, useState } from "react"
 import TradeCtrlBtn from "../../components/trade-ctrl-btn"
 // import { useNavigate } from "react-router"
 
-const { getStoreValue, toggleMinDataSchedule } = window.electronAPI
+const { getStoreValue } = window.electronAPI
 
 export const RealMarketKanban = () => {
 	// const navigate = useNavigate()
@@ -56,16 +51,14 @@ export const RealMarketKanban = () => {
 	const [showMoney, setShowMoney] = useAtom(showMoneyAtom)
 	const totalWeight = useAtomValue(totalWeightAtom)
 	const isUpdating = useAtomValue(isUpdatingAtom)
-	const [isMinDataUpdating, setIsMinDataUpdating] = useAtom(isMinDataUpdatingAtom)
-	const minDataMode = useAtomValue(minDataModeAtom)
-	const minDataAutoAccurate = useAtomValue(minDataAutoAccurateAtom)
-	const minDataAutoFuzzy = useAtomValue(minDataAutoFuzzyAtom)
+	const isMinDataUpdating = useAtomValue(isMinDataUpdatingAtom)
 	const { apiKey, uuid } = useAtomValue(accountKeyAtom)
 	// const navigate = useNavigate()
 	// const [_, setActiveTab] = useAtom(activeTabAtom)
 
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
 	const handleTimeTask = useHandleTimeTask()
+	const { startMinDataSchedule } = useMinDataSchedule()
 	const [, setSelectModuleTimes] = useState<string[]>([])
 	// const setActiveTab = useSetAtom(realTradingTabAtom)
 
@@ -304,13 +297,7 @@ export const RealMarketKanban = () => {
 									await handleTimeTask(false)
 								}
 								if (!isMinDataUpdating) {
-									await toggleMinDataSchedule({
-										isOn: true,
-										mode: minDataMode,
-										autoAccurate: minDataAutoAccurate,
-										autoFuzzy: minDataAutoFuzzy,
-									})
-									setIsMinDataUpdating(true)
+									await startMinDataSchedule()
 								}
 								if (!isUpdating || !isMinDataUpdating) {
 									await handleToggleAutoRocket(true, true, true)

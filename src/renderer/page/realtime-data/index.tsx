@@ -35,7 +35,10 @@ import {
 	minDataTabAtom,
 	realConfigEditModalAtom,
 } from "@/renderer/store"
-import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
+import {
+	useMinDataSchedule,
+	useToggleAutoRealTrading,
+} from "@/renderer/hooks"
 import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
 import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
@@ -46,7 +49,6 @@ import { toast } from "sonner"
 const {
 	execMinData,
 	execMinDataFuzzy,
-	toggleMinDataSchedule,
 	onMinDataScheduleStatus,
 	removeMinDataScheduleStatusListener,
 } = window.electronAPI
@@ -92,12 +94,12 @@ const RealtimeData: FC = () => {
 	const [activeTab, setActiveTab] = useAtom(minDataTabAtom)
 	const [autoAccurate, setAutoAccurate] = useAtom(minDataAutoAccurateAtom)
 	const [autoFuzzy, setAutoFuzzy] = useAtom(minDataAutoFuzzyAtom)
-	const [isMinDataUpdating, setIsMinDataUpdating] = useAtom(
-		isMinDataUpdatingAtom,
-	)
+	const isMinDataUpdating = useAtomValue(isMinDataUpdatingAtom)
 	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
 	const setRealConfigEditModal = useSetAtom(realConfigEditModalAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
+	const { startMinDataSchedule, stopMinDataSchedule, syncMinDataSchedule } =
+		useMinDataSchedule()
 	const [isAccurateExecuting, setIsAccurateExecuting] = useState(false)
 	const [isFuzzyExecuting, setIsFuzzyExecuting] = useState(false)
 	const [execConfirmOpen, setExecConfirmOpen] = useState(false)
@@ -140,30 +142,13 @@ const RealtimeData: FC = () => {
 	const isCiccBroker = brokerName === "中金"
 
 	const handleStartAutoUpdate = useCallback(async () => {
-		if (!autoAccurate && !autoFuzzy) {
-			toast.warning("请至少选择一种要自动更新的数据类型")
-			return
-		}
-		if (!isQmtConfigured) {
-			toast.warning("QMT 未配置，请先在实盘配置中填写 QMT 账户号和安装路径")
-			return
-		}
-		await toggleMinDataSchedule({
-			isOn: true,
-			mode,
-			autoAccurate,
-			autoFuzzy,
-		})
-		setIsMinDataUpdating(true)
-		toast.success("自动更新数据已启动")
-	}, [mode, autoAccurate, autoFuzzy, setIsMinDataUpdating, isQmtConfigured])
+		await startMinDataSchedule()
+	}, [startMinDataSchedule])
 
 	const handleStopAutoUpdate = useCallback(async () => {
-		await toggleMinDataSchedule({ isOn: false })
-		setIsMinDataUpdating(false)
-		toast.info("自动更新数据已停止")
+		await stopMinDataSchedule()
 		isAutoRocket && (await handleToggleAutoRocket(false))
-	}, [setIsMinDataUpdating, isAutoRocket, handleToggleAutoRocket])
+	}, [stopMinDataSchedule, isAutoRocket, handleToggleAutoRocket])
 
 	const handleExecAccurate = useCallback(async () => {
 		setIsAccurateExecuting(true)
@@ -388,11 +373,8 @@ const RealtimeData: FC = () => {
 										`已切换为${value === "fast" ? "极速" : "稳定"}模式`,
 									)
 									if (isMinDataUpdating) {
-										toggleMinDataSchedule({
-											isOn: true,
+										void syncMinDataSchedule({
 											mode: value as "fast" | "stable",
-											autoAccurate,
-											autoFuzzy,
 										})
 									}
 								}}

@@ -16,6 +16,7 @@ import { useDataTable } from "./useDataTable"
 import { useGlobalValue } from "./useGlobalValue"
 import { useHandleTimeTask } from "./useHandleTimeTask"
 import { useLifeCycle } from "./useLifeCycle"
+import { useMinDataSchedule } from "./useMinDataSchedule"
 import { useNetInterval } from "./useNetInterval"
 import { useNetworkToast } from "./useNetworkToast"
 import { usePermissionCheck } from "./usePermissionCheck"
@@ -38,6 +39,7 @@ export {
 	useGlobalValue,
 	useHandleTimeTask,
 	useLifeCycle,
+	useMinDataSchedule,
 	useNetInterval,
 	useNetworkToast,
 	usePermissionCheck,

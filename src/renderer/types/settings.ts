@@ -13,6 +13,7 @@ export type SettingsType = {
 	all_data_path: string
 	strategy_result_path: string
 	is_auto_launch_update: boolean
+	is_auto_launch_min_data: boolean
 	is_auto_launch_real_trading: boolean
 	data_white_list: string[]
 	hid: string

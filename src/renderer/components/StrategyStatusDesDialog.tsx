@@ -155,7 +155,7 @@ const StrategyStatusDesDialog = forwardRef<
 										</TooltipProvider>
 									</div>
 
-									<div className="flex items-baseline gap-3 w-full">
+									<div className="flex gap-3 w-full">
 										<span className="flex-shrink-0 text-muted-foreground">
 											描述:
 										</span>

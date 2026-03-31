@@ -11,6 +11,16 @@
 // -- Python 代码转换为 JSON 的工具函数
 
 /**
+ * 去掉「去掉行首空白后以 # 开头的」整行正文，保留换行，避免误匹配被注释掉的赋值。
+ */
+function stripLeadingHashCommentLines(code: string): string {
+	return code
+		.split(/\r?\n/)
+		.map((line) => (line.trimStart().startsWith("#") ? "" : line))
+		.join("\n")
+}
+
+/**
  * -- 从代码中提取变量定义
  * @param code Python 代码
  * @param variableName 变量名
@@ -21,16 +31,18 @@ export function extractVariableFromCode(
 	variableName: string,
 ): string | null {
 	try {
+		const source = stripLeadingHashCommentLines(code)
+
 		// -- 匹配字符串类型的变量定义，考虑行尾可能有注释
 		const regex = new RegExp(`${variableName}\\s*=\\s*["']([^"']*?)["'].*`, "m")
-		const stringMatch = code.match(regex)
+		const stringMatch = source.match(regex)
 		if (stringMatch) {
 			console.log("提取的值:", stringMatch[1])
 			return stringMatch[1] // -- 直接返回匹配的内容，不加引号
 		}
 
 		// -- 匹配列表或字典类型的变量定义
-		const startMatch = code.match(
+		const startMatch = source.match(
 			new RegExp(`${variableName}\\s*=\\s*[\\[{]`, "m"),
 		)
 
@@ -41,9 +53,9 @@ export function extractVariableFromCode(
 		let endIndex = startIndex + 1
 
 		// -- 遍历字符串查找匹配的闭括号
-		for (let i = startIndex + 1; i < code.length; i++) {
-			if (code[i] === "[" || code[i] === "{") bracketCount++
-			if (code[i] === "]" || code[i] === "}") bracketCount--
+		for (let i = startIndex + 1; i < source.length; i++) {
+			if (source[i] === "[" || source[i] === "{") bracketCount++
+			if (source[i] === "]" || source[i] === "}") bracketCount--
 			if (bracketCount === 0) {
 				endIndex = i + 1
 				break
@@ -52,7 +64,7 @@ export function extractVariableFromCode(
 
 		if (bracketCount !== 0) return null
 		// -- 提取变量定义
-		const extractedValue = code.substring(startIndex, endIndex)
+		const extractedValue = source.substring(startIndex, endIndex)
 
 		// -- 移除多余的空格和换行符
 		return extractedValue.trim()
@@ -95,7 +107,7 @@ export function processPythonList(pythonList: string): string {
 		let curr = str
 		do {
 			prev = curr
-			curr = curr.replace(/\(([^()]+?)\)/g, (match, p1) => {
+			curr = curr.replace(/\(([^()]+?)\)/g, (_match, p1) => {
 				// 递归处理内部嵌套
 				return `[${p1}]`
 			})

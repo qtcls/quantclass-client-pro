@@ -100,8 +100,7 @@ async function watchOneKernel(
 
 	if (!fs.existsSync(logFilePath)) {
 		const errMsg = `当天日志文件不存在: ${logFilePath}`
-		logger.error(`[kernel-log] ${errMsg}`)
-		return { success: false, error: errMsg }
+		logger.warn(`[kernel-log] ${errMsg}`)
 	}
 
 	logger.info(`[kernel-log] 开始监听 ${kernelType} 日志: ${logFilePath}`)
@@ -118,7 +117,9 @@ async function watchOneKernel(
 		)
 	}
 
-	const lastSize = fs.statSync(logFilePath).size
+	const lastSize = fs.existsSync(logFilePath)
+		? fs.statSync(logFilePath).size
+		: 0
 
 	const timer = setInterval(() => {
 		try {
@@ -228,8 +229,7 @@ async function watchOneKernelIndependent(
 
 	if (!fs.existsSync(logFilePath)) {
 		const errMsg = `当天日志文件不存在: ${logFilePath}`
-		logger.error(`[kernel-log-individual] ${errMsg}`)
-		return { success: false, error: errMsg }
+		logger.warn(`[kernel-log-individual] ${errMsg}`)
 	}
 
 	logger.info(
@@ -248,7 +248,9 @@ async function watchOneKernelIndependent(
 		)
 	}
 
-	const lastSize = fs.statSync(logFilePath).size
+	const lastSize = fs.existsSync(logFilePath)
+		? fs.statSync(logFilePath).size
+		: 0
 
 	const timer = setInterval(() => {
 		try {

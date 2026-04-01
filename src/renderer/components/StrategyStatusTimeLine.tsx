@@ -297,7 +297,7 @@ export default function StrategyStatusTimeline() {
 			})
 
 			// 第二项后插入开盘（即 index = 2 后）
-			list.splice(3, 0, {
+			list.splice(2, 0, {
 				...opening,
 				strategyName,
 			})

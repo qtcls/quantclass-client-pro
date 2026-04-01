@@ -354,8 +354,8 @@ async function generateSingleStrategyStatus(
 	// const dataUpdateDeadline = parseTimeToDate("2200", date, -1)
 
 	// PRE_SELL: 当天9:15，截止时间为当天9:30
-	const preSellTime = parseTimeToDate("0915", date)
-	const preSellDeadline = parseTimeToDate("0930", date)
+	// const preSellTime = parseTimeToDate("0915", date)
+	// const preSellDeadline = parseTimeToDate("0930", date)
 
 	// SELECT_CLOSE: 前一天15:00，截止时间为第二天9:30
 	const selectCloseTime = parseTimeToDate("1500", date, -1)
@@ -409,22 +409,22 @@ async function generateSingleStrategyStatus(
 			stat: findLatestStatByTag(selectStats, "SELECT_CLOSE"),
 			stats: findStatsByTag(selectStats, "SELECT_CLOSE"),
 		},
-		{
-			strategyName,
-			tag: "TRADE_PRE_SELL",
-			title: "集合竞价卖出",
-			description: "集合竞价卖出",
-			status: determineStatus(
-				preSellTime,
-				preSellDeadline,
-				findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
-			),
-			plan: {
-				time: preSellTime,
-			},
-			stat: findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
-			stats: findStatsByTag(rocketStats, "TRADE_PRE_SELL"),
-		},
+		// {
+		// 	strategyName,
+		// 	tag: "TRADE_PRE_SELL",
+		// 	title: "集合竞价卖出",
+		// 	description: "集合竞价卖出",
+		// 	status: determineStatus(
+		// 		preSellTime,
+		// 		preSellDeadline,
+		// 		findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
+		// 	),
+		// 	plan: {
+		// 		time: preSellTime,
+		// 	},
+		// 	stat: findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
+		// 	stats: findStatsByTag(rocketStats, "TRADE_PRE_SELL"),
+		// },
 	]
 
 	// stock_timing_list 不为空时显示个股择时

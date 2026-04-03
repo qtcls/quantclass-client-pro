@@ -18,6 +18,7 @@ import { createWindow } from "@/main/lib/createWindow.js"
 // import setupUpdater from "@/main/lib/updater.js"
 import DBManager from "@/main/lib/db-manager.js"
 import { createTray } from "@/main/lib/tray.js"
+import { runMigrations } from "@/main/migration/runner.js"
 import server from "@/main/server/index.js"
 import { cleanupDB } from "@/main/server/middleware/db.js"
 import {
@@ -35,6 +36,7 @@ import { regStoreIPC } from "@/preload/store/store-ipc.js"
 import { regStrategyIPC } from "@/preload/strategy/strategy-ipc.js"
 import { regSystemIPC } from "@/preload/system/system-ipc.js"
 import { regUserIPC } from "@/preload/user/user-ipc.js"
+import { regMigrationIPC } from "@/preload/migration/migration-ipc.js"
 import { regWindowsIPC } from "@/preload/windows/windows-ipc.js"
 import { is, platform } from "@electron-toolkit/utils"
 import { type Tray, app, ipcMain, powerMonitor, shell } from "electron"
@@ -110,6 +112,10 @@ if (!gotTheLock) {
 		regStrategyIPC()
 		regWindowsIPC()
 		regUserIPC()
+		regMigrationIPC()
+
+		// -- 执行数据迁移
+		await runMigrations()
 
 		// -- 创建主窗口与终端窗口
 		await createWindow()

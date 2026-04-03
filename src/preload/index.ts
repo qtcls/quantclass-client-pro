@@ -14,6 +14,7 @@ import { dataIPC } from "./data/index.js"
 import { emitterIPC } from "./emitter/index.js"
 import { fileSysIPC } from "./file-sys/index.js"
 import { kernelLogIPC } from "./kernel-log/index.js"
+import { migrationIPC } from "./migration/index.js"
 import { storeIPC } from "./store/index.js"
 import { strategyIPC } from "./strategy/index.js"
 import { userIPC } from "./user/index.js"
@@ -37,6 +38,7 @@ if (process.contextIsolated) {
 			...emitterIPC,
 			...systemIPC,
 			...userIPC,
+			...migrationIPC,
 		})
 	} catch (error) {
 		console.error(error)

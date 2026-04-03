@@ -41,6 +41,7 @@ import {
 	SidebarRail,
 } from "@/renderer/components/ui/sidebar"
 import { useCalcTotalWeight } from "@/renderer/hooks/useCalcTotalWeight"
+import { useRendererMigrations } from "@/renderer/hooks/useRendererMigrations"
 import { Footer } from "@/renderer/layout/Footer"
 import { UserMenu } from "@/renderer/layout/UserMenu"
 import { _BreadCrumb } from "./BreadCrumb"
@@ -74,6 +75,7 @@ const Layout: FC = () => {
 	// useMigrateStrategyData()
 	useCalcTotalWeight()
 	useNetworkToast()
+	useRendererMigrations()
 
 	// -- State & Atoms
 	const { pathname } = useLocation()

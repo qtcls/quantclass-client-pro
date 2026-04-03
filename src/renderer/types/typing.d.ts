@@ -20,6 +20,7 @@ type EmitterIPC = typeof import("@/preload/emitter/index.js").emitterIPC
 type CoreIPC = typeof import("@/preload/core/index.js").coreIPC
 type UserIPC = typeof import("@/preload/user/index.js").userIPC
 type StrategyIPC = typeof import("@/preload/strategy/index.js").strategyIPC
+type MigrationIPC = typeof import("@/preload/migration/index.js").migrationIPC
 
 // 组合所有IPC类型
 type CustomElectronAPI = SystemIPC &
@@ -30,7 +31,8 @@ type CustomElectronAPI = SystemIPC &
 	EmitterIPC &
 	CoreIPC &
 	UserIPC &
-	StrategyIPC
+	StrategyIPC &
+	MigrationIPC
 
 interface Versions {
 	node: () => string

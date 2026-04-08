@@ -29,6 +29,7 @@ import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
 
 import StrategyStatusDesDialog from "@/renderer/components/StrategyStatusDesDialog"
 import type { StrategyStatusDesDialogRef } from "@/renderer/components/StrategyStatusDesDialog"
+import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
 import {
 	selectedDateAtom,
 	strategyStatusAtom,
@@ -42,7 +43,7 @@ import {
 	StrategyStatusLabelEnum,
 } from "@/shared/types/strategy-status"
 import dayjs, { type Dayjs } from "dayjs"
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { createContext, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import TimeLineItem from "./TimeLineItem"
@@ -102,6 +103,7 @@ export const TimeLineContext = createContext<
 export default function StrategyStatusTimeline() {
 	const [selectedDate, setSelectedDate] = useAtom(selectedDateAtom)
 	const [{ data: strategyStatusData, refetch }] = useAtom(strategyStatusAtom)
+	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
 	const [strategyStatusList, setStrategyStatusList] = useState<
 		StrategyStatus[][]
 	>([])
@@ -296,8 +298,9 @@ export default function StrategyStatusTimeline() {
 				strategyName,
 			})
 
-			// 第二项后插入开盘（即 index = 2 后）
-			list.splice(2, 0, {
+			// 第二项后插入开盘：无集合竞价卖出时插在 index 2；开启 use_open_sell 时多一项 TRADE_PRE_SELL，插在 index 3
+			const openingInsertIndex = realMarketConfig?.use_open_sell === "1" ? 3 : 2
+			list.splice(openingInsertIndex, 0, {
 				...opening,
 				strategyName,
 			})
@@ -371,7 +374,7 @@ export default function StrategyStatusTimeline() {
 			return processedList
 		})
 		setStrategyStatusList(result)
-	}, [strategyStatusData, selectedDate])
+	}, [strategyStatusData, selectedDate, realMarketConfig?.use_open_sell])
 
 	useEffect(() => {
 		if (selectedDate === undefined) {

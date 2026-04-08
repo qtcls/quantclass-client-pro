@@ -59,6 +59,7 @@ export const scheduleTimesAtom = atomWithElectronStore<{
 
 /**
  * 实盘配置
+ * @deprecated 此atom已废弃，实盘配置 Dialog、表单与新逻辑请改用 `storage.ts` 中的 `realMarketConfigSchemaAtom`
  */
 export const realMarketConfigAtom = atomWithElectronStore<RealMarketConfigType>(
 	"real_market_config",

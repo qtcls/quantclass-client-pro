@@ -286,6 +286,7 @@ export const execBin = async (
 		logger.info(`~% ${kernel} ${args.join(" ")}`)
 
 		const useFuzzy = _store.get("real_market_config.use_fuzzy", "1")
+		const useOpenSell = _store.get("real_market_config.use_open_sell", "0")
 
 		return new Promise((resolve, reject) => {
 			// -- 内核目录
@@ -302,6 +303,7 @@ export const execBin = async (
 			process.env.PYTHONUNBUFFERED = "1"
 			process.env.PYTHONIOENCODING = "utf8"
 			process.env.USE_FUZZY = useFuzzy as string
+			process.env.USE_OPEN_SELL = useOpenSell as string
 			process.env.FUEL_TEMP_FILE_PATH = extraEnv ?? ""
 
 			const pythonProcess = process_manager.spawnProcess(

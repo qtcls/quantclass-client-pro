@@ -295,6 +295,11 @@ async function generateSingleStrategyStatus(
 	capWeight = 1, // 策略权重，0 表示非实盘
 	hasStockTimingList = false,
 ): Promise<StrategyStatus[]> {
+	const realMarketConfig = (await store.getValue("real_market_config", {})) as {
+		use_open_sell?: string
+	}
+	const useOpenSell = realMarketConfig?.use_open_sell === "1"
+
 	const selectKernel = await detectSelectKernel(date)
 
 	// const fuelStats = await readStatsFromJson(date, "fuel")
@@ -354,8 +359,8 @@ async function generateSingleStrategyStatus(
 	// const dataUpdateDeadline = parseTimeToDate("2200", date, -1)
 
 	// PRE_SELL: 当天9:15，截止时间为当天9:30
-	// const preSellTime = parseTimeToDate("0915", date)
-	// const preSellDeadline = parseTimeToDate("0930", date)
+	const preSellTime = parseTimeToDate("0915", date)
+	const preSellDeadline = parseTimeToDate("0930", date)
 
 	// SELECT_CLOSE: 前一天15:00，截止时间为第二天9:30
 	const selectCloseTime = parseTimeToDate("1500", date, -1)
@@ -409,23 +414,26 @@ async function generateSingleStrategyStatus(
 			stat: findLatestStatByTag(selectStats, "SELECT_CLOSE"),
 			stats: findStatsByTag(selectStats, "SELECT_CLOSE"),
 		},
-		// {
-		// 	strategyName,
-		// 	tag: "TRADE_PRE_SELL",
-		// 	title: "集合竞价卖出",
-		// 	description: "集合竞价卖出",
-		// 	status: determineStatus(
-		// 		preSellTime,
-		// 		preSellDeadline,
-		// 		findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
-		// 	),
-		// 	plan: {
-		// 		time: preSellTime,
-		// 	},
-		// 	stat: findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
-		// 	stats: findStatsByTag(rocketStats, "TRADE_PRE_SELL"),
-		// },
 	]
+	// 如果启用开盘挂涨停卖出，添加集合竞价卖出状态
+	if (useOpenSell) {
+		statusList.push({
+			strategyName,
+			tag: "TRADE_PRE_SELL" as const,
+			title: "集合竞价卖出",
+			description: "集合竞价卖出",
+			status: determineStatus(
+				preSellTime,
+				preSellDeadline,
+				findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
+			),
+			plan: {
+				time: preSellTime,
+			},
+			stat: findLatestStatByTag(rocketStats, "TRADE_PRE_SELL"),
+			stats: findStatsByTag(rocketStats, "TRADE_PRE_SELL"),
+		})
+	}
 
 	// stock_timing_list 不为空时显示个股择时
 	if (hasStockTimingList) {

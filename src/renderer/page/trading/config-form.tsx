@@ -65,6 +65,8 @@ export const RealMarketConfigSchema = z.object({
 	performance_mode: z.enum(["EQUAL", "PERFORMANCE", "ECONOMY"]),
 	// -- 启用模糊信号: "1" 启用，"0" 禁用
 	use_fuzzy: z.enum(["0", "1"]),
+	// -- 开盘是否挂涨停卖出: "1" 启用，"0" 禁用
+	use_open_sell: z.enum(["0", "1"]),
 	reverse_repo_keep: z.union([z.string(), z.number()]).refine(
 		(value) => {
 			const numValue =
@@ -109,6 +111,7 @@ export function TradingConfigForm() {
 			filter_bj: isCiccBroker ? "1" : realMarketConfig.filter_bj,
 			performance_mode: realMarketConfig.performance_mode ?? "EQUAL",
 			use_fuzzy: realMarketConfig.use_fuzzy ?? "1",
+			use_open_sell: realMarketConfig.use_open_sell ?? "0",
 			reverse_repo_keep: realMarketConfig.reverse_repo_keep ?? 1000,
 		}
 	}, [realMarketConfig])
@@ -687,6 +690,56 @@ export function TradingConfigForm() {
 												if (isRunning) {
 													toast.warning(
 														"实盘内核正在运行中，无法修改模糊信号设置",
+													)
+													return
+												}
+												field.onChange(value)
+											}}
+											value={field.value}
+											className="flex space-x-1"
+										>
+											<FormItem className="flex items-center space-x-1 space-y-0">
+												<FormControl>
+													<RadioGroupItem value="1" />
+												</FormControl>
+												<FormLabel
+													className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
+												>
+													启用
+												</FormLabel>
+											</FormItem>
+											<FormItem className="flex items-center space-x-1 space-y-0">
+												<FormControl>
+													<RadioGroupItem value="0" />
+												</FormControl>
+												<FormLabel
+													className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
+												>
+													禁用
+												</FormLabel>
+											</FormItem>
+										</RadioGroup>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							name="use_open_sell"
+							control={form.control}
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
+										<span className="font-semibold">开盘是否挂涨停卖出</span>{" "}
+										<span className="text-destructive">*</span>
+									</FormLabel>
+									<FormControl>
+										<RadioGroup
+											disabled={!user?.isMember}
+											onValueChange={async (value) => {
+												const isRunning = await checkKernalRunning(["rocket"])
+												if (isRunning) {
+													toast.warning(
+														"实盘内核正在运行中，无法修改开盘挂涨停卖出设置",
 													)
 													return
 												}

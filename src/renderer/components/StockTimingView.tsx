@@ -58,20 +58,10 @@ const SLOT_LABEL: Record<StockTimingTimeSlot, string> = {
 function SignalCell({ value }: { value: number | null }) {
 	if (value === null)
 		return <span className="text-muted-foreground text-xs font-mono">—</span>
-	if (value > 0)
-		return (
-			<span className="text-green-600 dark:text-green-400 text-xs font-mono font-semibold">
-				{value}
-			</span>
-		)
-	if (value < 0)
-		return (
-			<span className="text-red-500 dark:text-red-400 text-xs font-mono font-semibold">
-				{value}
-			</span>
-		)
 	return (
-		<span className="text-muted-foreground text-xs font-mono">{value}</span>
+		<span className="text-foreground text-xs font-mono font-semibold">
+			{value}
+		</span>
 	)
 }
 

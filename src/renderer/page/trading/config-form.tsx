@@ -731,6 +731,35 @@ export function TradingConfigForm() {
 									<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
 										<span className="font-semibold">开盘是否挂涨停卖出</span>{" "}
 										<span className="text-destructive">*</span>
+										<span className="text-xs text-muted-foreground">
+											该功能需配合新版内核使用
+										</span>
+										<ButtonTooltip
+											content={
+												<div className="max-w-sm space-y-2">
+													<p className="font-semibold">开盘挂涨停介绍：</p>
+													<p>
+														"开盘挂涨停"是一种用于保证换仓时获取最大利润的方法。
+													</p>
+													<p>
+														它会在9点15分的时候把当日需要卖出的股票挂涨停单。理想情况下，这支股票当日在正式换仓前涨停，就可以直接卖出，防止它之后跌下来。
+													</p>
+													<p>
+														缺点是，它和轧差逻辑冲突，所以可能会出现当日开盘卖出后，到了换仓时间又买回来的情况。
+													</p>
+													<p>该功能属于高阶玩法，默认不开启。</p>
+													<p>rocket内核1.9.6d.20260407及以上</p>
+													<p>
+														未升级到新版本的内核【不影响使用】，"开盘挂涨停"功能在老版本中是默认开启的。
+													</p>
+												</div>
+											}
+										>
+											<CircleHelp
+												className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
+												onClick={(e) => e.stopPropagation()}
+											/>
+										</ButtonTooltip>
 									</FormLabel>
 									<FormControl>
 										<RadioGroup

@@ -25,13 +25,20 @@ import {
 } from "@/renderer/components/ui/carousel"
 import { Skeleton } from "@/renderer/components/ui/skeleton"
 import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/renderer/components/ui/table"
+import {
 	stockTimingCardExpandedSetAtom,
 	stockTimingCarouselModeAtom,
 	stockTimingDateModeAtom,
 	stockTimingViewAtom,
 } from "@/renderer/store/stock-timing-view"
 import type {
-	StockTimingMatrixRow,
 	StockTimingStrategyBlock,
 	StockTimingTimeSlot,
 } from "@/shared/types/stock-timing-view"
@@ -65,29 +72,6 @@ function SignalCell({ value }: { value: number | null }) {
 	)
 }
 
-function StockRow({ stock }: { stock: StockTimingMatrixRow }) {
-	return (
-		<div className="flex items-center gap-2 py-1.5 border-b last:border-0">
-			<div className="flex-1 min-w-0">
-				<div className="text-sm font-medium truncate">{stock.stockName}</div>
-				<div className="text-xs text-muted-foreground truncate">
-					{stock.stockCode} · {stock.offset}
-				</div>
-			</div>
-			<div className="flex gap-3 shrink-0">
-				{TIME_SLOTS.map((slot) => (
-					<div key={slot} className="flex flex-col items-center w-10">
-						<span className="text-[10px] text-muted-foreground mb-0.5">
-							{SLOT_LABEL[slot]}
-						</span>
-						<SignalCell value={stock.signals[slot]} />
-					</div>
-				))}
-			</div>
-		</div>
-	)
-}
-
 function StrategyCard({
 	block,
 	index,
@@ -109,40 +93,81 @@ function StrategyCard({
 
 	return (
 		<Card className="w-full">
-			<div className="flex items-center justify-between px-3 py-2 border-b">
-				<span className="text-sm font-semibold truncate flex-1 mr-2">
-					{block.strategyName}
-				</span>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-6 w-6 shrink-0"
-					onClick={toggleExpanded}
-				>
-					{isExpanded ? (
-						<ChevronUp className="h-3.5 w-3.5" />
-					) : (
-						<ChevronDown className="h-3.5 w-3.5" />
-					)}
-				</Button>
-			</div>
 			<div className="px-3 py-1">
-				{block.stocks.length === 0 ? (
-					<div className="text-xs text-muted-foreground py-2 text-center">
-						暂无数据
-					</div>
-				) : (
-					<div
-						className={isExpanded ? undefined : "overflow-y-auto max-h-[112px]"}
-					>
-						{block.stocks.map((stock) => (
-							<StockRow
-								key={`${stock.stockCode}-${stock.offset}`}
-								stock={stock}
-							/>
-						))}
-					</div>
-				)}
+				<div
+					className={isExpanded ? undefined : "overflow-y-auto max-h-[112px]"}
+				>
+					<Table containerStyle={{ maxWidth: "100%" }}>
+						<TableHeader>
+							<TableRow>
+								<TableHead
+									className="min-w-0 max-w-[12rem] truncate text-left text-sm font-semibold text-foreground"
+									title={block.strategyName}
+								>
+									{block.strategyName}
+								</TableHead>
+								{TIME_SLOTS.map((slot) => (
+									<TableHead
+										key={slot}
+										className="w-11 px-1 text-center text-[12px] font-normal text-muted-foreground"
+									>
+										{SLOT_LABEL[slot]}
+									</TableHead>
+								))}
+								<TableHead className="w-9 p-0 text-right align-middle">
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 shrink-0"
+										onClick={toggleExpanded}
+										aria-label={isExpanded ? "收起" : "展开"}
+									>
+										{isExpanded ? (
+											<ChevronUp className="h-3.5 w-3.5" />
+										) : (
+											<ChevronDown className="h-3.5 w-3.5" />
+										)}
+									</Button>
+								</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{block.stocks.length === 0 ? (
+								<TableRow>
+									<TableCell
+										colSpan={6}
+										className="text-center text-xs text-muted-foreground py-3"
+									>
+										暂无数据
+									</TableCell>
+								</TableRow>
+							) : (
+								block.stocks.map((stock) => (
+									<TableRow key={`${stock.stockCode}-${stock.offset}`}>
+										<TableCell className="min-w-0 max-w-[12rem] py-1.5">
+											<div className="text-sm font-medium truncate">
+												{stock.stockName}
+											</div>
+											<div className="text-xs text-muted-foreground truncate">
+												{stock.stockCode} · {stock.offset}
+											</div>
+										</TableCell>
+										{TIME_SLOTS.map((slot) => (
+											<TableCell
+												key={slot}
+												className="w-11 px-1 py-1.5 text-center"
+											>
+												<SignalCell value={stock.signals[slot]} />
+											</TableCell>
+										))}
+										<TableCell className="w-9 p-0" aria-hidden />
+									</TableRow>
+								))
+							)}
+						</TableBody>
+					</Table>
+				</div>
 			</div>
 		</Card>
 	)

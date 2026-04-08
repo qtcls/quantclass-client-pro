@@ -423,7 +423,6 @@ export default function StrategyStatusTimeline() {
 						<div className="flex items-center flex-wrap gap-2">
 							<Clock className="w-5 h-5" />
 							策略实盘状态
-							<Badge variant="info">测试版</Badge>
 							<span className="text-xs text-muted-foreground font-medium">
 								( 每分钟自动刷新一次 )
 							</span>

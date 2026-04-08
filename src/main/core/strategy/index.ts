@@ -9,8 +9,11 @@
  */
 
 export { getStrategyStatusList } from "./strategy-status.js"
-
 export { updateStrategies } from "./update-strategy.js"
+export {
+	getStockTimingViewMatrix,
+	rowsToStockTimingMatrix,
+} from "./stock-timing-view.js"
 
 export type {
 	StrategyStatus,
@@ -19,3 +22,10 @@ export type {
 	StrategyStatusStat,
 } from "@/shared/types/strategy-status.js"
 export { StrategyStatusEnum } from "@/shared/types/strategy-status.js"
+export type {
+	StockTimingMatrixRow,
+	StockTimingStrategyBlock,
+	StockTimingTimeSlot,
+	StockTimingViewMatrix,
+	StockTimingViewRow,
+} from "@/shared/types/stock-timing-view.js"

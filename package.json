@@ -55,6 +55,7 @@
 		"date-fns": "^4.1.0",
 		"drizzle-orm": "^0.38.3",
 		"drizzle-zod": "^0.6.1",
+		"embla-carousel-react": "^8.6.0",
 		"etc-csv-napi": "^0.0.9",
 		"hono": "4.10.3",
 		"jotai": "^2.11.0",

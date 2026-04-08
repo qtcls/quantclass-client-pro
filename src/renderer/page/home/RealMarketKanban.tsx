@@ -1,3 +1,4 @@
+import StockTimingView from "@/renderer/components/StockTimingView"
 /**
  * quantclass-client
  * Copyright (c) 2025 量化小讲堂
@@ -239,6 +240,7 @@ export const RealMarketKanban = () => {
 				)} */}
 
 				<StatusTimeline />
+				<StockTimingView />
 				<div className="space-y-1">
 					<BuyBlacklist />
 				</div>
@@ -277,7 +279,8 @@ export const RealMarketKanban = () => {
 						{!isMinDataUpdating && (
 							<p>
 								<span className="font-bold">自动更新实时数据</span>
-								：会在交易时段内自动获取分钟级 K 线数据，保证选股和交易所需数据是最新的。
+								：会在交易时段内自动获取分钟级 K
+								线数据，保证选股和交易所需数据是最新的。
 							</p>
 						)}
 						<p>

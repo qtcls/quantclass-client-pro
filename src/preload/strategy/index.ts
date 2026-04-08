@@ -14,4 +14,7 @@ export const strategyIPC = {
 	// 策略状态可视化
 	getStrategyStatus: (date: string) =>
 		ipcRenderer.invoke("get-strategy-status", date),
+	// 个股择时可视化
+	getStockTimingView: (date: string) =>
+		ipcRenderer.invoke("get-stock-timing-view", date),
 }

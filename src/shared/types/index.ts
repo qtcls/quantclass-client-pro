@@ -33,3 +33,12 @@ export type {
 	StrategyStatusStat,
 } from "@/main/core/strategy/index.js"
 export { StrategyStatusEnum } from "@/main/core/strategy/index.js"
+
+// 个股择时相关类型
+export type {
+	StockTimingMatrixRow,
+	StockTimingStrategyBlock,
+	StockTimingTimeSlot,
+	StockTimingViewMatrix,
+	StockTimingViewRow,
+} from "./stock-timing-view.js"

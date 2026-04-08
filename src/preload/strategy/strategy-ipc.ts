@@ -8,7 +8,10 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { getStrategyStatusList } from "@/main/core/strategy/index.js"
+import {
+	getStockTimingViewMatrix,
+	getStrategyStatusList,
+} from "@/main/core/strategy/index.js"
 import logger from "@/main/utils/wiston.js"
 import { ipcMain } from "electron"
 
@@ -32,6 +35,27 @@ async function handleGetStrategyStatus() {
 	})
 }
 
+async function handleGetStockTimingView() {
+	ipcMain.handle("get-stock-timing-view", async (_event, date: string) => {
+		try {
+			logger.info(`[ipc] get-stock-timing-view for date: ${date}`)
+			const matrix = await getStockTimingViewMatrix(date)
+			return {
+				status: "success",
+				data: matrix,
+			}
+		} catch (error) {
+			logger.error(`[ipc] get-stock-timing-view error: ${error}`)
+			return {
+				status: "error",
+				message: String(error),
+				data: [],
+			}
+		}
+	})
+}
+
 export const regStrategyIPC = () => {
 	handleGetStrategyStatus()
+	handleGetStockTimingView()
 }

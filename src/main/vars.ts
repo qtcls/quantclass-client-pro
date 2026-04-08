@@ -20,3 +20,6 @@ export const PACKAGE_INFO = pkg
 // Stats 文件路径常量
 export const ROCKET_STATS_PATH = ["real_trading", "rocket", "data", "ui_status"]
 export const SELECT_STATS_PATH = ["real_trading", "data", "ui_status"]
+
+// 个股择时 文件路径常量
+export const SELECT_UI_VIEWS_PATH = ["real_trading", "data", "ui_view"]

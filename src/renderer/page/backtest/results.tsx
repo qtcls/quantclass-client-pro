@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import StockTimingView from "@/renderer/components/StockTimingView"
 import StrategyStatusTimeline from "@/renderer/components/StrategyStatusTimeLine"
 import { Button } from "@/renderer/components/ui/button"
 import { DataTable } from "@/renderer/components/ui/data-table"
@@ -66,6 +67,9 @@ export function RunResultTable({ mode }: ResultTableProps) {
 					<ToolBar mode={mode} />
 					<div className="mt-2">
 						<StrategyStatusTimeline />
+					</div>
+					<div className="mt-2">
+						<StockTimingView />
 					</div>
 				</>
 			) : (

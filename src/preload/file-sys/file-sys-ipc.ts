@@ -33,20 +33,6 @@ import {
 } from "electron"
 import { keys } from "lodash-es"
 
-async function createStrategyDirHandler(): Promise<void> {
-	ipcMain.handle("create-strategy-dir", async () => {
-		const all_data_path = await store.getSetting("all_data_path", "")
-
-		const fullPath = path.join(all_data_path, "strategy")
-
-		store.setValue("settings.strategy_result_path", fullPath)
-
-		fs.mkdirSync(fullPath, { recursive: true })
-
-		return fullPath
-	})
-}
-
 async function strategyResultPathHandler(): Promise<void> {
 	ipcMain.handle("strategy-result-path", async (_, mode = "backtest") => {
 		const folder = mode === "backtest" ? "回测结果" : "实盘选股结果"
@@ -125,20 +111,6 @@ async function selectFileDirHandler(): Promise<void> {
 	)
 }
 
-async function createDirectoryHandler(): Promise<void> {
-	ipcMain.handle(
-		"create-directory",
-		async (_event, pathArray: string[] | string) => {
-			const fullPath = path.join(
-				app.getPath("userData"),
-				...(Array.isArray(pathArray) ? pathArray : [pathArray]),
-			)
-			fs.mkdirSync(fullPath, { recursive: true })
-			return fullPath
-		},
-	)
-}
-
 async function openDirectoryHandler(): Promise<void> {
 	ipcMain.handle("open-directory", async (_event, pathArray) => {
 		// path 是一个数组，帮我拼接起来
@@ -174,8 +146,7 @@ async function openUserDirectoryHandler(): Promise<void> {
 		},
 	)
 }
-
-async function openFile(): Promise<string | undefined> {
+export async function openFile(): Promise<string | undefined> {
 	const options: OpenDialogOptions = {} // specify options here if needed
 	const { canceled, filePaths } = await dialog.showOpenDialog(
 		new BrowserWindow(),
@@ -186,10 +157,6 @@ async function openFile(): Promise<string | undefined> {
 		return filePaths[0]
 	}
 	return undefined
-}
-
-function openFileHandler() {
-	ipcMain.handle("dialog:openFile", openFile)
 }
 
 // async function checkpythonLockHandler(): Promise<void> {
@@ -205,12 +172,6 @@ function openFileHandler() {
 function openUrlHandler() {
 	ipcMain.handle("open-url", async (_, url: string) => {
 		await shell.openExternal(url)
-	})
-}
-
-async function deleteRealMarketDataHandler(): Promise<void> {
-	ipcMain.handle("delete-real-market-data", async (_, key: string) => {
-		rStore.delete(key)
 	})
 }
 
@@ -511,45 +472,6 @@ async function importFusionHandler(): Promise<void> {
 		}
 	})
 }
-async function exportLibraryDirHandler(): Promise<void> {
-	ipcMain.handle("export-library-dir", async (_, filePath: string) => {
-		try {
-			const fuelProTradingPath = await store.getAllDataPath(["real_trading"])
-
-			// -- 检查源路径下的策略库和因子库文件夹是否存在
-			const strategyPath = path.join(fuelProTradingPath, "策略库")
-			const factorPath = path.join(fuelProTradingPath, "因子库")
-
-			// -- 复制策略库文件
-			const copyFiles = (sourcePath: string, targetPath: string) => {
-				if (!fs.existsSync(targetPath)) {
-					fs.mkdirSync(targetPath, { recursive: true })
-				}
-
-				const files = fs.readdirSync(sourcePath)
-				for (const file of files) {
-					const sourceFile = path.join(sourcePath, file)
-					const targetFile = path.join(targetPath, file)
-
-					if (fs.statSync(sourceFile).isDirectory()) {
-						copyFiles(sourceFile, targetFile)
-					} else {
-						fs.copyFileSync(sourceFile, targetFile)
-					}
-				}
-			}
-
-			// -- 复制策略库和因子库
-			copyFiles(strategyPath, path.join(filePath, "策略库"))
-			copyFiles(factorPath, path.join(filePath, "因子库"))
-
-			return { success: true }
-		} catch (error) {
-			console.error("导出文件夹失败:", error)
-			throw error
-		}
-	})
-}
 
 async function parseCsvFileHandler(): Promise<void> {
 	ipcMain.handle(
@@ -736,23 +658,18 @@ export const regFileSysIPC = () => {
 	openUrlHandler()
 	killRocketHandler()
 	checkDBFileHandler()
-	openFileHandler()
 	selectFileDirHandler()
 	openDirectoryHandler()
 	openDataDirectoryHandler()
 	openUserDirectoryHandler()
 	parseCsvFileHandler()
 	readChangelogHandler()
-	createDirectoryHandler()
 	// checkpythonLockHandler()
 	importSelectStockHandler()
 	importFusionHandler()
-	exportLibraryDirHandler()
-	createStrategyDirHandler()
 	saveRealMarketDataHandler()
 	cleanRealMarketDataHandler()
 	clearRealMarketDataHandler()
-	deleteRealMarketDataHandler()
 	createRealTradingDirHandler()
 	strategyResultPathHandler()
 	importPositionHandler()

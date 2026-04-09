@@ -127,13 +127,7 @@ if (!gotTheLock) {
 		})
 
 		const all_data_path = await store.getSetting("all_data_path", "")
-		if (!all_data_path) {
-			ipcMain.handle("start-server", async () => {
-				const port = await startServerOnAvailablePort(8787, server)
-				store.setValue("server_port", port)
-				log.info(`服务器在端口 ${port} 上启动`)
-			})
-		} else {
+		if (all_data_path) {
 			const port = await startServerOnAvailablePort(8787, server)
 			store.setValue("server_port", port)
 			log.info(`服务器在端口 ${port} 上启动`)

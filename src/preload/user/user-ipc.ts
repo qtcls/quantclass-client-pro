@@ -43,21 +43,11 @@ async function clearWebUserInfoHandler(): Promise<void> {
 }
 
 /**
- * 更新用户信息
- */
-async function updateUserInfoHandler(): Promise<void> {
-	ipcMain.handle("update-user-info", async () => {
-		return await userStore.updateUserInfo()
-	})
-}
-
-/**
  * 注册所有用户相关的 IPC handlers
  */
 export const regUserIPC = () => {
 	syncWebUserInfoHandler()
 	getUserAccountHandler()
 	clearWebUserInfoHandler()
-	updateUserInfoHandler()
 	console.log("[reg] user-ipc")
 }

@@ -26,12 +26,6 @@ export const userIPC = {
 		ipcRenderer.invoke("get-user-account", isForce),
 
 	/**
-	 * 更新用户信息
-	 */
-	updateUserInfo: (): Promise<UserAccount | null> =>
-		ipcRenderer.invoke("update-user-info"),
-
-	/**
 	 * 清除用户状态
 	 */
 	clearWebUserInfo: () => ipcRenderer.send("clear-user-state"),

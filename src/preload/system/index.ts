@@ -35,8 +35,6 @@ export const systemIPC = {
 	// 系统配置
 	setAutoLaunch: (auto: boolean) =>
 		ipcRenderer.invoke("set-is-auto-login", auto),
-	setAutoUpdate: () => ipcRenderer.invoke("set-auto-update"),
-
 	// 版本管理
 	checkUpdate: (now = true) => ipcRenderer.invoke("check-update", now),
 	updateKernal: (name: KernalType, targetVersion?: string) =>
@@ -47,10 +45,6 @@ export const systemIPC = {
 	// 系统信息
 	getMacAddress: () => ipcRenderer.invoke("get-mac-address"),
 	getMachineId: () => ipcRenderer.invoke("get-machine-id") as Promise<string>,
-
-	// 服务控制
-	startServer: () => ipcRenderer.invoke("start-server"),
-
 	// 检查内核是否运行
 	checkKernalRunning: (
 		kernals: ("rocket" | "aqua" | "zeus" | "fuel")[] = ["rocket"],

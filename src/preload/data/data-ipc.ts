@@ -12,9 +12,7 @@ import {
 	getBuyInfoList,
 	getDataList,
 	getJsonDataFromFile,
-	getSelectedStrategiesList,
 	getSellInfoList,
-	getTradingPlanList,
 } from "@/main/core/dataList.js"
 import {
 	downloadFullData,
@@ -126,17 +124,6 @@ async function queryDataListHandler(): Promise<void> {
 	)
 }
 
-async function fetchSelectedStrategiesList() {
-	ipcMain.handle(
-		"get-selected-strategies-list",
-		async () => await getSelectedStrategiesList(),
-	)
-}
-
-async function getTradingPlanListHandler() {
-	ipcMain.handle("fetch_trading", async () => await getTradingPlanList())
-}
-
 async function getBuyInfoListHandler() {
 	ipcMain.handle("fetch_buy", async () => await getBuyInfoList())
 }
@@ -174,53 +161,11 @@ async function handleExecBinWithEnv() {
 	)
 }
 
-async function handleRocketExecute() {
-	ipcMain.handle("rocket-execute", async () => {
-		try {
-			const is_rocket_running = await isKernalRunning("rocket", true)
-			if (is_rocket_running) {
-				logger.warn("手动运行，但 Rocket 正在运行中，跳出操作")
-				return { code: 300, message: "Rocket 正在运行中，请勿重复点击运行" }
-			}
-
-			await execBin(["run"], "启动 rocket", "rocket")
-			return {
-				code: 200,
-				message: "启动 rocket 成功",
-			}
-		} catch (error) {
-			logger.error(`运行 rocket 失败: ${error}`)
-			return {
-				code: 400,
-				message: "运行 rocket 失败",
-			}
-		}
-	})
-}
-
-async function handleLoadPosition() {
-	ipcMain.handle("load-position", async () => {
-		return await getJsonDataFromFile(
-			["real_trading", "rocket", "data", "position.json"],
-			"获取持仓信息失败",
-		)
-	})
-}
-
 async function handleLoadAccount() {
 	ipcMain.handle("load-account", async () => {
 		return await getJsonDataFromFile(
 			["real_trading", "rocket", "data", "account.json"],
 			"获取账户信息失败",
-		)
-	})
-}
-
-async function handleLoadRunResult() {
-	ipcMain.handle("load-run-result", async () => {
-		return await getJsonDataFromFile(
-			["real_trading", "trade_info_test.json"],
-			"获取运行结果失败",
 		)
 	})
 }
@@ -461,9 +406,6 @@ async function handleGetMinDataTaskStatus() {
 export const regDataIPC = () => {
 	handleFuelStatus()
 	handleLoadAccount()
-	handleLoadPosition()
-	handleLoadRunResult()
-	handleRocketExecute()
 	queryDataListHandler()
 	handleExecBinWithEnv()
 	handleExecDownloadZip()
@@ -475,8 +417,6 @@ export const regDataIPC = () => {
 	handleFetchRocketStatus()
 	handleLoadProductStatus()
 	handleUpdateFullProducts()
-	getTradingPlanListHandler()
-	fetchSelectedStrategiesList()
 	handleLoadAquaTradingInfo()
 	handleExecMinData()
 	handleExecMinDataFuzzy()

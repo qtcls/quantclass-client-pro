@@ -44,7 +44,6 @@ import { useStrategyManager } from "./useStrategyManager"
 import { useUserInfoSync } from "./useUserInfoSync"
 const {
 	fetchFullscreenState,
-	subscribePowerMonitor,
 	subscribeScheduleStatus,
 	removeReportErrorListener,
 	unSubscribeSendScheduleStatusListener,
@@ -231,9 +230,7 @@ export const useLifeCycle = () => {
 		}
 
 		const shouldStartRocket =
-			isAutoLaunchRealTrading &&
-			isAutoLaunchUpdate &&
-			isAutoLaunchMinData
+			isAutoLaunchRealTrading && isAutoLaunchUpdate && isAutoLaunchMinData
 
 		if (shouldStartRocket) {
 			await handleToggleAutoRocket(true, false, true)
@@ -263,7 +260,6 @@ export const useLifeCycle = () => {
 
 		// -- 初始化监听器
 		onPowerStatus(handlePowerStatusChange)
-		subscribePowerMonitor((_event, status) => handlePowerStatusChange(status))
 		subscribeScheduleStatus(
 			(_event, status) => status === "done" && refetchLocalVersions(),
 		)

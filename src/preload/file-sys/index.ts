@@ -11,7 +11,6 @@
 import { type OpenDialogOptions, ipcRenderer } from "electron"
 
 export const fileSysIPC = {
-	openFile: () => ipcRenderer.invoke("dialog:openFile"),
 	openUrl: (url: string) => ipcRenderer.send("open-url", url),
 	openDirectory: (path: string[]) => ipcRenderer.invoke("open-directory", path),
 	openDataDirectory: (path?: string[] | string) =>
@@ -23,9 +22,6 @@ export const fileSysIPC = {
 	setStoreValue: (key: string, value: any) =>
 		ipcRenderer.invoke("set-store", key, value),
 	deleteStoreValue: (key: string) => ipcRenderer.invoke("delete-store", key),
-	createDirectory: (path: string[] | string) =>
-		ipcRenderer.invoke("create-directory", path),
-	createStrategyDir: () => ipcRenderer.invoke("create-strategy-dir"),
 	createRealTradingDir: (dirName = "real_trading") =>
 		ipcRenderer.invoke("create-real-trading-dir", dirName),
 	selectDirectory: (

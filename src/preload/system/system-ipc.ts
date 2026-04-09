@@ -12,7 +12,6 @@ import { getAppAndKernalVersions } from "@/main/core/lib.js"
 import { checkRemoteVersions, updateKernal } from "@/main/core/runpy.js"
 import windowManager from "@/main/lib/WindowManager.js"
 import { process_manager } from "@/main/lib/process.js"
-import { setupScheduler } from "@/main/lib/scheduler.js"
 import { killAllKernalByForce, killKernalByForce } from "@/main/utils/tools.js"
 import { log } from "@/main/utils/wiston.js"
 import type { KernalType } from "@/shared/types/index.js"
@@ -114,12 +113,6 @@ function handleKillKernal() {
 	)
 }
 
-function handleSetAutoUpdate() {
-	ipcMain.handle("set-auto-update", async (_event) => {
-		await setupScheduler()
-	})
-}
-
 function handleRendererLog() {
 	ipcMain.handle(
 		"do-renderer-log",
@@ -176,7 +169,6 @@ export const regSystemIPC = () => {
 	handleKillAllKernals()
 	handleKillKernal()
 	handleSetAutoLogin()
-	handleSetAutoUpdate()
 	fetchFullscreenState()
 	handleMonitorProcess()
 	handleCheckKernalRunning()

@@ -26,19 +26,12 @@ export const dataIPC = {
 		pageSize: number
 		file_name: string
 	}) => ipcRenderer.invoke("query-data-list", params),
-	runClientInit: () => ipcRenderer.invoke("run-client-init"),
-	getSelectedStrategiesList: () =>
-		ipcRenderer.invoke("get-selected-strategies-list"),
-	getTradingPlanList: () => ipcRenderer.invoke("fetch_trading"),
 	execFuelWithEnv: (
 		args: string[],
 		action: string,
 		kernel: string,
 		extraEnv?: string,
 	) => ipcRenderer.invoke("exec-fuel-with-env", args, action, kernel, extraEnv),
-	rocketExecute: () => ipcRenderer.invoke("rocket-execute"),
-	// TODO: 需要迁移到trading.ts
-
 	// 从renderer/ipc/index.ts迁移的方法
 	rendererLog: (type: "info" | "error" | "warning", msg: string) =>
 		ipcRenderer.invoke("do-renderer-log", type, msg),
@@ -58,7 +51,6 @@ export const dataIPC = {
 		>,
 
 	// 运行结果
-	loadRunResult: () => ipcRenderer.invoke("load-run-result"),
 	getStrategyResultPath: (mode = "backtest") =>
 		ipcRenderer.invoke("strategy-result-path", mode),
 

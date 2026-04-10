@@ -146,18 +146,6 @@ async function openUserDirectoryHandler(): Promise<void> {
 		},
 	)
 }
-export async function openFile(): Promise<string | undefined> {
-	const options: OpenDialogOptions = {} // specify options here if needed
-	const { canceled, filePaths } = await dialog.showOpenDialog(
-		new BrowserWindow(),
-		options,
-	)
-
-	if (!canceled) {
-		return filePaths[0]
-	}
-	return undefined
-}
 
 // async function checkpythonLockHandler(): Promise<void> {
 // 	ipcMain.handle("check-python-lock", async () => {

@@ -22,7 +22,15 @@ if (process.platform === "win32") {
   spawnSync("chcp", ["65001"], { stdio: "inherit", cwd: rootDir, shell: true });
 }
 
-let result = spawnSync("pnpm", ["exec", "electron-vite", "build"], {
+let result = spawnSync("node", [path.join(__dirname, "download-python.cjs")], {
+  stdio: "inherit",
+  env: process.env,
+  cwd: rootDir,
+  shell: true,
+});
+if (result.status !== 0) process.exit(result.status ?? 1);
+
+result = spawnSync("pnpm", ["exec", "electron-vite", "build"], {
   stdio: "inherit",
   env: process.env,
   cwd: rootDir,

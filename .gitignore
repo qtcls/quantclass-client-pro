@@ -87,3 +87,5 @@ assets/fix-corrupted
 demo.*
 
 drizzle/
+
+resources/python/

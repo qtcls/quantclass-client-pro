@@ -9,6 +9,10 @@ extraResources:
     to: resources
   - from: CHANGELOG.md
     to: CHANGELOG.md
+  - from: resources/python/${arch}
+    to: python
+  - from: resources/parse_config.py
+    to: parse_config.py
 extraFiles: build
 afterPack: bin/remove.js
 afterSign: bin/notarize.js

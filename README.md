@@ -28,6 +28,7 @@ See the full license text at: https://mariadb.com/bsl11/
 
 - Using pnpm instead of npm
 - `pnpm install` to add all the dependencies and pay attention to the network. Downloading electron consumes a lot and sometimes blocked under some networks.
+- `pnpm download-python` once before dev (pulls embedded Python into `resources/python`, used to parse user `config.py`).
 - `pnpm dev:win` to start
 - `pnpm build:win` to build. Please notice the windows policy over the program, security will block the build process. Use Power shell cmd `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` to bypass.
 

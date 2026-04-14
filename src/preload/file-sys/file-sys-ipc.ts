@@ -12,11 +12,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { getJsonDataFromFile } from "@/main/core/dataList.js"
-// @ts-ignore
-import {
-	convertPythonVariableToJson,
-	// deleteLineComments,
-} from "@/main/pythonToJson.js"
+import { parsePythonConfig } from "@/main/pythonRunner.js"
 import store, { rStore } from "@/main/store/index.js"
 import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
@@ -237,23 +233,26 @@ async function importSelectStockHandler(): Promise<void> {
 			}
 			console.log("[import] config:", configFilePath)
 
-			// -- 读取并解析 config.py
-			try {
-				const content = fs.readFileSync(configFilePath, "utf-8")
-				const jsonStr = convertPythonVariableToJson(content, "strategy_list")
-				if (!jsonStr) {
+		// -- 读取并解析 config.py（通过内嵌 Python 解析）
+		try {
+				const result = await parsePythonConfig(configFilePath, [
+					"strategy_list",
+					"backtest_name",
+					"re_timing",
+				])
+				if (!result.strategy_list) {
 					logger.error("[importLibraryDirHandler] 解析 strategy_list 失败")
 					return { success: false, error: "解析 strategy_list 失败" }
 				}
-				backtestName =
-					convertPythonVariableToJson(content, "backtest_name") ?? "默认策略"
-				// -- 解析 re_timing（资金曲线再择时）
-				reTimingStr = convertPythonVariableToJson(content, "re_timing") ?? null
-				configJsonStr = jsonStr
+				configJsonStr = JSON.stringify(result.strategy_list, null, 2)
+				backtestName = result.backtest_name ?? "默认策略"
+				reTimingStr = result.re_timing
+					? JSON.stringify(result.re_timing)
+					: null
 				logger.info(`[import] 解析 config.py 文件成功，策略名：${backtestName}`)
 			} catch (error) {
-				logger.error(`[import] 读取 config.py 文件失败: ${error}`)
-				return { success: false, error: "读取 config.py 文件失败" }
+				logger.error(`[import] 解析 config.py 文件失败: ${error}`)
+				return { success: false, error: "解析 config.py 文件失败" }
 			}
 
 			// -- 检查策略库和因子库文件夹是否存在
@@ -360,39 +359,34 @@ async function importFusionHandler(): Promise<void> {
 			}
 			console.log("[import] config:", configFilePath)
 
-			// -- 读取并解析 config.py
-			try {
-				const content = fs.readFileSync(configFilePath, "utf-8")
-				// 判断 config.py 内容类型（fusion/pos/select）
-				const normalizedContent = content.replace(/\s*=\s*/g, "=")
-				if (normalizedContent.includes("strategies=[")) {
+		// -- 读取并解析 config.py（通过内嵌 Python 解析）
+		try {
+				const result = await parsePythonConfig(configFilePath, [
+					"strategies",
+					"pos_strategy",
+					"strategy_list",
+					"backtest_name",
+				])
+				if (result.strategies) {
 					importType = "fusion"
-				} else if (normalizedContent.includes("pos_strategy={")) {
+					jsonStr = JSON.stringify(result.strategies, null, 2)
+				} else if (result.pos_strategy) {
 					importType = "pos"
-				}
-				logger.info(`[import] 检测到导入类型: ${importType}`)
-				const mapping = {
-					fusion: "strategies",
-					pos: "pos_strategy",
-					select: "strategy_list",
-				}
-				const attributeVal = convertPythonVariableToJson(
-					content,
-					mapping[importType],
-				)
-				if (!attributeVal) {
+					jsonStr = JSON.stringify(result.pos_strategy, null, 2)
+				} else if (result.strategy_list) {
+					importType = "select"
+					jsonStr = JSON.stringify(result.strategy_list, null, 2)
+				} else {
 					logger.error("[importLibraryDirHandler] 解析 strategies 失败")
 					return { success: false, error: "解析 strategies 失败" }
 				}
-				backtestName =
-					convertPythonVariableToJson(content, "backtest_name") ?? "默认策略"
-				jsonStr = attributeVal
+				backtestName = result.backtest_name ?? "默认策略"
 				logger.info(
 					`[import] 解析 config.py 文件成功，策略名：${backtestName}，类型：${importType}`,
 				)
 			} catch (error) {
-				logger.error(`[import] 读取 config.py 文件失败: ${error}`)
-				return { success: false, error: "读取 config.py 文件失败" }
+				logger.error(`[import] 解析 config.py 文件失败: ${error}`)
+				return { success: false, error: "解析 config.py 文件失败" }
 			}
 
 			// -- 复制策略库文件

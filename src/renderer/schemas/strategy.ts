@@ -127,7 +127,7 @@ export const CoreStrategySchema = z.object({
 	offset_list: OffsetListSchema,
 	rebalance_time: RebalanceTimeSchema,
 	factor_list: z.array(z.any()),
-	cross_sections: z.array(z.any()),
+	cross_sections: z.array(z.any()).optional(), // 截面因子
 	stock_timing_list: z.array(z.any()).optional(), // 个股择时
 	filter_list: z.array(z.any()),
 	filter_list_post: z.array(z.any()).optional(), // 后置过滤因子列表

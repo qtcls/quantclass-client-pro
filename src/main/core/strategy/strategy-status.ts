@@ -476,23 +476,23 @@ async function generateSingleStrategyStatus(
 	// 只有当存在 timing 或 override 时，添加择时信号状态
 	if (hasTimingOrOverride) {
 		statusList.push(
-			{
-				strategyName,
-				tag: "SELECT_TIMING_SIG0",
-				title: "计算模糊择时信号",
-				description: "计算模糊择时信号",
-				status: determineStatus(
-					qmtDataTime,
-					sellPlanTime,
-					findLatestStatByTag(selectStats, "SELECT_TIMING_SIG0"),
-				),
-				plan: {
-					time: qmtDataTime,
-				},
-				stat: findLatestStatByTag(selectStats, "SELECT_TIMING_SIG0"),
-				stats: findStatsByTag(selectStats, "SELECT_TIMING_SIG0"),
-				isStrategyPool,
-			},
+			// {
+			// 	strategyName,
+			// 	tag: "SELECT_TIMING_SIG0",
+			// 	title: "计算模糊择时信号",
+			// 	description: "计算模糊择时信号",
+			// 	status: determineStatus(
+			// 		qmtDataTime,
+			// 		sellPlanTime,
+			// 		findLatestStatByTag(selectStats, "SELECT_TIMING_SIG0"),
+			// 	),
+			// 	plan: {
+			// 		time: qmtDataTime,
+			// 	},
+			// 	stat: findLatestStatByTag(selectStats, "SELECT_TIMING_SIG0"),
+			// 	stats: findStatsByTag(selectStats, "SELECT_TIMING_SIG0"),
+			// 	isStrategyPool,
+			// },
 			{
 				strategyName,
 				tag: "SELECT_TIMING_SIG1",

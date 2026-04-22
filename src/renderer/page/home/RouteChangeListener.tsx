@@ -8,20 +8,37 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { useLogout } from "@/renderer/layout/UserMenu/useLogout"
 import { settingsAtom } from "@/renderer/store/electron"
 import { userAtom } from "@/renderer/store/user"
+import { setSessionInvalidHandler } from "@/renderer/utils/request"
 import { useAtom, useSetAtom } from "jotai"
 import { RESET } from "jotai/utils"
 import { useEffect } from "react"
 import { useLocation } from "react-router"
 import { toast } from "sonner"
 
-const { rendererLog, getUserAccount } = window.electronAPI
+const { rendererLog, getUserAccount, onSessionInvalid } = window.electronAPI
 
 const RouteChangeListener = () => {
 	const location = useLocation()
 	const [{ isLoggedIn }, setUser] = useAtom(userAtom)
 	const setSettings = useSetAtom(settingsAtom)
+	const { handleSessionInvalid } = useLogout()
+
+	// -- 订阅主进程推送的会话失效事件
+	useEffect(() => {
+		const unsubscribe = onSessionInvalid(() => {
+			void handleSessionInvalid()
+		})
+		return unsubscribe
+	}, [handleSessionInvalid])
+
+	// -- request() 遇到 401 时调用 handleSessionInvalid
+	useEffect(() => {
+		setSessionInvalidHandler(handleSessionInvalid)
+		return () => setSessionInvalidHandler(null)
+	}, [handleSessionInvalid])
 	//  需要在路由变化时触发用户信息更新
 	useEffect(() => {
 		// 如果用户未登录，不执行更新逻辑

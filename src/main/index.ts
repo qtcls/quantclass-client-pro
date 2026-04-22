@@ -17,6 +17,7 @@ import { default as windowManager } from "@/main/lib/WindowManager.js"
 import { createWindow } from "@/main/lib/createWindow.js"
 // import setupUpdater from "@/main/lib/updater.js"
 import DBManager from "@/main/lib/db-manager.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
 import { createTray } from "@/main/lib/tray.js"
 import { runMigrations } from "@/main/migration/runner.js"
 import server from "@/main/server/index.js"
@@ -28,6 +29,7 @@ import {
 	startServerOnAvailablePort,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import { regAuthIPC } from "@/preload/auth/auth-ipc.js"
 import { regCoreIPC } from "@/preload/core/core-ipc.js"
 import { regDataIPC } from "@/preload/data/data-ipc.js"
 import { regFileSysIPC } from "@/preload/file-sys/file-sys-ipc.js"
@@ -102,7 +104,11 @@ if (!gotTheLock) {
 
 	// -- 应用准备就绪事件
 	app.on("ready", async () => {
+		// -- 启动时从磁盘解密 refresh_token 到内存
+		await tokenStore.init()
+
 		// -- 先注册所有 IPC，避免渲染进程在窗口加载早期调用时未注册
+		regAuthIPC()
 		regCoreIPC()
 		regStoreIPC()
 		regSystemIPC()

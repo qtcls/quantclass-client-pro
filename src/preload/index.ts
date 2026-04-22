@@ -10,6 +10,7 @@
 
 import { systemIPC } from "@/preload/system/index.js"
 import { contextBridge } from "electron"
+import { authIPC } from "./auth/index.js"
 import { dataIPC } from "./data/index.js"
 import { emitterIPC } from "./emitter/index.js"
 import { fileSysIPC } from "./file-sys/index.js"
@@ -39,6 +40,7 @@ if (process.contextIsolated) {
 			...systemIPC,
 			...userIPC,
 			...migrationIPC,
+			...authIPC,
 		})
 	} catch (error) {
 		console.error(error)

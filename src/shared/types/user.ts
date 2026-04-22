@@ -8,10 +8,6 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-export interface UserInfo {
-	[key: string]: any
-}
-
 export interface UserAccountInfo {
 	id: string
 	uuid: string
@@ -30,7 +26,7 @@ export interface UserAccountInfo {
 }
 
 export interface WebUserInfo {
-	user: UserInfo | null
+	user: UserAccountInfo | null
 	isLoggedIn: boolean
 }
 

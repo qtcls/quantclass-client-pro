@@ -21,6 +21,7 @@ import {
 } from "@/renderer/store/user"
 import { useAtomValue, useSetAtom } from "jotai"
 import { RESET } from "jotai/utils"
+import { useCallback } from "react"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
 
@@ -34,8 +35,9 @@ export const useLogout = () => {
 	const setSettings = useSetAtom(settingsAtom)
 	const handleTimeTask = useHandleTimeTask()
 	const setIsLogin = useSetAtom(isLoginAtom)
-	const { clearWebUserInfo } = window.electronAPI
-	const handleLogout = () => {
+	const { clearWebUserInfo, logoutAuth } = window.electronAPI
+
+	const applyLocalLogoutState = useCallback(async () => {
 		setIsLogin(false)
 		setUser(RESET)
 		setAccountKey(RESET)
@@ -53,8 +55,30 @@ export const useLogout = () => {
 		}
 		clearWebUserInfo()
 		navigate("/")
-		toast.info("登出成功")
-	}
+	}, [
+		isUpdating,
+		setUser,
+		setAccountKey,
+		setNonce,
+		setTimestampSign,
+		setSettings,
+		setIsLogin,
+		handleTimeTask,
+		clearWebUserInfo,
+		navigate,
+	])
+	// -- 账户信息异常处理
+	const handleSessionInvalid = useCallback(async () => {
+		await applyLocalLogoutState()
+		toast.warning("账户信息异常，请重新登录")
+	}, [applyLocalLogoutState])
 
-	return { handleLogout }
+	// -- 登出处理
+	const handleLogout = useCallback(async () => {
+		await logoutAuth()
+		await applyLocalLogoutState()
+		toast.info("登出成功")
+	}, [applyLocalLogoutState, logoutAuth])
+
+	return { handleLogout, handleSessionInvalid }
 }

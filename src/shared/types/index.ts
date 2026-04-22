@@ -19,11 +19,17 @@ export type { KernalType } from "./kernal.js"
 
 // 用户相关类型
 export type {
-	UserInfo,
 	WebUserInfo,
 	UserAccount,
 	UserAccountInfo,
 } from "./user.js"
+
+export type {
+	AccessTokenJwtPayload,
+	AccessTokenStorage,
+	AuthRefreshResponse,
+	AuthClientTokenResponse,
+} from "./auth.js"
 
 // 策略状态相关类型
 export type {

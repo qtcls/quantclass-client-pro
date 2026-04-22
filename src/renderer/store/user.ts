@@ -8,12 +8,18 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-const { getUserAccount, syncWebUserInfo } = window.electronAPI
+const { getUserAccount, syncWebUserInfo, setTokens } = window.electronAPI
 import { accountKeyAtom, isLoginAtom } from "@/renderer/store/storage"
-import type { UserAccount, UserInfo } from "@/shared/types"
+import type {
+	AccessTokenJwtPayload,
+	AuthClientTokenResponse,
+	UserAccount,
+	UserAccountInfo,
+} from "@/shared/types"
 import { atomEffect } from "jotai-effect"
 import { atomWithQuery } from "jotai-tanstack-query"
 import { atomWithStorage } from "jotai/utils"
+import { jwtDecode } from "jwt-decode"
 import md5 from "md5"
 import { settingsAtom } from "./electron"
 import { postUserActionMutationAtom } from "./mutation"
@@ -90,11 +96,10 @@ export const userAtom = atomWithStorage<UserAccount>(
 )
 
 export const userAuthAtom = atomWithQuery<{
-	name: string
-	token: string
-	user: UserInfo
 	success: boolean
-}>((get) => {
+	access_token: string
+	user: UserAccountInfo
+} | null>((get) => {
 	const { isLoggedIn } = get(userAtom)
 	const enabled = get(isLoginAtom)
 	const newTimestampSign = generateTimestampSign()
@@ -111,8 +116,7 @@ export const userAuthAtom = atomWithQuery<{
 		queryFn: async ({ queryKey: [, nonce, client_id, timestamp_sign] }) => {
 			if (isLoggedIn) return null
 			try {
-				// 发起请求
-				const res = await fetch(`${VITE_BASE_URL}/user/client/authorized`, {
+				const res = await fetch(`${VITE_BASE_URL}/user/client/token`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
@@ -121,12 +125,26 @@ export const userAuthAtom = atomWithQuery<{
 						timestamp_sign,
 					}),
 				})
-				// 如果请求失败，记录错误并返回 null
 				if (!res.ok) {
 					return null
 				}
-				// 请求成功，返回解析后的 JSON 数据
-				return await res.json()
+				const data = (await res.json()) as AuthClientTokenResponse
+				if (!data?.success || !data.access_token || !data.refresh_token) {
+					return null
+				}
+				setTokens({
+					access_token: data.access_token,
+					refresh_token: data.refresh_token,
+				})
+				const payload = jwtDecode<AccessTokenJwtPayload>(data.access_token)
+				if (!payload?.user) {
+					return null
+				}
+				return {
+					success: true,
+					access_token: data.access_token,
+					user: payload.user,
+				}
 			} catch (error) {
 				return null
 			}

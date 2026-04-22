@@ -8,14 +8,14 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import type { UserInfo } from "@/shared/types/user.js"
+import type { UserAccountInfo } from "@/shared/types/user.js"
 
 /**
  * 计算用户权限信息
  * @param user 用户信息
  * @returns 权限对象，包含 isMember, isStock, isCrypto, isBlock, roles, permissions
  */
-export function calculatePermissions(user: UserInfo | null) {
+export function calculatePermissions(user: UserAccountInfo | null) {
 	if (!user) {
 		return {
 			isMember: false,

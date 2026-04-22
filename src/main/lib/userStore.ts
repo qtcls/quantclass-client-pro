@@ -8,7 +8,11 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import type { UserAccount, UserInfo, WebUserInfo } from "@/shared/types/user.js"
+import type {
+	UserAccount,
+	UserAccountInfo,
+	WebUserInfo,
+} from "@/shared/types/user.js"
 import Store from "electron-store"
 import { calculatePermissions } from "../utils/user.js"
 import logger from "../utils/wiston.js"
@@ -141,7 +145,7 @@ class UserStore {
 				return null
 			}
 
-			const data = (await response.json()) as UserInfo
+			const data = (await response.json()) as UserAccountInfo
 
 			if (data) {
 				const WebUserInfo: WebUserInfo = {

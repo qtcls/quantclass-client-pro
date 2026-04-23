@@ -11,7 +11,6 @@
 import { useAtom, useSetAtom } from "jotai"
 import { RESET } from "jotai/utils"
 import { useEffect } from "react"
-import { toast } from "sonner"
 import { settingsAtom } from "../store/electron"
 import { userInfoMutationAtom } from "../store/mutation"
 import { userAtom } from "../store/user"

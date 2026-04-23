@@ -16,7 +16,6 @@ import { useAtom, useSetAtom } from "jotai"
 import { RESET } from "jotai/utils"
 import { useEffect } from "react"
 import { useLocation } from "react-router"
-import { toast } from "sonner"
 
 const { rendererLog, getUserAccount, onSessionInvalid } = window.electronAPI
 

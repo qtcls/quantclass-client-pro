@@ -37,7 +37,8 @@ export const useLogout = () => {
 	const setIsLogin = useSetAtom(isLoginAtom)
 	const { clearWebUserInfo, logoutAuth } = window.electronAPI
 
-	const applyLocalLogoutState = useCallback(async () => {
+	const completeLogout = useCallback(async () => {
+		await logoutAuth()
 		setIsLogin(false)
 		setUser(RESET)
 		setAccountKey(RESET)
@@ -66,19 +67,19 @@ export const useLogout = () => {
 		handleTimeTask,
 		clearWebUserInfo,
 		navigate,
+		logoutAuth,
 	])
 	// -- 账户信息异常处理
 	const handleSessionInvalid = useCallback(async () => {
-		await applyLocalLogoutState()
+		await completeLogout()
 		toast.warning("账户信息异常，请重新登录")
-	}, [applyLocalLogoutState])
+	}, [completeLogout])
 
 	// -- 登出处理
 	const handleLogout = useCallback(async () => {
-		await logoutAuth()
-		await applyLocalLogoutState()
+		await completeLogout()
 		toast.info("登出成功")
-	}, [applyLocalLogoutState, logoutAuth])
+	}, [completeLogout])
 
 	return { handleLogout, handleSessionInvalid }
 }

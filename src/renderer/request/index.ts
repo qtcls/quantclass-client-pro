@@ -8,127 +8,97 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-const { VITE_BASE_URL } = import.meta.env
+import { ApiError, get, post } from "@/renderer/utils/request"
+
 const { rendererLog } = window.electronAPI
 
-export const postUserAction = async (
-	api_key: string,
-	data: {
-		uuid: string
-		role: string
-		action: string
-	},
-) => {
+export const postUserAction = async (data: {
+	role: string
+	action: string
+}) => {
 	try {
-		if (!api_key || !data.uuid) {
-			return
-		}
-
-		const response = await fetch(
-			`${VITE_BASE_URL}/api/data/data_client_record/create`,
-			{
-				method: "POST",
-				headers: {
-					"api-key": api_key,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(data),
-			},
-		)
-
-		if (!response.ok) {
-			const errorText = await response.text()
+		return await post("/api/data/data_client_record/create", data)
+	} catch (error) {
+		if (error instanceof ApiError) {
 			rendererLog(
 				"error",
 				`请求失败 ${JSON.stringify(
 					{
-						status: response.status,
-						statusText: response.statusText,
-						error: errorText,
+						status: error.status,
+						error: error.data,
 						requestData: data,
 					},
 					null,
 					2,
 				)}`,
 			)
+		} else {
+			rendererLog(
+				"error",
+				`[postUserAction] 请求异常: ${JSON.stringify(error, null, 2)}`,
+			)
 		}
-
-		return response
-	} catch (error) {
-		rendererLog(
-			"error",
-			`[postUserAction] 请求异常: ${JSON.stringify(error, null, 2)}`,
-		)
-		throw error
 	}
 }
 
-export const getStatusExpires = async (api_key: string, uuid: string) => {
-	const response = await fetch(
-		`${VITE_BASE_URL}/api/data/query/user/data_api/valid_to?uuid=${uuid}`,
-		{
-			method: "GET",
-			headers: {
-				"api-key": api_key,
-				"Content-Type": "application/json",
-			},
-		},
-	)
-
-	if (!response.ok) {
-		const errorText = await response.text()
-		rendererLog(
-			"error",
-			`[getStatusExpires] 请求失败 ${JSON.stringify(
-				{
-					status: response.status,
-					statusText: response.statusText,
-					error: errorText,
-				},
-				null,
-				2,
-			)}`,
-		)
-		return { code: 400, message: errorText }
-	}
-
-	const json = await response.json()
-
-	return json
-}
-
-export const getExtraWorkStatus = async (api_key: string, uuid: string) => {
-	const response = await fetch(
-		`${VITE_BASE_URL}/api/data/query/user/elective_hw?uuid=${uuid}`,
-		{
-			method: "GET",
-			headers: {
-				"api-key": api_key,
-				"Content-Type": "application/json",
-			},
-		},
-	)
-
-	if (!response.ok) {
-		const errorText = await response.text()
-
-		rendererLog(
-			"error",
-			`[getExtraWorkStatus] 请求失败 ${JSON.stringify(
-				{
-					status: response.status,
-					statusText: response.statusText,
-					error: errorText,
-				},
-				null,
-				2,
-			)}`,
-		)
-	}
+export const getStatusExpires = async () => {
 	try {
-		const json = (await response.json()) as { data: boolean }
-		return json
+		return await get("/api/data/query/user/data_api/valid_to")
 	} catch (error) {
+		if (error instanceof ApiError) {
+			rendererLog(
+				"error",
+				`[getStatusExpires] 请求失败 ${JSON.stringify(
+					{
+						status: error.status,
+						error: error.data,
+					},
+					null,
+					2,
+				)}`,
+			)
+			return {
+				code: 400,
+				message:
+					typeof error.data === "string"
+						? error.data
+						: JSON.stringify(error.data),
+			}
+		} else {
+			rendererLog(
+				"error",
+				`[getStatusExpires] 请求异常: ${JSON.stringify(error, null, 2)}`,
+			)
+			return {
+				code: 400,
+				message: error instanceof Error ? error.message : String(error),
+			}
+		}
+	}
+}
+
+export const getExtraWorkStatus = async () => {
+	try {
+		return await get("/api/data/query/user/elective_hw")
+	} catch (error) {
+		if (error instanceof ApiError) {
+			rendererLog(
+				"error",
+				`[getExtraWorkStatus] 请求失败 ${JSON.stringify(
+					{
+						status: error.status,
+						error: error.data,
+					},
+					null,
+					2,
+				)}`,
+			)
+		} else {
+			rendererLog(
+				"error",
+				`[getExtraWorkStatus] 请求异常: ${JSON.stringify(error, null, 2)}`,
+			)
+		}
 		return { data: false }
 	}
 }

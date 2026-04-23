@@ -9,7 +9,6 @@
  */
 
 import { postUserAction } from "@/renderer/request"
-import { accountKeyAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { versionsAtom } from "@/renderer/store/versions"
 import type { UserAccount } from "@/shared/types/user"
@@ -31,20 +30,13 @@ export const userInfoMutationAtom = atomWithMutation<
 
 // -- 用户行为记录
 export const postUserActionMutationAtom = atomWithMutation((get) => {
-	const { uuid = "", apiKey = "" } = get(accountKeyAtom)
 	const { clientVersion } = get(versionsAtom)
 	const { user } = get(userAtom)
 
 	return {
 		mutationKey: ["post-user-action"],
 		mutationFn: async (action: string) => {
-			if (!apiKey || !uuid) {
-				rendererLog("warning", `记录 ${action} 时 apiKey 或 uuid 为空`)
-				return
-			}
-
-			return postUserAction(apiKey, {
-				uuid,
+			return postUserAction({
 				role: `client-${clientVersion}${user?.isMember ? "-fen" : ""}`,
 				action,
 			})

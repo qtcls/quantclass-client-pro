@@ -129,7 +129,7 @@ const parseErrorBody = async (res: Response): Promise<unknown> => {
 	}
 }
 
-const request = async <T>(
+const request = async <T = any>(
 	method: string,
 	path: string,
 	body?: unknown,
@@ -156,13 +156,11 @@ const request = async <T>(
 
 const createBodyRequest =
 	(method: string) =>
-	<T = unknown>(path: string, body?: unknown): Promise<T> =>
+	<T = any>(path: string, body?: unknown): Promise<T> =>
 		request<T>(method, path, body)
 
-export const get = <T = unknown>(
-	path: string,
-	params?: QueryParams,
-): Promise<T> => request<T>("GET", appendQuery(path, params))
+export const get = <T = any>(path: string, params?: QueryParams): Promise<T> =>
+	request<T>("GET", appendQuery(path, params))
 
 export const post = createBodyRequest("POST")
 export const put = createBodyRequest("PUT")

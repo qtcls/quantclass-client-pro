@@ -73,18 +73,18 @@ export const UserMenu = () => {
 	// -- 处理认证响应
 	useEffect(() => {
 		const handleAuthResponse = async () => {
-			if (!authResponse || !user?.apiKey || !user?.uuid || !isLoggedIn) return
+			if (!authResponse || !isLoggedIn) return
 
 			// const { role } = (await checkAccountRole()).data ?? { role: 0 }
 
 			// -- 如果角色不是分享会，则设置状态过期时间
 			if (!isMember) {
-				const res = await getStatusExpires(user.apiKey, user.uuid)
+				const res = await getStatusExpires()
 				if (res.code === 200) {
 					setStatusExpires(res.data.valid_to)
 				}
 
-				// const extraWorkStatus = await getExtraWorkStatus(user.apiKey, user.uuid)
+				// const extraWorkStatus = await getExtraWorkStatus()
 				// setExtraWorkStatus(extraWorkStatus.data)
 				// setStoreValue("extra-work-status", extraWorkStatus.data)
 			}
@@ -92,7 +92,7 @@ export const UserMenu = () => {
 		}
 
 		handleAuthResponse()
-	}, [user?.apiKey, user?.uuid])
+	}, [isLoggedIn, isMember, authResponse])
 
 	// -- 获取操作 URL
 	const actionUrl = useMemo(() => {

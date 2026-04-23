@@ -14,6 +14,7 @@ import { createRequire } from "node:module"
 import path from "node:path"
 import { getKernelVersion } from "@/main/core/lib.js"
 import windowManager from "@/main/lib/WindowManager.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
 import { postUserMainAction } from "@/main/request/index.js"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
@@ -228,11 +229,8 @@ export async function downloadKernal(
 
 		// -- 下载成功后发送埋点请求
 		try {
-			const api_key = await store.getSetting("api_key", "")
-			const uuid = await store.getSetting("hid", "")
-			if (api_key && uuid) {
-				await postUserMainAction(api_key, {
-					uuid,
+			if (tokenStore.hasBothTokensInMemory()) {
+				await postUserMainAction({
 					role: "client",
 					action: `下载 ${kernal} 内核成功: ${version}`,
 				})

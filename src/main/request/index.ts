@@ -8,39 +8,33 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { ApiError, post } from "@/main/utils/request.js"
 import logger from "@/main/utils/wiston.js"
-import { BASE_URL } from "@/main/vars.js"
 
-export const postUserMainAction = async (
-	api_key: string,
-	data: {
-		uuid: string
-		role: string
-		action: string
-	},
-) => {
+export const postUserMainAction = async (data: {
+	role: string
+	action: string
+}) => {
 	try {
-		const response = await fetch(
-			`${BASE_URL}/api/data/data_client_record/create`,
-			{
-				method: "POST",
-				headers: {
-					"api-key": api_key,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(data),
-			},
-		)
-
-		if (!response.ok) {
-			const errorText = await response.text()
-			logger.error(`请求点失败-request: ${response.status} ${errorText}`)
-		}
-
-		return response
+		return await post("/api/data/data_client_record/create", data)
 	} catch (error) {
-		logger.error(`[postUserMainAction] 请求异常: ${error}`)
-		throw error
+		if (error instanceof ApiError) {
+			logger.error(
+				`请求失败 ${JSON.stringify(
+					{
+						status: error.status,
+						error: error.data,
+						requestData: data,
+					},
+					null,
+					2,
+				)}`,
+			)
+		} else {
+			logger.error(
+				`[postUserMainAction] 请求异常: ${JSON.stringify(error, null, 2)}`,
+			)
+		}
 	}
 }
 

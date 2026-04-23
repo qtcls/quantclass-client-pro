@@ -37,8 +37,6 @@ export const useUserInfoSync = () => {
 				hid: "",
 				api_key: "",
 			}))
-			toast.dismiss()
-			toast.warning("账户信息异常，请重新登录")
 		}
 		rendererLog("info", "[useUserInfoSync] 用户信息已更新")
 	}, 1000 * 60) // -- 1分钟轮询
@@ -63,8 +61,6 @@ export const useUserInfoSync = () => {
 				hid: "",
 				api_key: "",
 			}))
-			toast.dismiss()
-			toast.warning("账户信息异常，请重新登录")
 		}
 	}
 

@@ -59,8 +59,6 @@ const RouteChangeListener = () => {
 						hid: "",
 						api_key: "",
 					}))
-					toast.dismiss()
-					toast.warning("账户信息异常，请重新登录")
 				}
 			})
 			.catch((error) => {

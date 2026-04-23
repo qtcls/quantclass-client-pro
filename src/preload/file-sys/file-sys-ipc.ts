@@ -12,11 +12,12 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { getJsonDataFromFile } from "@/main/core/dataList.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
 import { parsePythonConfig } from "@/main/pythonRunner.js"
 import store, { rStore } from "@/main/store/index.js"
 import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
-import { CLIENT_VERSION } from "@/main/vars.js"
+import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
 import { parse } from "csv-parse/sync"
 import {
@@ -233,8 +234,8 @@ async function importSelectStockHandler(): Promise<void> {
 			}
 			console.log("[import] config:", configFilePath)
 
-		// -- 读取并解析 config.py（通过内嵌 Python 解析）
-		try {
+			// -- 读取并解析 config.py（通过内嵌 Python 解析）
+			try {
 				const result = await parsePythonConfig(configFilePath, [
 					"strategy_list",
 					"backtest_name",
@@ -246,9 +247,7 @@ async function importSelectStockHandler(): Promise<void> {
 				}
 				configJsonStr = JSON.stringify(result.strategy_list, null, 2)
 				backtestName = result.backtest_name ?? "默认策略"
-				reTimingStr = result.re_timing
-					? JSON.stringify(result.re_timing)
-					: null
+				reTimingStr = result.re_timing ? JSON.stringify(result.re_timing) : null
 				logger.info(`[import] 解析 config.py 文件成功，策略名：${backtestName}`)
 			} catch (error) {
 				logger.error(`[import] 解析 config.py 文件失败: ${error}`)
@@ -359,8 +358,8 @@ async function importFusionHandler(): Promise<void> {
 			}
 			console.log("[import] config:", configFilePath)
 
-		// -- 读取并解析 config.py（通过内嵌 Python 解析）
-		try {
+			// -- 读取并解析 config.py（通过内嵌 Python 解析）
+			try {
 				const result = await parsePythonConfig(configFilePath, [
 					"strategies",
 					"pos_strategy",
@@ -599,15 +598,18 @@ async function deletePeriodOffsetHandler(): Promise<void> {
 			}
 
 			// 从 API 下载新文件
-			const hid = await store.getSetting("hid", "")
-			const downloadUrl = `https://api.quantclass.cn/api/data/client/real-trading/period-offset?client=${CLIENT_VERSION}`
+			const downloadUrl = `${BASE_URL}/api/data/client/real-trading/period-offset?client=${CLIENT_VERSION}`
 			logger.info(`[updatePeriodOffset] 开始下载: ${downloadUrl}`)
+
+			const token = await tokenStore.getAccessToken()
+			const headers: HeadersInit = {}
+			if (token) {
+				headers.Authorization = `Bearer ${token}`
+			}
 
 			const response = await fetch(downloadUrl, {
 				method: "POST",
-				headers: {
-					hid: hid,
-				},
+				headers,
 			})
 
 			if (!response.ok) {

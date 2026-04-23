@@ -14,6 +14,7 @@ import type {
 	WebUserInfo,
 } from "@/shared/types/user.js"
 import Store from "electron-store"
+import { ApiError, post } from "../utils/request.js"
 import { calculatePermissions } from "../utils/user.js"
 import logger from "../utils/wiston.js"
 
@@ -54,9 +55,7 @@ class UserStore {
 
 		// 如果没有数据，主动请求更新
 		if (!data?.WebUserInfo) {
-			const result = await this.updateUserInfo()
-
-			return result === "AUTH_FAILED" ? null : result
+			return await this.updateUserInfo()
 		}
 
 		const now = Date.now()
@@ -70,11 +69,6 @@ class UserStore {
 
 		logger.info("[user] 缓存已过期或强制更新，发起新的用户信息请求")
 		const updatedUserAccount = await this.updateUserInfo()
-
-		if (updatedUserAccount === "AUTH_FAILED") {
-			// 认证失败，返回null触发重新登录
-			return null
-		}
 
 		if (updatedUserAccount) {
 			return updatedUserAccount
@@ -111,41 +105,10 @@ class UserStore {
 	}
 
 	// -- 更新用户信息
-	async updateUserInfo(): Promise<UserAccount | null | "AUTH_FAILED"> {
-		const store = new Store()
-		const apiKey = (await store.get("settings.api_key", "")) as string
-		const hid = (await store.get("settings.hid", "")) as string
-
+	async updateUserInfo(): Promise<UserAccount | null> {
 		try {
 			logger.info("[user] 发起用户信息更新请求")
-			const BASE_URL = process.env.VITE_BASE_URL || "https://api.quantclass.cn"
-
-			const response = await fetch(`${BASE_URL}/user/info/v3?uuid=${hid}`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"api-key": apiKey,
-				},
-				body: JSON.stringify({}),
-			})
-
-			if (!response.ok) {
-				logger.error(
-					`[user] 获取用户信息失败: ${response.status} ${response.statusText}`,
-				)
-
-				// 如果是403无权限，清空用户状态，返回AUTH_FAILED
-				if (response.status === 403) {
-					logger.error("[user] 凭证已过期或无效，清空用户状态")
-					await this.clearWebUserInfo()
-					return "AUTH_FAILED"
-				}
-
-				// 其他错误返回null
-				return null
-			}
-
-			const data = (await response.json()) as UserAccountInfo
+			const data = await post<UserAccountInfo>("/user/info/v3", {})
 
 			if (data) {
 				const WebUserInfo: WebUserInfo = {
@@ -164,15 +127,25 @@ class UserStore {
 				})
 				logger.info("[user] 用户信息已更新并保存")
 
-				// 返回构建的用户账户对象
 				return this._buildUserAccount(WebUserInfo)
 			}
 
 			logger.error("[user] 获取用户信息失败: 响应数据格式错误")
 			return null
 		} catch (error) {
-			logger.error(`[user] 更新用户信息时发生错误: ${error}`)
-			// 网络错误等，返回null
+			if (error instanceof ApiError) {
+				logger.error(
+					`[user] 获取用户信息失败 ${JSON.stringify(
+						{ status: error.status, error: error.data },
+						null,
+						2,
+					)}`,
+				)
+				return null
+			}
+			logger.error(
+				`[user] 更新用户信息时发生异常: ${JSON.stringify(error, null, 2)}`,
+			)
 			return null
 		}
 	}

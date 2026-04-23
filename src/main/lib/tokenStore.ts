@@ -37,7 +37,7 @@ const decodeJwtExp = (token: string): number | null => {
 const resolveFilePath = (): string =>
 	path.join(app.getPath("userData"), REFRESH_TOKEN_FILE)
 
-const broadcastSessionInvalid = (): void => {
+export const broadcastAuthSessionInvalid = (): void => {
 	for (const win of BrowserWindow.getAllWindows()) {
 		if (!win.isDestroyed()) {
 			win.webContents.send("auth:session-invalid")
@@ -93,6 +93,12 @@ class TokenStore {
 		}
 	}
 
+	// -- 内存中是否同时存在 access_token 与 refresh_token
+	hasBothTokensInMemory(): boolean {
+		const access = this.accessToken?.access_token
+		return Boolean(access && this.refreshToken)
+	}
+
 	/**
 	 * 获取 access_token
 	 * - force：强制 await refresh
@@ -129,7 +135,7 @@ class TokenStore {
 				const refreshToken = this.refreshToken
 				if (!refreshToken) {
 					logger.error("[tokenStore] 无 refresh_token，无法刷新")
-					broadcastSessionInvalid()
+					broadcastAuthSessionInvalid()
 					return null
 				}
 
@@ -145,7 +151,7 @@ class TokenStore {
 					logger.error(
 						`[tokenStore] 刷新 access_token 失败: HTTP ${res.status} ${res.statusText}`,
 					)
-					broadcastSessionInvalid()
+					broadcastAuthSessionInvalid()
 					return null
 				}
 
@@ -156,7 +162,7 @@ class TokenStore {
 					!data.access_token
 				) {
 					logger.error("[tokenStore] 刷新 access_token 失败：响应无效")
-					broadcastSessionInvalid()
+					broadcastAuthSessionInvalid()
 					return null
 				}
 
@@ -178,7 +184,7 @@ class TokenStore {
 				logger.error(
 					`[tokenStore] 刷新 access_token 异常: ${error instanceof Error ? error.message : String(error)}`,
 				)
-				broadcastSessionInvalid()
+				broadcastAuthSessionInvalid()
 			} finally {
 				this.refreshPromise = null
 			}

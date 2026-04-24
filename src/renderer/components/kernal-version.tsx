@@ -97,7 +97,7 @@ const KernalVersionSelect = ({
 	title: string
 	versionKey: string
 	versions: KernalVersionType[]
-	onVersionSelect?: (targetVersion: string, name: string) => void
+	onVersionSelect?: (version: KernalVersionType, name: string) => void
 	isObsolete?: boolean
 }) => {
 	const version = useAtomValue(versionsAtom)[versionKey]
@@ -148,7 +148,7 @@ const KernalVersionSelect = ({
 									version={remoteVersion}
 									label={versionLabels[remoteVersion.label ?? "none"]}
 									onClick={() => {
-										onVersionSelect?.(remoteVersion.version, name)
+										onVersionSelect?.(remoteVersion, name)
 									}}
 								/>
 							))}
@@ -218,7 +218,16 @@ export const KernalVersion = ({
 		)
 	}, [currentVersion, versionList])
 
-	const handleKernalUpdate = (targetVersion?: string, kernelName?: string) => {
+	const latestVersionDetail = useMemo(() => {
+		if (!latestVersion) return undefined
+		return versionList.find((v) => v.version === latestVersion)
+	}, [versionList, latestVersion])
+
+	const handleKernalUpdate = (
+		targetVersion?: string,
+		kernelName?: string,
+		versionDetail?: Pick<KernalVersionType, "description" | "release">,
+	) => {
 		if (disabled) {
 			toast.error(`当前操作系统不支持更新${title}内核`)
 			return
@@ -250,6 +259,16 @@ export const KernalVersion = ({
 								{displayTargetVersion}
 							</span>
 						</p>
+						{versionDetail?.description ? (
+							<p className="text-sm text-blue-500/90 mt-2 leading-snug">
+								{versionDetail.description}
+							</p>
+						) : null}
+						{versionDetail?.release ? (
+							<p className="text-sm text-blue-500/80 mt-1.5">
+								发布日期：{versionDetail.release}
+							</p>
+						) : null}
 					</div>
 					<p>
 						🛑 下载内核前，会自动停止自动数据更新和实盘功能。完成后，需要
@@ -287,7 +306,9 @@ export const KernalVersion = ({
 				{hasUpdate && !isObsolete && (
 					<span
 						className="text-xs text-blue-500 dark:text-blue-400 cursor-pointer"
-						onClick={() => handleKernalUpdate(latestVersion, name)}
+						onClick={() =>
+							handleKernalUpdate(latestVersion, name, latestVersionDetail)
+						}
 						title={`更新${title}(${name})内核到版本 ${latestVersion}`}
 					>
 						{currentVersion === "暂无内核" ? "下载" : "更新"}
@@ -299,7 +320,9 @@ export const KernalVersion = ({
 						title={title}
 						versionKey={versionKey}
 						versions={versionList}
-						onVersionSelect={handleKernalUpdate}
+						onVersionSelect={(v, n) =>
+							handleKernalUpdate(v.version, n, v)
+						}
 						isObsolete={isObsolete}
 					/>
 				)}

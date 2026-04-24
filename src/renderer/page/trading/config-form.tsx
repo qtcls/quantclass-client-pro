@@ -9,6 +9,7 @@
  */
 
 import { CiccBseNoticeDialog } from "@/renderer/components/CiccBseNoticeDialog"
+import { ClearFactorCacheConfirmDialog } from "@/renderer/components/ClearFactorCacheConfirmDialog"
 import { PerformanceModeSelectTabs } from "@/renderer/components/select-tabs"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
@@ -43,7 +44,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import dayjs from "dayjs"
 import { useDebounceFn } from "etc-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { CircleHelp, Folder, PlayCircle, Save } from "lucide-react"
+import { CircleHelp, Folder, PlayCircle, Save, Trash2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -80,7 +81,8 @@ export const RealMarketConfigSchema = z.object({
 type FormData = z.infer<typeof RealMarketConfigSchema>
 
 export function TradingConfigForm() {
-	const { selectDirectory, createRealTradingDir } = window.electronAPI
+	const { selectDirectory, createRealTradingDir, clearFactorCache } =
+		window.electronAPI
 	const { user } = useAtomValue(userAtom)
 	const { data: rocketStatus = false } = useAtomValue(rocketStatusQueryAtom)
 	const { checkWithToast } = usePermissionCheck()
@@ -95,6 +97,7 @@ export function TradingConfigForm() {
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
 	const [ciccDismissed, setCiccDismissed] = useAtom(ciccBseNoticeDismissedAtom)
 	const [showCiccNotice, setShowCiccNotice] = useState(false)
+	const [factorCacheConfirmOpen, setFactorCacheConfirmOpen] = useState(false)
 
 	const defaultValues = useMemo(() => {
 		const isCiccBroker =
@@ -802,6 +805,19 @@ export function TradingConfigForm() {
 								</FormItem>
 							)}
 						/>
+						<FormItem className="space-y-2">
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								className="w-fit text-destructive hover:text-destructive"
+								disabled={!user?.isMember}
+								onClick={() => setFactorCacheConfirmOpen(true)}
+							>
+								<Trash2 className="mr-2 size-4" />
+								清除因子缓存
+							</Button>
+						</FormItem>
 					</div>
 				</form>
 			</Form>
@@ -839,6 +855,23 @@ export function TradingConfigForm() {
 					{isAutoRocket ? "正在实盘自动更新" : "保存配置并启动"}
 				</Button>
 			</div>
+			<ClearFactorCacheConfirmDialog
+				open={factorCacheConfirmOpen}
+				onOpenChange={setFactorCacheConfirmOpen}
+				onConfirm={async () => {
+					const res = await clearFactorCache()
+					if (res.success) {
+						if (res.skipped) {
+							toast.info("因子缓存目录不存在，无需清理")
+						} else {
+							toast.success("因子缓存已清除")
+						}
+						setFactorCacheConfirmOpen(false)
+					} else {
+						toast.error(res.message ?? "清除因子缓存失败")
+					}
+				}}
+			/>
 			<CiccBseNoticeDialog
 				open={showCiccNotice}
 				onOpenChange={setShowCiccNotice}

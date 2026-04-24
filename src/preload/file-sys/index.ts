@@ -38,4 +38,5 @@ export const fileSysIPC = {
 	loadPositionJson: (filename: string) =>
 		ipcRenderer.invoke("load-position-json", filename),
 	deletePeriodOffset: () => ipcRenderer.invoke("delete-period-offset"),
+	clearFactorCache: () => ipcRenderer.invoke("clear-factor-cache"),
 }

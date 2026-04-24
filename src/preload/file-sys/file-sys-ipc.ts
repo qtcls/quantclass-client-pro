@@ -569,6 +569,52 @@ async function importPositionHandler(): Promise<void> {
 	})
 }
 
+async function clearFactorCacheHandler(): Promise<void> {
+	ipcMain.handle("clear-factor-cache", async () => {
+		try {
+			const allDataPath = (await store.getSetting("all_data_path", "")) as string
+			if (!allDataPath?.trim()) {
+				return {
+					success: false,
+					message: "未配置数据存储路径",
+				}
+			}
+
+			const factorCachePath = await store.getAllDataPath(
+				["real_trading", "data", "因子缓存"],
+				false,
+			)
+
+			if (!fs.existsSync(factorCachePath)) {
+				return { success: true, skipped: true as const }
+			}
+
+			const stat = fs.statSync(factorCachePath)
+			if (!stat.isDirectory()) {
+				return {
+					success: false,
+					message: "目标路径不是文件夹，已取消操作",
+				}
+			}
+
+			fs.rmSync(factorCachePath, {
+				recursive: true,
+				force: true,
+			})
+			logger.info(`[factor-cache] cleared: ${factorCachePath}`)
+			return { success: true, skipped: false as const }
+		} catch (error) {
+			logger.error(
+				`[factor-cache] clear failed: ${JSON.stringify(error, null, 2)}`,
+			)
+			return {
+				success: false,
+				message: "清除因子缓存失败",
+			}
+		}
+	})
+}
+
 async function deletePeriodOffsetHandler(): Promise<void> {
 	ipcMain.handle("delete-period-offset", async () => {
 		try {
@@ -658,5 +704,6 @@ export const regFileSysIPC = () => {
 	strategyResultPathHandler()
 	importPositionHandler()
 	deletePeriodOffsetHandler()
+	clearFactorCacheHandler()
 	console.log("[reg] file-sys-ipc")
 }

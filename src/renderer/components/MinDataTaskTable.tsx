@@ -45,7 +45,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/renderer/components/ui/tooltip"
 import { Badge } from "@/renderer/components/ui/badge"
 import { cn } from "@/renderer/lib/utils"
-import { Loader2, Play, Search } from "lucide-react"
+import { Loader2, Play, Search, Wifi, WifiLow, WifiOff } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 const { getMinDataTaskStats, getMinDataTaskStatus } = window.electronAPI
@@ -166,17 +166,63 @@ function StatusBadge({ status }: { status: string }) {
 	return <Badge variant={config.variant}>{config.label}</Badge>
 }
 
+type NetworkQuality = "good" | "medium" | "poor"
+
+function getNetworkQuality(
+	sec: number,
+	mode: "fast" | "stable",
+): NetworkQuality {
+	if (mode === "fast") {
+		if (sec < 150) return "good"
+		if (sec < 300) return "medium"
+		return "poor"
+	}
+	if (sec < 240) return "good"
+	if (sec < 300) return "medium"
+	return "poor"
+}
+
+const NETWORK_CONFIG: Record<
+	NetworkQuality,
+	{ label: string; detail: string; icon: React.ElementType; className: string }
+> = {
+	good: {
+		label: "网速良好",
+		detail: "数据获取速度正常",
+		icon: Wifi,
+		className: "text-green-500",
+	},
+	medium: {
+		label: "网速一般",
+		detail: "数据获取速度较慢，建议检查网络连接",
+		icon: WifiLow,
+		className: "text-yellow-500",
+	},
+	poor: {
+		label: "网速较差",
+		detail: "数据获取速度很慢，请检查您的网络环境",
+		icon: WifiOff,
+		className: "text-red-500",
+	},
+}
+
 function TaskProgress({
 	statusCounts,
 	total,
 	isExecuting,
+	mode,
 }: {
 	statusCounts: Record<string, number>
 	total: number
 	isExecuting: boolean
+	mode?: "fast" | "stable"
 }) {
 	const [elapsedMs, setElapsedMs] = useState<number | null>(null)
+	const [finishedElapsedSec, setFinishedElapsedSec] = useState<number | null>(
+		null,
+	)
 	const startTimeRef = useRef<number>(0)
+	const finalElapsedRef = useRef<number | null>(null)
 
 	const completed =
 		(statusCounts.success ?? 0) +
@@ -188,14 +234,25 @@ function TaskProgress({
 		if (!isExecuting) return
 		startTimeRef.current = Date.now()
 		setElapsedMs(0)
+		setFinishedElapsedSec(null)
+		finalElapsedRef.current = null
 		const timer = setInterval(() => {
 			setElapsedMs(Date.now() - startTimeRef.current)
 		}, 1000)
 		return () => {
-			setElapsedMs(Date.now() - startTimeRef.current)
+			const finalMs = Date.now() - startTimeRef.current
+			setElapsedMs(finalMs)
+			finalElapsedRef.current = finalMs / 1000
 			clearInterval(timer)
 		}
 	}, [isExecuting])
+
+	useEffect(() => {
+		if (!isExecuting && percent === 100 && finalElapsedRef.current !== null) {
+			setFinishedElapsedSec(finalElapsedRef.current)
+			finalElapsedRef.current = null
+		}
+	}, [isExecuting, percent])
 
 	const elapsedSec = elapsedMs !== null ? elapsedMs / 1000 : null
 	const hasTiming = elapsedSec !== null && total > 0
@@ -215,13 +272,38 @@ function TaskProgress({
 		timeInfo = ` [${elapsedStr}<${etaStr}, ${speedStr}]`
 	}
 
+	const quality =
+		finishedElapsedSec !== null && mode
+			? getNetworkQuality(finishedElapsedSec, mode)
+			: null
+	const netConfig = quality ? NETWORK_CONFIG[quality] : null
+
 	return (
 		<div className="space-y-2">
 			<div className="flex items-center justify-between text-sm">
-				<span className="text-muted-foreground">
-					已完成 {completed} / {total}
-					{timeInfo}
-				</span>
+				<div className="flex items-center gap-2">
+					<span className="text-muted-foreground">
+						已完成 {completed} / {total}
+						{timeInfo}
+					</span>
+					{netConfig && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className={cn("flex items-center gap-1 cursor-default", netConfig.className)}>
+									<netConfig.icon className="h-4 w-4" />
+									<span className="text-xs font-medium">{netConfig.label}</span>
+								</span>
+							</TooltipTrigger>
+							<TooltipContent side="top">
+								<p>{netConfig.detail}</p>
+								<p className="text-muted-foreground text-xs mt-0.5">
+									本次用时 {formatTqdmTime(finishedElapsedSec!)}，
+									{mode === "fast" ? "极速" : "稳定"}模式
+								</p>
+							</TooltipContent>
+						</Tooltip>
+					)}
+				</div>
 				<span className="font-medium">{percent}%</span>
 			</div>
 			<Progress value={percent} />
@@ -286,6 +368,7 @@ export interface MinDataTaskTableProps {
 	tableType: "accurate" | "fuzzy"
 	isExecuting: boolean
 	onExecute: () => void
+	mode?: "fast" | "stable"
 	children?: React.ReactNode
 }
 
@@ -295,6 +378,7 @@ export function MinDataTaskTable({
 	tableType,
 	isExecuting,
 	onExecute,
+	mode,
 	children,
 }: MinDataTaskTableProps) {
 	const [stats, setStats] = useState<TaskStatsResult>({
@@ -477,6 +561,7 @@ export function MinDataTaskTable({
 						statusCounts={stats.statusCounts}
 						total={stats.total}
 						isExecuting={isExecuting}
+						mode={mode}
 					/>
 				)}
 

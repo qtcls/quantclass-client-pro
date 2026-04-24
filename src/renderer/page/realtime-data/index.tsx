@@ -346,6 +346,7 @@ const RealtimeData: FC = () => {
 						tableType="accurate"
 						isExecuting={isAccurateExecuting}
 						onExecute={() => handleExecConfirmClick("accurate")}
+						mode={mode}
 					>
 						<div className="flex items-center gap-2">
 							<span className="font-semibold whitespace-nowrap flex items-center gap-1">

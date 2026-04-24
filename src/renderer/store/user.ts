@@ -9,21 +9,18 @@
  */
 
 const { getUserAccount, syncWebUserInfo, setTokens } = window.electronAPI
-import { accountKeyAtom, isLoginAtom } from "@/renderer/store/storage"
+import { accountKeyAtom } from "@/renderer/store/storage"
 import type {
 	AccessTokenJwtPayload,
-	AuthClientTokenResponse,
 	UserAccount,
-	UserAccountInfo,
 } from "@/shared/types"
-import { atomEffect } from "jotai-effect"
-import { atomWithQuery } from "jotai-tanstack-query"
+import { useAtomValue, useSetAtom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import { jwtDecode } from "jwt-decode"
 import md5 from "md5"
+import { useCallback } from "react"
 import { settingsAtom } from "./electron"
 import { postUserActionMutationAtom } from "./mutation"
-const { VITE_BASE_URL } = import.meta.env
 
 const { rendererLog } = window.electronAPI
 
@@ -95,100 +92,48 @@ export const userAtom = atomWithStorage<UserAccount>(
 	{ getOnInit: true },
 )
 
-export const userAuthAtom = atomWithQuery<{
-	success: boolean
-	access_token: string
-	user: UserAccountInfo
-} | null>((get) => {
-	const { isLoggedIn } = get(userAtom)
-	const enabled = get(isLoginAtom)
-	const newTimestampSign = generateTimestampSign()
-	return {
-		retry: false,
-		refetchInterval: 3 * 1000,
-		enabled,
-		queryKey: [
-			"user-auth",
-			get(nonceAtom),
-			get(macAddressAtom),
-			newTimestampSign, // 使用新的 timestamp_sign
-		],
-		queryFn: async ({ queryKey: [, nonce, client_id, timestamp_sign] }) => {
-			if (isLoggedIn) return null
-			try {
-				const res = await fetch(`${VITE_BASE_URL}/user/client/token`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						nonce,
-						client_id,
-						timestamp_sign,
-					}),
-				})
-				if (!res.ok) {
-					return null
-				}
-				const data = (await res.json()) as AuthClientTokenResponse
-				if (!data?.success || !data.access_token || !data.refresh_token) {
-					return null
-				}
-				setTokens({
-					access_token: data.access_token,
-					refresh_token: data.refresh_token,
-				})
-				const payload = jwtDecode<AccessTokenJwtPayload>(data.access_token)
-				if (!payload?.user) {
-					return null
-				}
-				return {
-					success: true,
-					access_token: data.access_token,
-					user: payload.user,
-				}
-			} catch (error) {
-				return null
-			}
-		},
-	}
-})
+// -- 登录成功后的统一处理：由子窗口 postMessage 回传 tokens 后触发
+export function useAuthSuccessHandler() {
+	const { isLoggedIn } = useAtomValue(userAtom)
+	const setUser = useSetAtom(userAtom)
+	const setAccountKey = useSetAtom(accountKeyAtom)
+	const setSettings = useSetAtom(settingsAtom)
+	const { mutateAsync } = useAtomValue(postUserActionMutationAtom)
 
-// -- 用户状态更新与缓存同步
-export const userAuthEffectAtom = atomEffect((get, set) => {
-	;(async () => {
-		const { isLoggedIn } = get(userAtom)
-		const { data } = get(userAuthAtom)
-		const { mutateAsync } = get(postUserActionMutationAtom)
+	return useCallback(
+		async (tokens: { access_token: string; refresh_token: string }) => {
+			if (!tokens?.access_token || !tokens?.refresh_token) return
 
-		if (!data) return // 如果数据不存在，直接返回
+			const payload = jwtDecode<AccessTokenJwtPayload>(tokens.access_token)
+			if (!payload?.user) return
 
-		if (!data?.success) return // 如果请求失败，直接返回
+			setTokens({
+				access_token: tokens.access_token,
+				refresh_token: tokens.refresh_token,
+			})
 
-		// 同步用户状态到主进程
-		syncWebUserInfo({
-			user: data.user,
-			isLoggedIn: true,
-		})
+			// 同步用户状态到主进程
+			syncWebUserInfo({
+				user: payload.user,
+				isLoggedIn: true,
+			})
 
-		// 从主进程读取用户状态（确保主进程数据主导）
-		const WebUserInfoFromMain = await getUserAccount()
+			// 从主进程读取用户状态（确保主进程数据主导）
+			const WebUserInfoFromMain = await getUserAccount()
+			if (!WebUserInfoFromMain) return
 
-		if (WebUserInfoFromMain) {
-			// 使用从主进程读取的数据设置本地状态
-			set(userAtom, WebUserInfoFromMain)
+			setUser(WebUserInfoFromMain)
 
-			// 如果用户未登录，执行登录请求
 			if (!isLoggedIn) {
 				await mutateAsync("登录")
 			}
 
-			// 账户密钥设置
 			if (WebUserInfoFromMain.user) {
-				set(accountKeyAtom, {
+				setAccountKey({
 					uuid: WebUserInfoFromMain.user.uuid,
 					apiKey: WebUserInfoFromMain.user.apiKey,
 				})
-
-				set(settingsAtom, (prev) => ({
+				setSettings((prev) => ({
 					...prev,
 					hid: WebUserInfoFromMain.user?.uuid ?? "",
 					api_key: WebUserInfoFromMain.user?.apiKey ?? "",
@@ -196,6 +141,7 @@ export const userAuthEffectAtom = atomEffect((get, set) => {
 			}
 
 			rendererLog("info", "[user] 用户信息已从主进程同步到渲染进程")
-		}
-	})()
-})
+		},
+		[isLoggedIn, mutateAsync, setAccountKey, setSettings, setUser],
+	)
+}

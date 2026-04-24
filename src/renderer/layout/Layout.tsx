@@ -40,6 +40,7 @@ import {
 	SidebarProvider,
 	SidebarRail,
 } from "@/renderer/components/ui/sidebar"
+import { useAuthMessageListener } from "@/renderer/hooks/useAuthMessageListener"
 import { useCalcTotalWeight } from "@/renderer/hooks/useCalcTotalWeight"
 import { useRendererMigrations } from "@/renderer/hooks/useRendererMigrations"
 import { Footer } from "@/renderer/layout/Footer"
@@ -76,6 +77,7 @@ const Layout: FC = () => {
 	useCalcTotalWeight()
 	useNetworkToast()
 	useRendererMigrations()
+	useAuthMessageListener()
 
 	// -- State & Atoms
 	const { pathname } = useLocation()

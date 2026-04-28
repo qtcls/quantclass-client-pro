@@ -17,6 +17,7 @@ import { default as windowManager } from "@/main/lib/WindowManager.js"
 import { createWindow } from "@/main/lib/createWindow.js"
 // import setupUpdater from "@/main/lib/updater.js"
 import DBManager from "@/main/lib/db-manager.js"
+import { resetMinDataRoundsRunningForToday } from "@/main/lib/min-data-rounds-startup.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
 import { createTray } from "@/main/lib/tray.js"
 import { runMigrations } from "@/main/migration/runner.js"
@@ -122,6 +123,9 @@ if (!gotTheLock) {
 
 		// -- 执行数据迁移
 		await runMigrations()
+
+		// -- FuelBinStat：今日 min_data_rounds 行 is_running 置 0（异常退出后状态修复）
+		await resetMinDataRoundsRunningForToday()
 
 		// -- 创建主窗口与终端窗口
 		await createWindow()

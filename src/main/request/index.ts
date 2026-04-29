@@ -38,11 +38,47 @@ export const postUserMainAction = async (data: {
 	}
 }
 
-// 上报遥测到服务端 todo
+export interface ClientTelemetryData {
+	clientVersion: string
+	fuelVersion: string
+	aquaVersion: string
+	zeusVersion: string
+	rocketVersion: string
+	lastLoginTime: string
+	loginDuration: string
+	machineId: string
+}
+
+export interface ClientTelemetryReportBody {
+	key: string
+	data: ClientTelemetryData
+}
+
+const CLIENT_TELEMETRY_CREATE_PATH = "/api/data/user-login/client-version/log"
+
 export const postTelemetryReport = async (
-	_apiKey: string,
-	_hid: string,
-	telemetryLog: string,
+	body: ClientTelemetryReportBody,
 ): Promise<void> => {
-	logger.info(`[telemetry] 遥测上报（模拟）: ${telemetryLog}`)
+	try {
+		await post(CLIENT_TELEMETRY_CREATE_PATH, body)
+	} catch (error) {
+		if (error instanceof ApiError) {
+			logger.error(
+				`[telemetry] 请求失败 ${JSON.stringify(
+					{
+						status: error.status,
+						error: error.data,
+						path: CLIENT_TELEMETRY_CREATE_PATH,
+					},
+					null,
+					2,
+				)}`,
+			)
+		} else {
+			logger.error(
+				`[postTelemetryReport] 请求异常: ${JSON.stringify(error, null, 2)}`,
+			)
+		}
+		throw error
+	}
 }

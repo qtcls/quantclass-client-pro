@@ -61,9 +61,10 @@ const DataSubscriptionTable: FC = () => {
 			loading={isUpdating}
 			actionOptions={DataTableActionOptions}
 			checkboxDisabled={(row) => {
+				const data = row.original as ISubscribeListType
+				if (data.course_access?.includes("coin")) return true
 				if (isMember) return false
 
-				const data = row.original as ISubscribeListType
 				const courseType = data.course_access?.[0]
 				return courseType
 					? roles[courseType as keyof typeof roles].disabled

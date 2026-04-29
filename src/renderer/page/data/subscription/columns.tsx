@@ -23,6 +23,8 @@ export const useGenSubscribeColumns = (): Array<
 
 	const isDisabled = useCallback(
 		(row: Row<ISubscribeListType>) => {
+			const isCoin = row.original.course_access?.includes("coin")
+			if (isCoin) return true
 			if (isMember) return false
 
 			const courseType = row.original.course_access?.[0]
@@ -48,8 +50,9 @@ export const useGenSubscribeColumns = (): Array<
 					),
 				cell: ({ row }) => {
 					const disabled = isDisabled(row)
-					// -- 如果是禁用状态（没有权限）且当前是选中状态，自动取消选择
-					if (disabled && row.getIsSelected()) {
+					const isCoin = row.original.course_access?.includes("coin")
+					// 无权限导致的禁用：选中则取消。B 圈仅禁用勾选，已订阅的不在此处清掉
+					if (disabled && row.getIsSelected() && !isCoin) {
 						row.toggleSelected(false)
 					}
 

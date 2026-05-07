@@ -19,29 +19,19 @@ import {
 } from "@/renderer/components/ui/dropdown-menu"
 import { SidebarMenuButton } from "@/renderer/components/ui/sidebar"
 import { UserMenuContent } from "@/renderer/layout/UserMenu/UserMenuContent"
+import { useOpenLoginWindow } from "@/renderer/layout/hooks/useOpenLoginWindow"
 import { getStatusExpires } from "@/renderer/request"
 import { isLoginAtom, statusExpiresAtom } from "@/renderer/store/storage"
-import {
-	generateTimestampSign,
-	macAddressAtom,
-	nonceAtom,
-	timestampSignAtom,
-	userAtom,
-	uuidV4,
-} from "@/renderer/store/user"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { userAtom } from "@/renderer/store/user"
+import { useAtom, useSetAtom } from "jotai"
 import { ChevronsUpDown } from "lucide-react"
-import { useCallback, useEffect } from "react"
-
-const { VITE_BASE_URL } = import.meta.env
+import { useEffect } from "react"
 
 export const UserMenu = () => {
-	const setNonce = useSetAtom(nonceAtom)
 	const [{ user, isLoggedIn, isMember }] = useAtom(userAtom)
-	const clientId = useAtomValue(macAddressAtom)
-	const setTimestampSign = useSetAtom(timestampSignAtom)
 	const setStatusExpires = useSetAtom(statusExpiresAtom)
 	const setIsLogin = useSetAtom(isLoginAtom)
+	const { requestLogin, canOpenLogin } = useOpenLoginWindow()
 
 	useEffect(() => {
 		if (!isLoggedIn) return
@@ -55,26 +45,8 @@ export const UserMenu = () => {
 		})()
 	}, [isLoggedIn, isMember, setIsLogin, setStatusExpires])
 
-	const openLoginWindow = useCallback(() => {
-		const newNonce = uuidV4()
-		const timestampSign = generateTimestampSign()
-		setNonce(newNonce)
-		setTimestampSign(timestampSign)
-
-		const loginUrl = `${VITE_BASE_URL}/user/login-page?client_id=${encodeURIComponent(
-			clientId,
-		)}&nonce=${encodeURIComponent(newNonce)}&opener_origin=${encodeURIComponent(
-			location.origin,
-		)}&timestamp_sign=${encodeURIComponent(timestampSign)}`
-
-		window.open(loginUrl, "quantclass-login", "width=480,height=640")
-	}, [clientId, setNonce, setTimestampSign])
-
 	const onLoginClick = () => {
-		if (!isLoggedIn && clientId && clientId.length > 0) {
-			setIsLogin(true)
-			openLoginWindow()
-		}
+		if (!isLoggedIn && canOpenLogin) requestLogin()
 	}
 
 	return (

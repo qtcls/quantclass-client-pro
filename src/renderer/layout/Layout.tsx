@@ -44,6 +44,10 @@ import { useAuthMessageListener } from "@/renderer/hooks/useAuthMessageListener"
 import { useCalcTotalWeight } from "@/renderer/hooks/useCalcTotalWeight"
 import { useRendererMigrations } from "@/renderer/hooks/useRendererMigrations"
 import { Footer } from "@/renderer/layout/Footer"
+import {
+	MainLoggedOutBanner,
+	SidebarLoggedOutStripe,
+} from "@/renderer/layout/LoggedOutNotice"
 import { UserMenu } from "@/renderer/layout/UserMenu"
 import { _BreadCrumb } from "./BreadCrumb"
 import { _SidebarContent } from "./Content"
@@ -119,6 +123,7 @@ const Layout: FC = () => {
 			<SidebarProvider className="flex-1 min-h-0">
 				<Sidebar collapsible="none" className="border-r">
 					<_SidebarContent />
+					<SidebarLoggedOutStripe />
 					<_SiderFooter />
 					<SidebarRail />
 				</Sidebar>
@@ -161,6 +166,7 @@ const MainLayout: FC<MainLayoutProps> = ({
 					<UserMenu />
 				</div>
 			</header>
+			<MainLoggedOutBanner />
 			<LoadingAnime loading={loading} content={content} type="kernalUpdate" />
 			<AlertDialogProvider>
 				<div className={cn("px-4 min-h-0 overflow-auto flex-1")}>

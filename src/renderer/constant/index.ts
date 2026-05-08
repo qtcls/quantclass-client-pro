@@ -8,6 +8,8 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { NOTIFICATION_REPORT_CODE } from "@/shared/constants"
+
 export * from "./contributors"
 
 // 应用版本年份
@@ -40,6 +42,8 @@ export const BACKTEST_PAGE = "/backtest"
 export const FAQ_PAGE = "/faq"
 // 设置
 export const SETTINGS_PAGE = "/settings"
+// 通知中心
+export const NOTIFICATIONS_PAGE = "/notifications"
 // 问题反馈
 export const QUESTION_FEEDBACK_PAGE = "https://bbs.quantclass.cn/thread/48835"
 
@@ -85,6 +89,8 @@ export const RENDERER_MSG_CODE = {
 	CALC_TRADING_PLAN: 600,
 	// Real Trading 正在运行中
 	REAL_TRADING_RUNNING: 700,
+	// 内核通知（来自 POST /notify）
+	NOTIFICATION: NOTIFICATION_REPORT_CODE,
 }
 
 export enum RebalanceTime {

@@ -36,6 +36,7 @@ import { regDataIPC } from "@/preload/data/data-ipc.js"
 import { regFileSysIPC } from "@/preload/file-sys/file-sys-ipc.js"
 import { regKernelLogIPC } from "@/preload/kernel-log/kernel-log-ipc.js"
 import { regMigrationIPC } from "@/preload/migration/migration-ipc.js"
+import { regNotificationIPC } from "@/preload/notification/notification-ipc.js"
 import { regStoreIPC } from "@/preload/store/store-ipc.js"
 import { regStrategyIPC } from "@/preload/strategy/strategy-ipc.js"
 import { regSystemIPC } from "@/preload/system/system-ipc.js"
@@ -120,6 +121,7 @@ if (!gotTheLock) {
 		regWindowsIPC()
 		regUserIPC()
 		regMigrationIPC()
+		regNotificationIPC()
 
 		// -- 执行数据迁移
 		await runMigrations()

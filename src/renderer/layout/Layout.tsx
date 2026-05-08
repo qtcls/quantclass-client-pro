@@ -53,6 +53,7 @@ import { _BreadCrumb } from "./BreadCrumb"
 import { _SidebarContent } from "./Content"
 import { _SiderFooter } from "./Footer"
 import WindowsBar from "./WindowsBar"
+import { useNotificationsBootstrap } from "./hooks/useNotificationsBootstrap"
 import { useReportErr } from "./hooks/useReportErr"
 
 // -- Utils & Constants
@@ -82,6 +83,7 @@ const Layout: FC = () => {
 	useNetworkToast()
 	useRendererMigrations()
 	useAuthMessageListener()
+	useNotificationsBootstrap()
 
 	// -- State & Atoms
 	const { pathname } = useLocation()

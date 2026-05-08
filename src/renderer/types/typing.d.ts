@@ -22,6 +22,8 @@ type UserIPC = typeof import("@/preload/user/index.js").userIPC
 type StrategyIPC = typeof import("@/preload/strategy/index.js").strategyIPC
 type MigrationIPC = typeof import("@/preload/migration/index.js").migrationIPC
 type AuthIPC = typeof import("@/preload/auth/index.js").authIPC
+type NotificationIPC =
+	typeof import("@/preload/notification/index.js").notificationIPC
 
 // 组合所有IPC类型
 type CustomElectronAPI = SystemIPC &
@@ -34,7 +36,8 @@ type CustomElectronAPI = SystemIPC &
 	UserIPC &
 	StrategyIPC &
 	MigrationIPC &
-	AuthIPC
+	AuthIPC &
+	NotificationIPC
 
 interface Versions {
 	node: () => string

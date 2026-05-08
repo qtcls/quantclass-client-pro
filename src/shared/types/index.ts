@@ -48,3 +48,6 @@ export type {
 	StockTimingViewMatrix,
 	StockTimingViewRow,
 } from "./stock-timing-view.js"
+
+// 客户端通知中心
+export type { ClientNotification } from "./client-notification.js"

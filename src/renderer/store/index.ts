@@ -106,3 +106,5 @@ export const minDataAutoFuzzyAtom = atomWithStorage<boolean>(
 	{ getOnInit: true },
 )
 export const minDataTabAtom = atom<"accurate" | "fuzzy">("accurate")
+
+export const unreadNotificationCountAtom = atom<number>(0)

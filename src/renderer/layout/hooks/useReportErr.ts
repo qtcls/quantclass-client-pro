@@ -61,6 +61,18 @@ export const useReportErr = () => {
 					setLoading(res.message === "start")
 					setContent(res.message === "start" ? "开始计算交易计划" : undefined)
 					break
+				case RENDERER_MSG_CODE.NOTIFICATION: {
+					const extra = res as unknown as {
+						msgType?: "info" | "success" | "warning" | "error"
+						title?: string
+					}
+					const msgType = extra.msgType ?? "info"
+					const text = extra.title
+						? `${extra.title}：${res.message as string}`
+						: (res.message as string)
+					toast[msgType](text, { duration: 6 * 1000 })
+					break
+				}
 				default:
 					break
 			}

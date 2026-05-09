@@ -62,7 +62,6 @@ export function formatClientNotificationForWeCom(
 	const lines: string[] = [`[${row.source}] [${row.level}]`]
 	if (row.title) lines.push(`标题：${row.title}`)
 	lines.push(row.message)
-	if (row.event) lines.push(`事件：${row.event}`)
 	return lines.join("\n")
 }
 

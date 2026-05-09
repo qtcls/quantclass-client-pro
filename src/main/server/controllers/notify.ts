@@ -11,6 +11,7 @@
 import windowManager from "@/main/lib/WindowManager.js"
 import DBManager from "@/main/lib/db-manager.js"
 import store from "@/main/store/index.js"
+import { sendWeComRobotTextForNotification } from "@/main/utils/wecom-robot.js"
 import logger from "@/main/utils/wiston.js"
 import {
 	NOTIFICATION_LEVELS,
@@ -174,7 +175,6 @@ export async function createNotification(c: Context<Env>) {
 		// -- 始终推送一条 notification:new，前端用来更新未读数 / 列表
 		mainWindow?.webContents.send("notification:new", row)
 
-		// -- 非 silent 时复用 report-msg 走 useReportErr 弹 toast
 		if (body.silent !== true) {
 			mainWindow?.webContents.send("report-msg", {
 				code: NOTIFICATION_REPORT_CODE,
@@ -183,6 +183,7 @@ export async function createNotification(c: Context<Env>) {
 				source: body.source,
 				title: body.title,
 			})
+			void sendWeComRobotTextForNotification(row)
 		}
 
 		logger.info(

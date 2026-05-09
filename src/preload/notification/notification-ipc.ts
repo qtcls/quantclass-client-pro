@@ -9,6 +9,7 @@
  */
 
 import {
+	countNotifications,
 	getUnreadCount,
 	listNotifications,
 	markAllRead,
@@ -26,13 +27,15 @@ function listHandler(): void {
 			const db = await DBManager.getInstance().getConnection()
 			if (!db) {
 				logger.warn("[notification-ipc] DB 未就绪，list 返回空")
-				return []
+				return { items: [], total: 0 }
 			}
 			try {
-				return listNotifications(db, params)
+				const total = countNotifications(db, params)
+				const items = listNotifications(db, params)
+				return { items, total }
 			} catch (error) {
 				logger.error(`[notification-ipc] list 异常: ${error}`)
-				return []
+				return { items: [], total: 0 }
 			}
 		},
 	)

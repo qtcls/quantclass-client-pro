@@ -11,13 +11,14 @@
 import type {
 	ClientNotification,
 	NotificationListParams,
+	NotificationListResult,
 } from "@/shared/types/client-notification.js"
 import { ipcRenderer } from "electron"
 
 export const notificationIPC = {
 	listNotifications: (
 		params?: NotificationListParams,
-	): Promise<ClientNotification[]> =>
+	): Promise<NotificationListResult> =>
 		ipcRenderer.invoke("notification:list", params),
 
 	getUnreadNotificationCount: (): Promise<number> =>

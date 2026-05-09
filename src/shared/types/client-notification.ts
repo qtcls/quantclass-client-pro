@@ -18,6 +18,7 @@ export interface ClientNotification {
 	message: string
 	event: string | null
 	payload: string | null
+	silent: number
 	created_at: string
 	read_at: string | null
 }
@@ -30,4 +31,9 @@ export interface NotificationListParams {
 	level?: NotificationLevel
 	dateFrom?: string
 	dateTo?: string
+}
+
+export interface NotificationListResult {
+	items: ClientNotification[]
+	total: number
 }

@@ -55,6 +55,7 @@ function ensureTable(db: SqliteDb) {
 			message TEXT NOT NULL,
 			event TEXT,
 			payload TEXT,
+			silent INTEGER NOT NULL DEFAULT 0,
 			created_at TEXT NOT NULL,
 			read_at TEXT
 		)
@@ -96,7 +97,7 @@ function selectNotificationById(
 ): ClientNotification | undefined {
 	return db
 		.prepare(
-			`SELECT id, source, level, title, message, event, payload, created_at, read_at
+			`SELECT id, source, level, title, message, event, payload, silent, created_at, read_at
 			 FROM client_notifications WHERE id = ?`,
 		)
 		.get(id) as ClientNotification | undefined
@@ -143,11 +144,12 @@ export async function createNotification(c: Context<Env>) {
 		const createdAt = new Date().toISOString()
 		const payloadJson =
 			body.payload === undefined ? null : JSON.stringify(body.payload)
+		const silentInt = body.silent === true ? 1 : 0
 
 		const insert = db.prepare(
 			`INSERT INTO client_notifications (
-				source, level, title, message, event, payload, created_at, read_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+				source, level, title, message, event, payload, silent, created_at, read_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
 		)
 		const result = insert.run(
 			body.source,
@@ -156,6 +158,7 @@ export async function createNotification(c: Context<Env>) {
 			body.message,
 			body.event ?? null,
 			payloadJson,
+			silentInt,
 			createdAt,
 		)
 		const id = Number(result.lastInsertRowid)
@@ -197,15 +200,12 @@ export async function createNotification(c: Context<Env>) {
 	}
 }
 
-export function listNotifications(
-	db: SqliteDb,
-	params: NotificationListParams = {},
-) {
-	ensureTable(db)
-	const { limit = 50, offset = 0, source, level, dateFrom, dateTo } = params
-
+function notificationListWhere(params: NotificationListParams): {
+	where: string
+	values: unknown[]
+} {
 	const readFilter: "all" | "unread" | "read" = params.readFilter ?? "all"
-
+	const { source, level, dateFrom, dateTo } = params
 	const conditions: string[] = []
 	const values: unknown[] = []
 	if (readFilter === "unread") conditions.push("read_at IS NULL")
@@ -226,15 +226,35 @@ export function listNotifications(
 		conditions.push("date(created_at) <= date(?)")
 		values.push(dateTo.trim())
 	}
-	const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+	const where =
+		conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+	return { where, values }
+}
 
-	const sql = `SELECT id, source, level, title, message, event, payload, created_at, read_at
+export function countNotifications(
+	db: SqliteDb,
+	params: NotificationListParams = {},
+): number {
+	ensureTable(db)
+	const { where, values } = notificationListWhere(params)
+	const sql = `SELECT count(*) AS count FROM client_notifications ${where}`
+	const row = db.prepare(sql).get(...values) as { count: number } | undefined
+	return Number(row?.count ?? 0)
+}
+
+export function listNotifications(
+	db: SqliteDb,
+	params: NotificationListParams = {},
+) {
+	ensureTable(db)
+	const { limit = 50, offset = 0 } = params
+	const { where, values } = notificationListWhere(params)
+	const sql = `SELECT id, source, level, title, message, event, payload, silent, created_at, read_at
 		FROM client_notifications ${where}
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
-	values.push(limit, offset)
-
-	return db.prepare(sql).all(...values) as ClientNotification[]
+	const allValues = [...values, limit, offset]
+	return db.prepare(sql).all(...allValues) as ClientNotification[]
 }
 
 export function getUnreadCount(db: SqliteDb): number {

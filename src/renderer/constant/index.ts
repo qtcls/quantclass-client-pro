@@ -42,8 +42,6 @@ export const BACKTEST_PAGE = "/backtest"
 export const FAQ_PAGE = "/faq"
 // 设置
 export const SETTINGS_PAGE = "/settings"
-// 通知中心
-export const NOTIFICATIONS_PAGE = "/notifications"
 // 问题反馈
 export const QUESTION_FEEDBACK_PAGE = "https://bbs.quantclass.cn/thread/48835"
 

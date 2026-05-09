@@ -21,7 +21,6 @@ import {
 import {
 	BACKTEST_PAGE,
 	FUSION_STRATEGY_LIBRARY_PAGE,
-	NOTIFICATIONS_PAGE,
 	POSITION_INFO_PAGE,
 	// CHANGE_LOGS_PAGE,
 	// FAQ_PAGE,
@@ -38,13 +37,11 @@ import {
 	isAutoRocketAtom,
 	isMinDataUpdatingAtom,
 	isUpdatingAtom,
-	unreadNotificationCountAtom,
 } from "@/renderer/store"
 import { libraryTypeAtom } from "@/renderer/store/storage"
 import { useAtomValue, useSetAtom } from "jotai"
 import {
 	Activity,
-	Bell,
 	Briefcase,
 	Check,
 	Code,
@@ -144,8 +141,6 @@ export const _SidebarContent = () => {
 	const isUpdating = useAtomValue(isUpdatingAtom)
 	const isMinDataUpdating = useAtomValue(isMinDataUpdatingAtom)
 	const isAutoRocket = useAtomValue(isAutoRocketAtom)
-	const unreadNotificationCount = useAtomValue(unreadNotificationCountAtom)
-
 	return (
 		<SidebarContent className="min-w-48">
 			<SidebarGroup>
@@ -266,36 +261,6 @@ export const _SidebarContent = () => {
 						<SidebarMenuButton disabled>
 							<Gamepad2 />
 							<span>模拟盘（开发中）</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-				</SidebarMenu>
-			</SidebarGroup>
-
-			<SidebarGroup>
-				<SidebarGroupLabel>消息中心</SidebarGroupLabel>
-				<SidebarMenu>
-					<SidebarMenuItem>
-						<SidebarMenuButton
-							onClick={() => {
-								navigate(NOTIFICATIONS_PAGE)
-							}}
-							className={cn(
-								pathname === NOTIFICATIONS_PAGE &&
-									"bg-accent text-accent-foreground font-semibold",
-							)}
-						>
-							<Bell />
-							<span>通知中心</span>
-							{unreadNotificationCount > 0 && (
-								<Badge
-									variant="destructive"
-									className="ml-auto h-4 min-w-4 px-1 py-0 text-[10px] leading-none"
-								>
-									{unreadNotificationCount > 99
-										? "99+"
-										: unreadNotificationCount}
-								</Badge>
-							)}
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>

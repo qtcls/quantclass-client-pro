@@ -48,12 +48,12 @@ import {
 	MainLoggedOutBanner,
 	SidebarLoggedOutStripe,
 } from "@/renderer/layout/LoggedOutNotice"
+import { NotificationsPopover } from "@/renderer/layout/NotificationsPopover"
 import { UserMenu } from "@/renderer/layout/UserMenu"
 import { _BreadCrumb } from "./BreadCrumb"
 import { _SidebarContent } from "./Content"
 import { _SiderFooter } from "./Footer"
 import WindowsBar from "./WindowsBar"
-import { useNotificationsBootstrap } from "./hooks/useNotificationsBootstrap"
 import { useReportErr } from "./hooks/useReportErr"
 
 // -- Utils & Constants
@@ -83,7 +83,6 @@ const Layout: FC = () => {
 	useNetworkToast()
 	useRendererMigrations()
 	useAuthMessageListener()
-	useNotificationsBootstrap()
 
 	// -- State & Atoms
 	const { pathname } = useLocation()
@@ -164,8 +163,9 @@ const MainLayout: FC<MainLayoutProps> = ({
 				<div className="flex items-center gap-10">
 					<_BreadCrumb />
 				</div>
-				<div className="ml-auto flex items-center gap-2">
+				<div className="ml-auto flex items-center gap-1">
 					<UserMenu />
+					<NotificationsPopover />
 				</div>
 			</header>
 			<MainLoggedOutBanner />

@@ -15,6 +15,7 @@ import {
 	type NotificationLevel,
 } from "@/shared/constants.js"
 import type { ClientNotification } from "@/shared/types/client-notification.js"
+import dayjs from "dayjs"
 
 const WECOM_WEBHOOK_PREFIX =
 	"https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key="
@@ -108,9 +109,52 @@ export async function sendWeComRobotText(
 	}
 }
 
+const WECOM_EVENT_DAILY_LIMIT = 20
+const WECOM_EVENT_COUNTS_KEY = "wecom_event_daily_counts"
+
+interface WeComEventDailyCounts {
+	date: string
+	counts: Record<string, number>
+}
+
+async function checkWeComEventLimit(event: string): Promise<boolean> {
+	const today = dayjs().format("YYYY-MM-DD")
+	const stored = (await store.getValue(WECOM_EVENT_COUNTS_KEY, {
+		date: today,
+		counts: {},
+	})) as WeComEventDailyCounts
+
+	if (stored.date !== today) {
+		store.setValue(WECOM_EVENT_COUNTS_KEY, {
+			date: today,
+			counts: { [event]: 1 },
+		})
+		return true
+	}
+
+	const current = stored.counts[event] ?? 0
+	if (current >= WECOM_EVENT_DAILY_LIMIT) {
+		return false
+	}
+
+	stored.counts[event] = current + 1
+	store.setValue(WECOM_EVENT_COUNTS_KEY, stored)
+	return true
+}
+
 export async function sendWeComRobotTextForNotification(
 	row: ClientNotification,
 ): Promise<void> {
+	const event = row.event ?? "_no_event_"
+
+	const allowed = await checkWeComEventLimit(event)
+	if (!allowed) {
+		logger.info(
+			`[wecom-robot] 事件 "${event}" 今日已达 ${WECOM_EVENT_DAILY_LIMIT} 条上限，跳过企微推送 (id=${row.id})`,
+		)
+		return
+	}
+
 	const level = (NOTIFICATION_LEVELS as readonly string[]).includes(row.level)
 		? (row.level as NotificationLevel)
 		: "info"

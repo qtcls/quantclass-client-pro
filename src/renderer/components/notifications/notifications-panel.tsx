@@ -42,12 +42,16 @@ import type {
 } from "@/shared/types/client-notification.js"
 import { useAtomValue, useSetAtom } from "jotai"
 import {
+	AlertTriangle,
 	Bell,
 	CheckCheck,
 	CircleCheck,
+	Info,
 	Inbox,
+	Mail,
 	RefreshCw,
 	RotateCcw,
+	XCircle,
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -101,19 +105,13 @@ const SOURCE_LABEL: Record<string, string> = {
 	zeus: "Zeus",
 }
 
-const LEVEL_VARIANT: Record<
-	string,
-	"default" | "secondary" | "destructive" | "success" | "info" | "outline"
-> = {
-	info: "info",
-	success: "success",
-	warning: "outline",
-	error: "destructive",
-}
-
-function levelBadgeClassName(level: string): string | undefined {
-	if (level !== "warning") return undefined
-	return "border-amber-500 bg-amber-100 text-amber-900 shadow-none hover:bg-amber-100/90 dark:border-amber-500 dark:bg-amber-950/50 dark:text-amber-100 dark:hover:bg-amber-950/60"
+/** 四条来源各一色，与 event 同行展示 */
+const SOURCE_BADGE_CLASS: Record<NotificationSource, string> = {
+	fuel: "border-amber-600/55 bg-amber-500/15 text-amber-950 shadow-none dark:border-amber-400/45 dark:bg-amber-500/20 dark:text-amber-50",
+	rocket:
+		"border-violet-600/55 bg-violet-500/15 text-violet-950 shadow-none dark:border-violet-400/45 dark:bg-violet-500/20 dark:text-violet-50",
+	aqua: "border-sky-600/55 bg-sky-500/15 text-sky-950 shadow-none dark:border-sky-400/45 dark:bg-sky-500/20 dark:text-sky-50",
+	zeus: "border-emerald-700/50 bg-emerald-500/15 text-emerald-950 shadow-none dark:border-emerald-400/45 dark:bg-emerald-500/20 dark:text-emerald-50",
 }
 
 const LEVEL_LABEL: Record<string, string> = {
@@ -181,6 +179,56 @@ function tryFormatPayload(payload: string | null): string | null {
 		return JSON.stringify(JSON.parse(payload), null, 2)
 	} catch {
 		return payload
+	}
+}
+
+function NotificationLevelIcon({ level }: { level: string }) {
+	const label = LEVEL_LABEL[level] ?? level
+	const common = "size-4 shrink-0"
+	switch (level) {
+		case "success":
+			return (
+				<span title={label} aria-label={label} className="inline-flex">
+					<CircleCheck
+						className={cn(
+							common,
+							"text-emerald-600 dark:text-emerald-500",
+						)}
+						strokeWidth={2.25}
+						aria-hidden
+					/>
+				</span>
+			)
+		case "warning":
+			return (
+				<span title={label} aria-label={label} className="inline-flex">
+					<AlertTriangle
+						className={cn(common, "text-amber-600 dark:text-amber-500")}
+						strokeWidth={2.25}
+						aria-hidden
+					/>
+				</span>
+			)
+		case "error":
+			return (
+				<span title={label} aria-label={label} className="inline-flex">
+					<XCircle
+						className={cn(common, "text-destructive")}
+						strokeWidth={2.25}
+						aria-hidden
+					/>
+				</span>
+			)
+		default:
+			return (
+				<span title={label} aria-label={label} className="inline-flex">
+					<Info
+						className={cn(common, "text-sky-600 dark:text-sky-400")}
+						strokeWidth={2.25}
+						aria-hidden
+					/>
+				</span>
+			)
 	}
 }
 
@@ -420,9 +468,13 @@ export function NotificationsPanel() {
 						<ul className="divide-y">
 							{items.map((item) => {
 								const isUnread = !item.read_at
-								const variant = LEVEL_VARIANT[item.level] ?? "secondary"
-								const sourceLabel = SOURCE_LABEL[item.source] ?? item.source
-								const levelLabel = LEVEL_LABEL[item.level] ?? item.level
+								const sourceLabel =
+									SOURCE_LABEL[item.source] ?? item.source
+								const sourceClass =
+									SOURCE_BADGE_CLASS[
+										item.source as NotificationSource
+									] ??
+									"border-muted-foreground/35 bg-muted/40 text-foreground shadow-none"
 								const payloadText = tryFormatPayload(item.payload)
 								return (
 									<li
@@ -433,22 +485,8 @@ export function NotificationsPanel() {
 										)}
 									>
 										<div className="flex min-w-0 items-center justify-between gap-3">
-											<div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-												<Badge
-													variant="outline"
-													className="shrink-0 px-1.5 py-0 text-[11px] font-medium leading-none"
-												>
-													{sourceLabel}
-												</Badge>
-												<Badge
-													variant={variant}
-													className={cn(
-														"shrink-0 px-1.5 py-0 text-[11px] font-medium leading-none",
-														levelBadgeClassName(item.level),
-													)}
-												>
-													{levelLabel}
-												</Badge>
+											<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+												<NotificationLevelIcon level={item.level} />
 												{item.title ? (
 													<span
 														className="min-w-0 truncate text-sm font-semibold leading-tight"
@@ -467,9 +505,9 @@ export function NotificationsPanel() {
 												</span>
 												{Number(item.silent) === 0 ? (
 													<div className="flex items-center gap-1 text-green-600 dark:text-green-500">
-														<CircleCheck
+														<Mail
 															className="size-3.5 shrink-0"
-															strokeWidth={2.5}
+															strokeWidth={2.25}
 															aria-hidden
 														/>
 														<span>已推送企业微信</span>
@@ -490,10 +528,26 @@ export function NotificationsPanel() {
 										<div className="text-sm leading-snug whitespace-pre-wrap break-words">
 											{item.message}
 										</div>
-										{item.event ? (
-											<code className="block font-mono text-[10px] leading-tight text-muted-foreground/80 break-all">
-												{item.event}
-											</code>
+										{item.event ||
+										(NOTIFICATION_SOURCES as readonly string[]).includes(
+											item.source,
+										) ? (
+											<div className="flex min-w-0 flex-wrap items-center gap-2">
+												<Badge
+													variant="outline"
+													className={cn(
+														"shrink-0 px-1.5 py-0 text-[10px] font-semibold leading-none",
+														sourceClass,
+													)}
+												>
+													{sourceLabel}
+												</Badge>
+												{item.event ? (
+													<code className="min-w-0 flex-1 font-mono text-[10px] leading-tight text-muted-foreground/80 break-all">
+														{item.event}
+													</code>
+												) : null}
+											</div>
 										) : null}
 										{payloadText ? (
 											<details className="text-[11px] leading-snug text-muted-foreground">

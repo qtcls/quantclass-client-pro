@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { RealTradingBackupDialog } from "@/renderer/components/RealTradingBackupDialog"
 import {
 	Accordion,
 	AccordionContent,
@@ -25,7 +26,7 @@ import {
 import DatePicker from "@/renderer/components/ui/date-picker"
 import { cn } from "@/renderer/lib/utils"
 import { ReloadIcon, ValueNoneIcon } from "@radix-ui/react-icons"
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
+import { Archive, ChevronLeft, ChevronRight, Clock } from "lucide-react"
 
 import StrategyStatusDesDialog from "@/renderer/components/StrategyStatusDesDialog"
 import type { StrategyStatusDesDialogRef } from "@/renderer/components/StrategyStatusDesDialog"
@@ -116,6 +117,7 @@ export default function StrategyStatusTimeline() {
 	const [openItem, setOpenItem] = useState<string | undefined>(undefined)
 	const [isCurrentDay, setIsCurrentDay] = useState<boolean>(false)
 	const [summaryList, setSummaryList] = useState<SummaryItem[]>([])
+	const [backupDialogOpen, setBackupDialogOpen] = useState(false)
 
 	useEffect(() => {
 		const timer = setInterval(() => setCurrentTime(dayjs()), 60_000)
@@ -426,9 +428,6 @@ export default function StrategyStatusTimeline() {
 						<div className="flex items-center flex-wrap gap-2">
 							<Clock className="w-5 h-5" />
 							策略实盘状态
-							<span className="text-xs text-muted-foreground font-medium">
-								( 每分钟自动刷新一次 )
-							</span>
 						</div>
 						<div className="flex gap-2 flex-wrap justify-end">
 							<Button
@@ -452,6 +451,15 @@ export default function StrategyStatusTimeline() {
 								}
 								onChange={(date) => formatAndSetDateFn(date)}
 							/>
+							<Button
+								size="sm"
+								className="h-8"
+								variant="outline"
+								onClick={() => setBackupDialogOpen(true)}
+							>
+								<Archive className="mr-2 h-4 w-4" />
+								备份实盘数据
+							</Button>
 							<Button
 								size="sm"
 								className="h-8"
@@ -619,6 +627,10 @@ export default function StrategyStatusTimeline() {
 			<StrategyStatusDesDialog
 				ref={dialogRef}
 				currentItem={currentDialogItem}
+			/>
+			<RealTradingBackupDialog
+				open={backupDialogOpen}
+				onOpenChange={setBackupDialogOpen}
 			/>
 		</TimeLineContext.Provider>
 	)

@@ -17,6 +17,7 @@ import { fileSysIPC } from "./file-sys/index.js"
 import { kernelLogIPC } from "./kernel-log/index.js"
 import { migrationIPC } from "./migration/index.js"
 import { notificationIPC } from "./notification/index.js"
+import { realTradingBackupIPC } from "./real-trading-backup/index.js"
 import { storeIPC } from "./store/index.js"
 import { strategyIPC } from "./strategy/index.js"
 import { userIPC } from "./user/index.js"
@@ -43,6 +44,7 @@ if (process.contextIsolated) {
 			...migrationIPC,
 			...authIPC,
 			...notificationIPC,
+			...realTradingBackupIPC,
 		})
 	} catch (error) {
 		console.error(error)

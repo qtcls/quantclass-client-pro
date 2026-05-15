@@ -24,6 +24,8 @@ type MigrationIPC = typeof import("@/preload/migration/index.js").migrationIPC
 type AuthIPC = typeof import("@/preload/auth/index.js").authIPC
 type NotificationIPC =
 	typeof import("@/preload/notification/index.js").notificationIPC
+type RealTradingBackupIPC =
+	typeof import("@/preload/real-trading-backup/index.js").realTradingBackupIPC
 
 // 组合所有IPC类型
 type CustomElectronAPI = SystemIPC &
@@ -37,7 +39,8 @@ type CustomElectronAPI = SystemIPC &
 	StrategyIPC &
 	MigrationIPC &
 	AuthIPC &
-	NotificationIPC
+	NotificationIPC &
+	RealTradingBackupIPC
 
 interface Versions {
 	node: () => string

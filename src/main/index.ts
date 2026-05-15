@@ -18,6 +18,7 @@ import { createWindow } from "@/main/lib/createWindow.js"
 // import setupUpdater from "@/main/lib/updater.js"
 import DBManager from "@/main/lib/db-manager.js"
 import { resetMinDataRoundsRunningForToday } from "@/main/lib/min-data-rounds-startup.js"
+import { refreshRealTradingBackupSchedule } from "@/main/lib/real-trading-backup.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
 import { createTray } from "@/main/lib/tray.js"
 import { runMigrations } from "@/main/migration/runner.js"
@@ -37,6 +38,7 @@ import { regFileSysIPC } from "@/preload/file-sys/file-sys-ipc.js"
 import { regKernelLogIPC } from "@/preload/kernel-log/kernel-log-ipc.js"
 import { regMigrationIPC } from "@/preload/migration/migration-ipc.js"
 import { regNotificationIPC } from "@/preload/notification/notification-ipc.js"
+import { regRealTradingBackupIPC } from "@/preload/real-trading-backup/real-trading-backup-ipc.js"
 import { regStoreIPC } from "@/preload/store/store-ipc.js"
 import { regStrategyIPC } from "@/preload/strategy/strategy-ipc.js"
 import { regSystemIPC } from "@/preload/system/system-ipc.js"
@@ -122,12 +124,16 @@ if (!gotTheLock) {
 		regUserIPC()
 		regMigrationIPC()
 		regNotificationIPC()
+		regRealTradingBackupIPC()
 
 		// -- 执行数据迁移
 		await runMigrations()
 
 		// -- FuelBinStat：今日 min_data_rounds 行 is_running 置 0（异常退出后状态修复）
 		await resetMinDataRoundsRunningForToday()
+
+		// -- 初始化实盘备份定时任务
+		refreshRealTradingBackupSchedule()
 
 		// -- 创建主窗口与终端窗口
 		await createWindow()

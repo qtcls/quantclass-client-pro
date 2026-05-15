@@ -15,8 +15,13 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
+import {
+	normalizeTradingDateToYmd,
+	sortUniqueTradingDaysYmd,
+} from "@/shared/lib/trading-day.js"
 import { platform } from "@electron-toolkit/utils"
 import { app } from "electron"
+import { getTradingCalendar } from "etc-csv-napi"
 
 export const WINDOW_HEIGHT = 720
 export const WINDOW_WIDTH = 1280
@@ -112,4 +117,30 @@ export const tradingCalender = async () => {
 	}
 
 	return []
+}
+// -- 读取交易日列表，文件缺失或读失败返回 []。
+export async function loadTradingDaysFromPeriodOffsetCsv(
+	options: {
+		// -- 默认：all_data_path/period_offset.csv
+		filePath?: string
+	} = {},
+): Promise<string[]> {
+	const filePath =
+		options.filePath ?? (await store.getAllDataPath("period_offset.csv", false))
+
+	if (!filePath || !existsSync(filePath)) {
+		logger.warn(`[period-offset] period_offset.csv 不存在: ${filePath ?? ""}`)
+		return []
+	}
+
+	try {
+		const raw = await getTradingCalendar(filePath)
+		const ymds = raw
+			.map((s) => normalizeTradingDateToYmd(s))
+			.filter((x): x is string => x !== null)
+		return sortUniqueTradingDaysYmd(ymds)
+	} catch (e) {
+		logger.error(`[period-offset] 读取 period_offset.csv 失败: ${e}`)
+		return []
+	}
 }

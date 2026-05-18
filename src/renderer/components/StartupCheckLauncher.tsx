@@ -24,19 +24,17 @@ export function StartupCheckLauncher() {
 			{
 				id: "network",
 				title: "网络连接",
-				description: "ping 一下百度，确认客户端可访问外网",
 				run: async () => {
 					const res = await checkStartupNetwork()
 					return {
 						ok: res.ok,
-						detail: res.detail ?? res.message,
+						detail: res.ok ? undefined : (res.detail ?? res.message),
 					}
 				},
 			},
 			{
 				id: "qmt",
 				title: "QMT 连通性",
-				description: "调用 fuel qmt_connect_check，确认 QMT 可连接与订阅",
 				run: async () => {
 					const res = await checkStartupQmtConnect()
 					return {

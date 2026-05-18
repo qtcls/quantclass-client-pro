@@ -124,10 +124,8 @@ export async function checkQmtConnect(): Promise<StartupCheckResult> {
 			}
 		}
 		case 1: {
-			const stderrTail = probe.stderr.trim().split("\n").slice(-3).join(" | ")
-			const detail = stderrTail
-				? `QMT 连接或订阅失败 - ${stderrTail}`
-				: "QMT 连接或订阅失败，请确认 QMT 客户端已启动并完成扫码登录"
+			const detail =
+				"QMT 连接或订阅失败，请确认 QMT 客户端已启动"
 			logger.warn(`[startup-check] QMT 连通性检测未通过：${detail}`)
 			return {
 				ok: false,

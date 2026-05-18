@@ -59,6 +59,7 @@ import { useReportErr } from "./hooks/useReportErr"
 // -- Utils & Constants
 import { CapWeightMigrateHandler } from "@/renderer/components/CapWeightMigrateHandler"
 import { CiccBseNoticeDialog } from "@/renderer/components/CiccBseNoticeDialog"
+import { StartupCheckLauncher } from "@/renderer/components/StartupCheckLauncher"
 import { AlertDialogProvider } from "@/renderer/context/alert-dialog"
 import VersionUpgrade from "@/renderer/layout/version-upgrade"
 import { cn } from "@/renderer/lib/utils"
@@ -143,6 +144,7 @@ const Layout: FC = () => {
 				onOpenChange={setShowCiccNotice}
 				onConfirm={() => setCiccDismissed(true)}
 			/>
+			<StartupCheckLauncher />
 		</div>
 	)
 }

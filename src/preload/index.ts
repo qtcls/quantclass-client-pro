@@ -18,6 +18,7 @@ import { kernelLogIPC } from "./kernel-log/index.js"
 import { migrationIPC } from "./migration/index.js"
 import { notificationIPC } from "./notification/index.js"
 import { realTradingBackupIPC } from "./real-trading-backup/index.js"
+import { startupCheckIPC } from "./startup-check/index.js"
 import { storeIPC } from "./store/index.js"
 import { strategyIPC } from "./strategy/index.js"
 import { userIPC } from "./user/index.js"
@@ -45,6 +46,7 @@ if (process.contextIsolated) {
 			...authIPC,
 			...notificationIPC,
 			...realTradingBackupIPC,
+			...startupCheckIPC,
 		})
 	} catch (error) {
 		console.error(error)

@@ -26,6 +26,8 @@ type NotificationIPC =
 	typeof import("@/preload/notification/index.js").notificationIPC
 type RealTradingBackupIPC =
 	typeof import("@/preload/real-trading-backup/index.js").realTradingBackupIPC
+type StartupCheckIPC =
+	typeof import("@/preload/startup-check/index.js").startupCheckIPC
 
 // 组合所有IPC类型
 type CustomElectronAPI = SystemIPC &
@@ -40,7 +42,8 @@ type CustomElectronAPI = SystemIPC &
 	MigrationIPC &
 	AuthIPC &
 	NotificationIPC &
-	RealTradingBackupIPC
+	RealTradingBackupIPC &
+	StartupCheckIPC
 
 interface Versions {
 	node: () => string

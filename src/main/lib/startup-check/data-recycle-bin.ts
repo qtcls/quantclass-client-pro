@@ -266,7 +266,8 @@ async function loadProductCatalogByKey(): Promise<Map<string, CatalogRecord>> {
 	return new Map(list.map((item) => [item.key, item]))
 }
 
-async function purgeLocalData(names: string[]): Promise<void> {
+// -- 物理删除磁盘 + product_status，并从回收站移除
+export async function purgeDataRecycleBinItems(names: string[]): Promise<void> {
 	const safe = names.filter(isSafeRecycleName)
 	if (safe.length === 0) return
 
@@ -288,14 +289,6 @@ async function purgeLocalData(names: string[]): Promise<void> {
 	} catch (e) {
 		logger.error(`${LOG_PREFIX} 删除 DB 失败: ${e}`)
 	}
-	logger.info(`${LOG_PREFIX} 物理删除完成：${safe.length} 项`)
-}
-
-// -- 物理删除磁盘 + product_status，并从回收站移除
-export async function purgeDataRecycleBinItems(names: string[]): Promise<void> {
-	const safe = names.filter(isSafeRecycleName)
-	if (safe.length === 0) return
-	await purgeLocalData(safe)
 	await removeFromRecycleBin(safe)
 	logger.info(`${LOG_PREFIX} 已彻底删除 ${safe.length} 项`)
 }

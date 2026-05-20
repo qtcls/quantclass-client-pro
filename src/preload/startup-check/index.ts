@@ -9,6 +9,7 @@
  */
 
 import type { StartupCheckResult } from "@/preload/startup-check/startup-check-ipc.js"
+import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin.js"
 import type {
 	DataConsistencyActionResult,
 	DataConsistencyReport,
@@ -38,10 +39,10 @@ export const startupCheckIPC = {
 	getDataRecycleBin: () =>
 		ipcRenderer.invoke(
 			"startup-check:data:recycle-bin:list",
-		) as Promise<string[]>,
-	restoreDataRecycleBinItems: (names: string[]) =>
+		) as Promise<DataRecycleBinEntry[]>,
+	removeDataRecycleBinItems: (names: string[]) =>
 		ipcRenderer.invoke(
-			"startup-check:data:recycle-bin:restore",
+			"startup-check:data:recycle-bin:remove",
 			names,
 		) as Promise<DataConsistencyActionResult>,
 	purgeDataRecycleBinItems: (names: string[]) =>

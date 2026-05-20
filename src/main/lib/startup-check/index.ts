@@ -28,5 +28,5 @@ export {
 export {
 	purgeDataRecycleBinItems,
 	readDataRecycleBin,
-	restoreDataRecycleBinItems,
+	removeFromRecycleBin,
 } from "@/main/lib/startup-check/data-recycle-bin.js"

@@ -15,9 +15,10 @@ import {
 	checkQmtConnect,
 	purgeDataRecycleBinItems,
 	readDataRecycleBin,
-	restoreDataRecycleBinItems,
+	removeFromRecycleBin,
 	type StartupCheckResult,
 } from "@/main/lib/startup-check/index.js"
+import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin.js"
 import type {
 	DataConsistencyActionResult,
 	DataConsistencyReport,
@@ -70,17 +71,17 @@ export const regStartupCheckIPC = () => {
 
 	ipcMain.handle(
 		"startup-check:data:recycle-bin:list",
-		async (): Promise<string[]> => readDataRecycleBin(),
+		async (): Promise<DataRecycleBinEntry[]> => readDataRecycleBin(),
 	)
 
 	ipcMain.handle(
-		"startup-check:data:recycle-bin:restore",
+		"startup-check:data:recycle-bin:remove",
 		async (
 			_event,
 			names: string[],
 		): Promise<DataConsistencyActionResult> => {
 			try {
-				await restoreDataRecycleBinItems(names)
+				await removeFromRecycleBin(names)
 				return { ok: true }
 			} catch (e) {
 				const error = e instanceof Error ? e.message : String(e)

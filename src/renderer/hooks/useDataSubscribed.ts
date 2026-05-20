@@ -16,10 +16,22 @@ import { compact } from "lodash-es"
 import { useCallback, useMemo } from "react"
 import { useSettings } from "./useSettings"
 
+function uniqSorted(arr: string[]): string[] {
+	return Array.from(new Set(arr)).sort()
+}
+
+interface RecycleBinAppendRestoreResult {
+	ok: boolean
+	restored: number
+	skipped: string[]
+	error?: string
+}
+
 export function useDataSubscribed() {
 	const [dataSubscribed, setDataSubscribed] = useAtom(dataSubscribedAtom)
-	const [{ data: dataApi }] = useAtom(dataApiProductsAtom)
-	const { updateSettings } = useSettings()
+	const [{ data: dataApi, refetch: refetchDataApi }] =
+		useAtom(dataApiProductsAtom)
+	const { settings, updateSettings } = useSettings()
 
 	const isSubscribed = useCallback(
 		(data: IDataListType | string) => {
@@ -52,6 +64,84 @@ export function useDataSubscribed() {
 		[dataApi],
 	)
 
+	// -- 回收站恢复：在现有订阅上追加 data_map 项与白名单
+	const appendDataSubscribedFromRecycleBin = useCallback(
+		async (names: string[]): Promise<RecycleBinAppendRestoreResult> => {
+			const safe = uniqSorted(names.filter(Boolean))
+			if (safe.length === 0) {
+				return { ok: true, restored: 0, skipped: [] }
+			}
+
+			let catalog = dataApi?.data ?? []
+			if (catalog.length === 0) {
+				const refetched = await refetchDataApi()
+				catalog = refetched.data?.data ?? []
+			}
+			if (catalog.length === 0) {
+				return {
+					ok: false,
+					restored: 0,
+					skipped: safe,
+					error: "数据目录未加载，请稍后重试",
+				}
+			}
+
+			const catalogByKey = new Map(catalog.map((item) => [item.key, item]))
+			const mapHas = new Set(dataSubscribed.map((d) => d.name))
+			const listHas = new Set(settings.data_white_list ?? [])
+
+			const mapAdds: IDataListType[] = []
+			const skipped: string[] = []
+
+			for (const name of safe) {
+				if (mapHas.has(name)) continue
+				const record = catalogByKey.get(name)
+				if (!record) {
+					skipped.push(name)
+					continue
+				}
+				mapAdds.push({
+					name: record.key,
+					displayName: record.description,
+					fullData: record.fullData,
+					isAutoUpdate: 1,
+				})
+				mapHas.add(name)
+			}
+
+			const restoredSet = new Set(mapAdds.map((d) => d.name))
+			const forList = safe.filter(
+				(n) => !listHas.has(n) && (mapHas.has(n) || restoredSet.has(n)),
+			)
+
+			if (mapAdds.length > 0) {
+				setDataSubscribed((prev) => [...prev, ...mapAdds])
+			}
+			if (forList.length > 0) {
+				updateSettings({
+					data_white_list: uniqSorted([
+						...(settings.data_white_list ?? []),
+						...forList,
+					]),
+				})
+			}
+
+			return {
+				ok: true,
+				restored: forList.length,
+				skipped,
+			}
+		},
+		[
+			dataApi,
+			dataSubscribed,
+			refetchDataApi,
+			setDataSubscribed,
+			settings.data_white_list,
+			updateSettings,
+		],
+	)
+
 	const removeDataSubscribed = useCallback(
 		(data: IDataListType) => {
 			setDataSubscribed((prev) => {
@@ -77,6 +167,7 @@ export function useDataSubscribed() {
 		dataSubscribedNameList,
 		setDataSubscribedNameList,
 		setDataSubscribed,
+		appendDataSubscribedFromRecycleBin,
 		removeDataSubscribed,
 		resetDataSubscribed,
 		isSubscribed,

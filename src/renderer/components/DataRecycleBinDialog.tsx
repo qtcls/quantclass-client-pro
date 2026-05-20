@@ -19,19 +19,21 @@ import {
 	DialogTitle,
 } from "@/renderer/components/ui/dialog"
 import { useAlertDialog } from "@/renderer/context/alert-dialog"
+import { useDataSubscribed } from "@/renderer/hooks/useDataSubscribed"
 import { cn } from "@/renderer/lib/utils"
 import { Archive, Inbox, RotateCcw, Trash2 } from "lucide-react"
+import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-const {
-	getDataRecycleBin,
-	restoreDataRecycleBinItems,
-	purgeDataRecycleBinItems,
-} = window.electronAPI
+const { getDataRecycleBin, removeDataRecycleBinItems, purgeDataRecycleBinItems } =
+	window.electronAPI
 
-function pruneSelection(items: string[], prev: Set<string>): Set<string> {
-	const itemSet = new Set(items)
+function pruneSelection(
+	items: DataRecycleBinEntry[],
+	prev: Set<string>,
+): Set<string> {
+	const itemSet = new Set(items.map((item) => item.name))
 	const next = new Set<string>()
 	for (const name of prev) {
 		if (itemSet.has(name)) next.add(name)
@@ -44,11 +46,12 @@ interface DataRecycleBinContentProps {
 }
 
 function DataRecycleBinContent({ onCountChange }: DataRecycleBinContentProps) {
-	const [items, setItems] = useState<string[]>([])
+	const [items, setItems] = useState<DataRecycleBinEntry[]>([])
 	const [selected, setSelected] = useState<Set<string>>(() => new Set())
 	const [loading, setLoading] = useState(true)
 	const [acting, setActing] = useState(false)
 	const { open: openAlert } = useAlertDialog()
+	const { appendDataSubscribedFromRecycleBin } = useDataSubscribed()
 
 	const selectedNames = useMemo(() => Array.from(selected), [selected])
 	const selectedCount = selected.size
@@ -75,7 +78,9 @@ function DataRecycleBinContent({ onCountChange }: DataRecycleBinContentProps) {
 	}, [refresh])
 
 	function toggleSelectAll(checked: boolean) {
-		setSelected(checked ? new Set(items) : new Set())
+		setSelected(
+			checked ? new Set(items.map((item) => item.name)) : new Set(),
+		)
 	}
 
 	function toggleSelectOne(name: string, checked: boolean) {
@@ -91,12 +96,29 @@ function DataRecycleBinContent({ onCountChange }: DataRecycleBinContentProps) {
 		if (selectedCount === 0) return
 		setActing(true)
 		try {
-			const r = await restoreDataRecycleBinItems(selectedNames)
-			if (!r.ok) {
-				toast.error(r.error ?? "恢复失败")
+			const appendResult =
+				await appendDataSubscribedFromRecycleBin(selectedNames)
+			if (!appendResult.ok) {
+				toast.error(appendResult.error ?? "恢复失败")
 				return
 			}
-			toast.success(`已恢复 ${selectedCount} 项到白名单与 data_map`)
+			const removeResult = await removeDataRecycleBinItems(selectedNames)
+			if (!removeResult.ok) {
+				toast.error(removeResult.error ?? "从回收站移除失败")
+				return
+			}
+			if (appendResult.skipped.length > 0) {
+				toast.warning(
+					`${appendResult.skipped.length} 项未在数据目录中找到，已跳过：${appendResult.skipped.slice(0, 3).join("、")}${appendResult.skipped.length > 3 ? "…" : ""}`,
+				)
+			}
+			if (appendResult.restored > 0) {
+				toast.success(
+					`已恢复 ${appendResult.restored} 项到白名单与 data_map`,
+				)
+			} else if (appendResult.skipped.length === 0) {
+				toast.success("所选项目已在订阅中")
+			}
 			await refresh()
 		} finally {
 			setActing(false)
@@ -168,8 +190,10 @@ function DataRecycleBinContent({ onCountChange }: DataRecycleBinContentProps) {
 					</div>
 
 					<div className="max-h-[min(50vh,320px)] overflow-y-auto space-y-1 pr-1">
-						{items.map((name) => {
+						{items.map((item) => {
+							const { name, displayName } = item
 							const isChecked = selected.has(name)
+							const showCode = displayName !== name
 							return (
 								<div
 									key={name}
@@ -185,13 +209,18 @@ function DataRecycleBinContent({ onCountChange }: DataRecycleBinContentProps) {
 										onCheckedChange={(value) =>
 											toggleSelectOne(name, value === true)
 										}
-										aria-label={`选择 ${name}`}
+										aria-label={`选择 ${displayName}`}
 									/>
 									<label
 										htmlFor={`recycle-bin-${name}`}
 										className="flex-1 min-w-0 cursor-pointer select-none"
 									>
-										<code className="text-xs font-mono break-all">{name}</code>
+										<span className="text-sm">{displayName}</span>
+										{showCode ? (
+											<code className="block text-xs font-mono text-muted-foreground break-all mt-0.5">
+												{name}
+											</code>
+										) : null}
 									</label>
 								</div>
 							)

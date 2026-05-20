@@ -14,23 +14,21 @@ import DBManager from "@/main/lib/db-manager.js"
 import store from "@/main/store/index.js"
 import { isKernalBusy } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin.js"
 
 const LOG_PREFIX = "[startup-check/recycle-bin]"
 export const DATA_RECYCLE_BIN_KEY = "data_recycle_bin"
 
 const SAFE_NAME_RE = /^[A-Za-z0-9._-]+$/
-const DATA_MAP_KEY = "data_map"
-const WHITE_LIST_KEY = "settings.data_white_list"
+
+export function isSafeRecycleName(name: string): boolean {
+	if (!name || typeof name !== "string") return false
+	if (!SAFE_NAME_RE.test(name)) return false
+	return name.startsWith("stock") || name.startsWith("coin")
+}
+
 const DATA_PRODUCTS_STATUS_V2_URL =
 	"https://quantclass.cn-sh2.ufileos.com/sapi/data/products-status-v2.json"
-
-interface DataMapItem {
-	name: string
-	displayName: string
-	fullData?: string
-	isAutoUpdate?: 0 | 1
-	[k: string]: unknown
-}
 
 interface CatalogRecord {
 	key: string
@@ -45,22 +43,16 @@ interface ProductStatusRow {
 	full_data: string | null
 }
 
-export function isSafeRecycleName(name: string): boolean {
-	if (!name || typeof name !== "string") return false
-	if (!SAFE_NAME_RE.test(name)) return false
-	return name.startsWith("stock") || name.startsWith("coin")
-}
-
 function uniqSorted(arr: string[]): string[] {
 	return Array.from(new Set(arr)).sort()
 }
 
-function normalizeStoredRecycleBin(raw: unknown): string[] {
+function normalizeStoredRecycleBin(raw: unknown): DataRecycleBinEntry[] {
 	if (!Array.isArray(raw)) return []
-	const names: string[] = []
+	const entries: DataRecycleBinEntry[] = []
 	for (const item of raw) {
-		if (typeof item === "string") {
-			names.push(item)
+		if (typeof item === "string" && isSafeRecycleName(item)) {
+			entries.push({ name: item, displayName: item })
 			continue
 		}
 		if (
@@ -69,27 +61,60 @@ function normalizeStoredRecycleBin(raw: unknown): string[] {
 			"name" in item &&
 			typeof (item as { name: unknown }).name === "string"
 		) {
-			names.push((item as { name: string }).name)
+			const name = (item as { name: string }).name
+			if (!isSafeRecycleName(name)) continue
+			const rawLabel = (item as { displayName?: unknown }).displayName
+			const displayName =
+				typeof rawLabel === "string" && rawLabel.trim()
+					? rawLabel.trim()
+					: name
+			entries.push({ name, displayName })
 		}
 	}
-	return names.filter(isSafeRecycleName)
+	return entries
 }
 
-export async function readDataRecycleBin(): Promise<string[]> {
+async function resolveDisplayNamesForNames(
+	names: string[],
+): Promise<DataRecycleBinEntry[]> {
+	if (names.length === 0) return []
+
+	let catalog: Map<string, CatalogRecord>
+	try {
+		catalog = await loadProductCatalogByKey()
+	} catch (e) {
+		logger.warn(`${LOG_PREFIX} 拉取数据目录失败，displayName 可能不完整: ${e}`)
+		catalog = new Map()
+	}
+
+	return names.map((name) => {
+		const record = catalog.get(name)
+		const displayName = record?.description || name
+		return { name, displayName }
+	})
+}
+
+export async function readDataRecycleBin(): Promise<DataRecycleBinEntry[]> {
 	const raw = await store.getValue<unknown>(DATA_RECYCLE_BIN_KEY, [])
 	return normalizeStoredRecycleBin(raw)
 }
 
 export async function writeDataRecycleBin(names: string[]): Promise<void> {
-	const safe = names.filter(isSafeRecycleName)
-	await store.setValue(DATA_RECYCLE_BIN_KEY, safe)
-	logger.info(`${LOG_PREFIX} 回收站共 ${safe.length} 项`)
+	const safe = uniqSorted(names.filter(isSafeRecycleName))
+	const entries = await resolveDisplayNamesForNames(safe)
+	await store.setValue(DATA_RECYCLE_BIN_KEY, entries)
+	logger.info(`${LOG_PREFIX} 回收站共 ${entries.length} 项`)
 }
 
-async function removeFromRecycleBin(names: string[]): Promise<void> {
-	const removeSet = new Set(names)
-	const next = (await readDataRecycleBin()).filter((n) => !removeSet.has(n))
+export async function removeFromRecycleBin(names: string[]): Promise<void> {
+	const safe = names.filter(isSafeRecycleName)
+	if (safe.length === 0) return
+	const removeSet = new Set(safe)
+	const next = (await readDataRecycleBin()).filter(
+		(item) => !removeSet.has(item.name),
+	)
 	await store.setValue(DATA_RECYCLE_BIN_KEY, next)
+	logger.info(`${LOG_PREFIX} 已从回收站移除 ${safe.length} 项`)
 }
 
 async function readAllProductStatus(): Promise<ProductStatusRow[] | null> {
@@ -190,16 +215,6 @@ async function deleteDiskFoldersForProductNames(
 	}
 }
 
-async function readListAndMap(): Promise<{
-	listSet: string[]
-	dataMap: DataMapItem[]
-}> {
-	const listSetRaw = (await store.getValue<string[]>(WHITE_LIST_KEY, [])) ?? []
-	const listSet = listSetRaw.filter(Boolean)
-	const dataMap = (await store.getValue<DataMapItem[]>(DATA_MAP_KEY, [])) ?? []
-	return { listSet, dataMap }
-}
-
 function processDataProductCatalog(data: any[]): CatalogRecord[] {
 	const mockData = data
 		.map((item) => ({
@@ -251,67 +266,6 @@ async function loadProductCatalogByKey(): Promise<Map<string, CatalogRecord>> {
 	return new Map(list.map((item) => [item.key, item]))
 }
 
-function catalogRecordToDataMapItem(record: CatalogRecord): DataMapItem {
-	return {
-		name: record.key,
-		displayName: record.description,
-		fullData: record.fullData,
-		isAutoUpdate: 1,
-	}
-}
-
-async function buildDataMapItemsForNames(
-	productNames: string[],
-): Promise<DataMapItem[]> {
-	if (productNames.length === 0) return []
-	let catalog: Map<string, CatalogRecord>
-	try {
-		catalog = await loadProductCatalogByKey()
-	} catch (e) {
-		logger.warn(`${LOG_PREFIX} 拉取数据目录失败，跳过 data_map 补全: ${e}`)
-		return []
-	}
-	const items: DataMapItem[] = []
-	for (const name of productNames) {
-		const record = catalog.get(name)
-		if (!record) {
-			logger.warn(`${LOG_PREFIX} 数据目录无 ${name}，跳过 data_map 写入`)
-			continue
-		}
-		items.push(catalogRecordToDataMapItem(record))
-	}
-	return items
-}
-
-async function restoreToWhiteListAndDataMap(names: string[]): Promise<void> {
-	const safe = names.filter(isSafeRecycleName)
-	if (safe.length === 0) return
-
-	const { listSet, dataMap } = await readListAndMap()
-	const mapHas = new Set(dataMap.map((d) => d.name))
-	const missing = safe.filter((n) => !mapHas.has(n))
-	const restored = await buildDataMapItemsForNames(missing)
-	const restoredSet = new Set(restored.map((d) => d.name))
-	const nextMap = [...dataMap, ...restored]
-
-	const listHas = new Set(listSet)
-	const forList = safe.filter(
-		(n) => !listHas.has(n) && (mapHas.has(n) || restoredSet.has(n)),
-	)
-	const skipped = safe.filter((n) => !mapHas.has(n) && !restoredSet.has(n))
-	if (skipped.length > 0) {
-		logger.warn(
-			`${LOG_PREFIX} ${skipped.length} 项目录缺失，已跳过: ${skipped.join(", ")}`,
-		)
-	}
-
-	store.setValue(WHITE_LIST_KEY, uniqSorted([...listSet, ...forList]))
-	store.setValue(DATA_MAP_KEY, nextMap)
-	logger.info(
-		`${LOG_PREFIX} 恢复：+白名单 ${forList.length}，+map ${restored.length}`,
-	)
-}
-
 async function purgeLocalData(names: string[]): Promise<void> {
 	const safe = names.filter(isSafeRecycleName)
 	if (safe.length === 0) return
@@ -335,17 +289,6 @@ async function purgeLocalData(names: string[]): Promise<void> {
 		logger.error(`${LOG_PREFIX} 删除磁盘失败: ${e}`)
 	}
 	logger.info(`${LOG_PREFIX} 物理删除完成：${safe.length} 项`)
-}
-
-// -- 恢复白名单 + data_map，并从回收站移除
-export async function restoreDataRecycleBinItems(
-	names: string[],
-): Promise<void> {
-	const safe = names.filter(isSafeRecycleName)
-	if (safe.length === 0) return
-	await restoreToWhiteListAndDataMap(safe)
-	await removeFromRecycleBin(safe)
-	logger.info(`${LOG_PREFIX} 已恢复 ${safe.length} 项`)
 }
 
 // -- 物理删除磁盘 + product_status，并从回收站移除

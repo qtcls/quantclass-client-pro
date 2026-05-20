@@ -253,8 +253,15 @@ function DataRecycleBinContent({ onCountChange }: DataRecycleBinContentProps) {
 	)
 }
 
+interface DataRecycleBinDialogProps {
+	/** 供父级在 Step 3 等写入回收站后刷新气泡数量 */
+	onRegisterRefreshCount?: (refresh: () => void) => void
+}
+
 /** 垃圾桶入口（数量气泡）+ 回收站对话框 */
-export function DataRecycleBinDialog() {
+export function DataRecycleBinDialog({
+	onRegisterRefreshCount,
+}: DataRecycleBinDialogProps) {
 	const [open, setOpen] = useState(false)
 	const [count, setCount] = useState(0)
 
@@ -266,6 +273,13 @@ export function DataRecycleBinDialog() {
 			setCount(0)
 		}
 	}, [])
+
+	useEffect(() => {
+		onRegisterRefreshCount?.(() => {
+			void refreshCount()
+		})
+		return () => onRegisterRefreshCount?.(() => {})
+	}, [onRegisterRefreshCount, refreshCount])
 
 	useEffect(() => {
 		void refreshCount()

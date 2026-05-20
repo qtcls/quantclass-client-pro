@@ -9,17 +9,21 @@
  */
 
 import { runDataConsistencyCheck } from "@/renderer/components/StartupCheckLauncher"
-import { useEffect } from "react"
+import { type RefObject, useEffect } from "react"
 import { toast } from "sonner"
 
 // -- 进入历史数据页时执行数据一致性自检
-export function useDataConsistencyCheckOnEnter() {
+export function useDataConsistencyCheckOnEnter(
+	refreshRecycleBinCountRef?: RefObject<(() => void) | null>,
+) {
 	useEffect(() => {
 		let cancelled = false
 
 		void (async () => {
 			const result = await runDataConsistencyCheck()
 			if (cancelled) return
+
+			refreshRecycleBinCountRef?.current?.()
 
 			if (!result.ok) {
 				toast.error(result.detail ?? "数据一致性检查失败")
@@ -33,5 +37,5 @@ export function useDataConsistencyCheckOnEnter() {
 		return () => {
 			cancelled = true
 		}
-	}, [])
+	}, [refreshRecycleBinCountRef])
 }

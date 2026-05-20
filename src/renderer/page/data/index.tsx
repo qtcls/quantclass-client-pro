@@ -34,10 +34,11 @@ import {
 	RefreshCw,
 	Server,
 } from "lucide-react"
-import type { FC } from "react"
+import { type FC, useRef } from "react"
 
 const Data: FC = () => {
-	useDataConsistencyCheckOnEnter()
+	const refreshRecycleBinCountRef = useRef<(() => void) | null>(null)
+	useDataConsistencyCheckOnEnter(refreshRecycleBinCountRef)
 	const disabled = useAuthUpdate()
 	const isUpdating = useAtomValue(isUpdatingAtom) // 获取是否正在更新的状态
 	const handleTimeTask = useHandleTimeTask() // 使用引入的 handleTimeTask
@@ -104,7 +105,11 @@ const Data: FC = () => {
 						)}
 					</div>
 					<DataLocationCtrl className="w-72" />
-					<DataRecycleBinDialog />
+					<DataRecycleBinDialog
+						onRegisterRefreshCount={(refresh) => {
+							refreshRecycleBinCountRef.current = refresh
+						}}
+					/>
 				</div>
 				<div className="flex items-center space-x-4">
 					<div className="flex items-center space-x-1">

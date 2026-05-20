@@ -9,13 +9,44 @@
  */
 
 import type { StartupCheckResult } from "@/preload/startup-check/startup-check-ipc.js"
+import type {
+	DataConsistencyActionResult,
+	DataConsistencyReport,
+} from "@/shared/types/startup-check.js"
 import { ipcRenderer } from "electron"
 
-export type { StartupCheckResult }
+export type {
+	StartupCheckResult,
+	DataConsistencyReport,
+	DataConsistencyActionResult,
+}
 
 export const startupCheckIPC = {
 	checkStartupNetwork: () =>
 		ipcRenderer.invoke("startup-check:network") as Promise<StartupCheckResult>,
 	checkStartupQmtConnect: () =>
 		ipcRenderer.invoke("startup-check:qmt") as Promise<StartupCheckResult>,
+	checkDataConsistencyAnalyze: () =>
+		ipcRenderer.invoke(
+			"startup-check:data:analyze",
+		) as Promise<DataConsistencyReport>,
+	checkDataConsistencyAlign: (report: DataConsistencyReport) =>
+		ipcRenderer.invoke(
+			"startup-check:data:align",
+			report,
+		) as Promise<DataConsistencyActionResult>,
+	getDataRecycleBin: () =>
+		ipcRenderer.invoke(
+			"startup-check:data:recycle-bin:list",
+		) as Promise<string[]>,
+	restoreDataRecycleBinItems: (names: string[]) =>
+		ipcRenderer.invoke(
+			"startup-check:data:recycle-bin:restore",
+			names,
+		) as Promise<DataConsistencyActionResult>,
+	purgeDataRecycleBinItems: (names: string[]) =>
+		ipcRenderer.invoke(
+			"startup-check:data:recycle-bin:purge",
+			names,
+		) as Promise<DataConsistencyActionResult>,
 }

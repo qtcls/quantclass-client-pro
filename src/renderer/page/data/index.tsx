@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { DataRecycleBinDialog } from "@/renderer/components/DataRecycleBinDialog"
 import { DataLocationCtrl } from "@/renderer/components/data-location-ctrl"
 import { PerformanceModeSelectTabs } from "@/renderer/components/select-tabs"
 import { Button } from "@/renderer/components/ui/button"
@@ -101,6 +102,7 @@ const Data: FC = () => {
 						)}
 					</div>
 					<DataLocationCtrl className="w-72" />
+					<DataRecycleBinDialog />
 				</div>
 				<div className="flex items-center space-x-4">
 					<div className="flex items-center space-x-1">

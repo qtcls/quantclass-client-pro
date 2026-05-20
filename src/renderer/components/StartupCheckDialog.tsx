@@ -19,6 +19,7 @@ import {
 } from "@/renderer/components/ui/dialog"
 import { cn } from "@/renderer/lib/utils"
 import {
+	AlertTriangle,
 	CheckCircle2,
 	Circle,
 	Loader2,
@@ -27,13 +28,13 @@ import {
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-type StepStatus = "pending" | "running" | "success" | "error"
+type StepStatus = "pending" | "running" | "success" | "error" | "warning"
 
 export interface StartupCheckStep {
 	id: string
 	title: string
 	description?: string
-	run: () => Promise<{ ok: boolean; detail?: string }>
+	run: () => Promise<{ ok: boolean; detail?: string; warning?: boolean }>
 }
 
 interface StepState {
@@ -53,7 +54,7 @@ export function StartupCheckDialog({
 	open,
 	onOpenChange,
 	steps,
-	autoCloseDelayMs = 1200,
+	autoCloseDelayMs = 2000,
 }: StartupCheckDialogProps) {
 	const [states, setStates] = useState<StepState[]>(() =>
 		steps.map(() => ({ status: "pending" as StepStatus })),
@@ -73,7 +74,13 @@ export function StartupCheckDialog({
 		[states],
 	)
 
-	const allSuccess = isFinished && !hasError
+	const hasWarning = useMemo(
+		() => states.some((s) => s.status === "warning"),
+		[states],
+	)
+
+	const needsManualDismiss = hasError || hasWarning
+	const allSuccess = isFinished && !needsManualDismiss
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: runVersion 仅作为重跑触发令牌
 	useEffect(() => {
@@ -99,10 +106,18 @@ export function StartupCheckDialog({
 				try {
 					const result = await currentSteps[i].run()
 					if (abortedRef.current) break
+					const nextStatus: StepStatus = result.warning
+						? "warning"
+						: result.ok
+							? "success"
+							: "error"
 					updateStep(i, {
-						status: result.ok ? "success" : "error",
+						status: nextStatus,
 						detail: result.detail,
-						error: result.ok ? undefined : (result.detail ?? "检查未通过"),
+						error:
+							nextStatus === "error"
+								? (result.detail ?? "检查未通过")
+								: undefined,
 					})
 				} catch (e) {
 					if (abortedRef.current) break
@@ -126,9 +141,9 @@ export function StartupCheckDialog({
 		}
 	}, [open, runVersion])
 
-	// -- 全部通过则自动关闭
+	// -- 全部 success（无 error / warning）则自动关闭
 	useEffect(() => {
-		if (!open || !isFinished || hasError) return
+		if (!open || !allSuccess) return
 		autoCloseTimerRef.current = setTimeout(() => {
 			onOpenChange(false)
 		}, autoCloseDelayMs)
@@ -138,7 +153,7 @@ export function StartupCheckDialog({
 				autoCloseTimerRef.current = null
 			}
 		}
-	}, [open, isFinished, hasError, autoCloseDelayMs, onOpenChange])
+	}, [open, allSuccess, autoCloseDelayMs, onOpenChange])
 
 	const handleSkip = () => {
 		abortedRef.current = true
@@ -180,6 +195,8 @@ export function StartupCheckDialog({
 										"border-destructive/40 bg-destructive/5",
 									state.status === "success" &&
 										"border-emerald-400/40 bg-emerald-500/5",
+									state.status === "warning" &&
+										"border-amber-400/40 bg-amber-500/5",
 								)}
 							>
 								<StepIcon status={state.status} />
@@ -207,6 +224,11 @@ export function StartupCheckDialog({
 											{state.detail}
 										</p>
 									) : null}
+									{state.status === "warning" && state.detail ? (
+										<p className="text-xs text-amber-600 dark:text-amber-400 leading-snug mt-1 break-all">
+											{state.detail}
+										</p>
+									) : null}
 								</div>
 							</li>
 						)
@@ -228,10 +250,14 @@ export function StartupCheckDialog({
 							<span className="text-destructive">
 								存在检查未通过项，请处理后重试
 							</span>
+						) : hasWarning ? (
+							<span className="text-amber-600 dark:text-amber-400">
+								存在需注意项，请查看说明后手动关闭
+							</span>
 						) : null}
 					</div>
 					<div className="flex gap-2">
-						{isFinished && hasError ? (
+						{isFinished && needsManualDismiss ? (
 							<Button
 								variant="outline"
 								size="sm"
@@ -242,7 +268,7 @@ export function StartupCheckDialog({
 							</Button>
 						) : null}
 						<Button
-							variant={isFinished && hasError ? "default" : "ghost"}
+							variant={isFinished && needsManualDismiss ? "default" : "ghost"}
 							size="sm"
 							className="h-8"
 							onClick={handleSkip}
@@ -267,6 +293,11 @@ function StepIcon({ status }: { status: StepStatus }) {
 	}
 	if (status === "error") {
 		return <XCircle className="size-5 shrink-0 mt-0.5 text-destructive" />
+	}
+	if (status === "warning") {
+		return (
+			<AlertTriangle className="size-5 shrink-0 mt-0.5 text-amber-500" />
+		)
 	}
 	return <Circle className="size-5 shrink-0 mt-0.5 text-muted-foreground/40" />
 }

@@ -8,7 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { runFuelProbe } from "@/main/lib/fuel-probe.js"
+import { runFuelProbe } from "@/main/lib/startup-check/fuel-probe.js"
 import logger from "@/main/utils/wiston.js"
 import { platform } from "@electron-toolkit/utils"
 

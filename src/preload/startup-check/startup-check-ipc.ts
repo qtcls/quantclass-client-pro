@@ -9,13 +9,26 @@
  */
 
 import {
-	type StartupCheckResult,
+	alignFolderAndDb,
+	analyzeDataConsistency,
 	checkNetworkConnectivity,
 	checkQmtConnect,
-} from "@/main/lib/startup-check.js"
+	purgeDataRecycleBinItems,
+	readDataRecycleBin,
+	restoreDataRecycleBinItems,
+	type StartupCheckResult,
+} from "@/main/lib/startup-check/index.js"
+import type {
+	DataConsistencyActionResult,
+	DataConsistencyReport,
+} from "@/shared/types/startup-check.js"
 import { ipcMain } from "electron"
 
-export type { StartupCheckResult }
+export type {
+	StartupCheckResult,
+	DataConsistencyReport,
+	DataConsistencyActionResult,
+}
 
 export const regStartupCheckIPC = () => {
 	ipcMain.handle(
@@ -29,6 +42,66 @@ export const regStartupCheckIPC = () => {
 		"startup-check:qmt",
 		async (): Promise<StartupCheckResult> => {
 			return await checkQmtConnect()
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:data:analyze",
+		async (): Promise<DataConsistencyReport> => {
+			return await analyzeDataConsistency()
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:data:align",
+		async (
+			_event,
+			report: DataConsistencyReport,
+		): Promise<DataConsistencyActionResult> => {
+			try {
+				await alignFolderAndDb(report)
+				return { ok: true }
+			} catch (e) {
+				const error = e instanceof Error ? e.message : String(e)
+				return { ok: false, error }
+			}
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:data:recycle-bin:list",
+		async (): Promise<string[]> => readDataRecycleBin(),
+	)
+
+	ipcMain.handle(
+		"startup-check:data:recycle-bin:restore",
+		async (
+			_event,
+			names: string[],
+		): Promise<DataConsistencyActionResult> => {
+			try {
+				await restoreDataRecycleBinItems(names)
+				return { ok: true }
+			} catch (e) {
+				const error = e instanceof Error ? e.message : String(e)
+				return { ok: false, error }
+			}
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:data:recycle-bin:purge",
+		async (
+			_event,
+			names: string[],
+		): Promise<DataConsistencyActionResult> => {
+			try {
+				await purgeDataRecycleBinItems(names)
+				return { ok: true }
+			} catch (e) {
+				const error = e instanceof Error ? e.message : String(e)
+				return { ok: false, error }
+			}
 		},
 	)
 

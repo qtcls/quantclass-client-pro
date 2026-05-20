@@ -279,14 +279,14 @@ async function purgeLocalData(names: string[]): Promise<void> {
 		)
 	}
 	try {
-		await deleteDbRows(safe)
-	} catch (e) {
-		logger.error(`${LOG_PREFIX} 删除 DB 失败: ${e}`)
-	}
-	try {
 		await deleteDiskFoldersForProductNames(safe)
 	} catch (e) {
 		logger.error(`${LOG_PREFIX} 删除磁盘失败: ${e}`)
+	}
+	try {
+		await deleteDbRows(safe)
+	} catch (e) {
+		logger.error(`${LOG_PREFIX} 删除 DB 失败: ${e}`)
 	}
 	logger.info(`${LOG_PREFIX} 物理删除完成：${safe.length} 项`)
 }

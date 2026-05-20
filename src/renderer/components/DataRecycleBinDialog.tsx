@@ -114,7 +114,7 @@ function DataRecycleBinContent({ onCountChange }: DataRecycleBinContentProps) {
 			}
 			if (appendResult.restored > 0) {
 				toast.success(
-					`已恢复 ${appendResult.restored} 项到白名单与 data_map`,
+					`已恢复 ${appendResult.restored} 项到订阅列表里`,
 				)
 			} else if (appendResult.skipped.length === 0) {
 				toast.success("所选项目已在订阅中")

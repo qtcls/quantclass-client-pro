@@ -21,6 +21,68 @@ const {
 	checkDataConsistencyAlign,
 } = window.electronAPI
 
+export interface DataConsistencyCheckResult {
+	ok: boolean
+	warning?: boolean
+	detail?: string
+}
+
+// -- 数据一致性自检
+export async function runDataConsistencyCheck(): Promise<DataConsistencyCheckResult> {
+	try {
+		const report = await checkDataConsistencyAnalyze()
+
+		const needAlign = report.alignedDbDiff.onlyDb.length > 0
+		if (needAlign) {
+			const alignRes = await checkDataConsistencyAlign(report)
+			if (!alignRes.ok) {
+				return {
+					ok: false,
+					warning: true,
+					detail: alignRes.error ?? "对齐数据库失败",
+				}
+			}
+		}
+
+		const aNames = report.listDiff.aOnly
+		const bNames = report.listDiff.bOnly
+		const aCount = aNames.length
+		const bCount = bNames.length
+
+		if (aCount === 0 && bCount === 0) {
+			return {
+				ok: true,
+				detail: needAlign ? "已对齐数据库" : "三方一致",
+			}
+		}
+
+		const parts: string[] = []
+		if (aCount > 0) {
+			parts.push(
+				`${aCount} 项本地数据未在白名单中，已加入「历史数据」页的数据回收站，请前往处理`,
+			)
+		}
+		if (bCount > 0) {
+			const preview =
+				bNames.length <= 5
+					? bNames.join("、")
+					: `${bNames.slice(0, 5).join("、")} 等 ${bCount} 项`
+			parts.push(
+				`${preview} 已订阅但本地尚无数据，请前往「历史数据中心」手动执行全量更新`,
+			)
+		}
+
+		return {
+			ok: true,
+			warning: true,
+			detail: parts.join("；"),
+		}
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : String(e)
+		return { ok: false, detail: msg }
+	}
+}
+
 export function StartupCheckLauncher() {
 	const [open, setOpen] = useState(true)
 
@@ -51,60 +113,7 @@ export function StartupCheckLauncher() {
 			{
 				id: "data-consistency",
 				title: "数据一致性",
-				run: async () => {
-					try {
-						const report = await checkDataConsistencyAnalyze()
-
-						const needAlign = report.alignedDbDiff.onlyDb.length > 0
-						if (needAlign) {
-							const alignRes = await checkDataConsistencyAlign(report)
-							if (!alignRes.ok) {
-								return {
-									ok: false,
-									warning: true,
-									detail: alignRes.error ?? "对齐数据库失败",
-								}
-							}
-						}
-
-						const aNames = report.listDiff.aOnly
-						const bNames = report.listDiff.bOnly
-						const aCount = aNames.length
-						const bCount = bNames.length
-
-						if (aCount === 0 && bCount === 0) {
-							return {
-								ok: true,
-								detail: needAlign ? "已对齐数据库" : "三方一致",
-							}
-						}
-
-						const parts: string[] = []
-						if (aCount > 0) {
-							parts.push(
-								`${aCount} 项本地数据未在白名单中，已加入「历史数据」页的数据回收站，请前往处理`,
-							)
-						}
-						if (bCount > 0) {
-							const preview =
-								bNames.length <= 5
-									? bNames.join("、")
-									: `${bNames.slice(0, 5).join("、")} 等 ${bCount} 项`
-							parts.push(
-								`${preview} 已订阅但本地尚无数据，请前往「历史数据中心」手动执行全量更新`,
-							)
-						}
-
-						return {
-							ok: true,
-							warning: true,
-							detail: parts.join("；"),
-						}
-					} catch (e) {
-						const msg = e instanceof Error ? e.message : String(e)
-						return { ok: false, detail: msg }
-					}
-				},
+				run: runDataConsistencyCheck,
 			},
 		],
 		[],

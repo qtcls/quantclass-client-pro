@@ -16,6 +16,7 @@ import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { H2 } from "@/renderer/components/ui/typography"
 import {
 	useAuthUpdate,
+	useDataConsistencyCheckOnEnter,
 	useHandleTimeTask,
 	useScheduleTimes,
 } from "@/renderer/hooks" // 引入handleTimeTask
@@ -36,6 +37,7 @@ import {
 import type { FC } from "react"
 
 const Data: FC = () => {
+	useDataConsistencyCheckOnEnter()
 	const disabled = useAuthUpdate()
 	const isUpdating = useAtomValue(isUpdatingAtom) // 获取是否正在更新的状态
 	const handleTimeTask = useHandleTimeTask() // 使用引入的 handleTimeTask

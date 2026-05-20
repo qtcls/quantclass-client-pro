@@ -11,6 +11,7 @@
 import { useAppUpdate } from "./useAppUpdate"
 import { useAuthUpdate } from "./useAuthUpdate"
 import { useCalcTotalWeight } from "./useCalcTotalWeight"
+import { useDataConsistencyCheckOnEnter } from "./useDataConsistencyCheckOnEnter"
 import { useDataSubscribed } from "./useDataSubscribed"
 import { useDataTable } from "./useDataTable"
 import { useGlobalValue } from "./useGlobalValue"
@@ -35,6 +36,7 @@ export {
 	useAppUpdate,
 	useAuthUpdate,
 	useCalcTotalWeight,
+	useDataConsistencyCheckOnEnter,
 	useDataTable,
 	useGlobalValue,
 	useHandleTimeTask,

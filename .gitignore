@@ -62,6 +62,13 @@ typings/
 # dotenv environment variables file
 .env
 .env.test
+.env.release.local
+
+# macOS signing/notarization secrets
+certs/
+*.p8
+*.p12
+*.key
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

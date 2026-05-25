@@ -48,3 +48,44 @@ IF STILL FAILED ON WINDOWS, AND SEE ERR WITH `!include` TRY FOLLOWING:
 - Double-click on "Enable Win32 long paths" and set it to Enabled.
 - **DELETE `node_modules`**
 - THEN REBOOT YOUR WIN
+
+## Mac Signed Release
+
+Before building a signed macOS release, prepare a local release env file:
+
+```bash
+cd /Users/zdc/Projects/quantclass-client-pro
+source .env.release.local
+pnpm build:mac
+```
+
+Verify the signed apps:
+
+```bash
+codesign --verify --deep --strict --verbose=2 dist/mac-arm64/QuantclassClient.app
+codesign --verify --deep --strict --verbose=2 dist/mac/QuantclassClient.app
+```
+
+Notarize and staple the generated dmg files. Update `APP_VERSION` before each release:
+
+```bash
+export APP_VERSION="x.x.x"
+
+xcrun notarytool submit "dist/QuantclassClient-${APP_VERSION}-arm64.dmg" \
+  --key "${APPLE_API_KEY}" \
+  --key-id "${APPLE_API_KEY_ID}" \
+  --issuer "${APPLE_API_ISSUER}" \
+  --wait
+
+xcrun stapler staple "dist/QuantclassClient-${APP_VERSION}-arm64.dmg"
+xcrun stapler validate "dist/QuantclassClient-${APP_VERSION}-arm64.dmg"
+
+xcrun notarytool submit "dist/QuantclassClient-${APP_VERSION}-x64.dmg" \
+  --key "${APPLE_API_KEY}" \
+  --key-id "${APPLE_API_KEY_ID}" \
+  --issuer "${APPLE_API_ISSUER}" \
+  --wait
+
+xcrun stapler staple "dist/QuantclassClient-${APP_VERSION}-x64.dmg"
+xcrun stapler validate "dist/QuantclassClient-${APP_VERSION}-x64.dmg"
+```

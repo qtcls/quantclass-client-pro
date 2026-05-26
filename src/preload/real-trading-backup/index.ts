@@ -31,6 +31,11 @@ export const realTradingBackupIPC = {
 			ok: boolean
 			error?: string
 		}>,
+	setRealTradingBackupEnabled: (enabled: boolean) =>
+		ipcRenderer.invoke(
+			"real-trading-backup:set-enabled",
+			enabled,
+		) as Promise<{ ok: true }>,
 	runRealTradingBackupNow: () =>
 		ipcRenderer.invoke(
 			"real-trading-backup:run-now",

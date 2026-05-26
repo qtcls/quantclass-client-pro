@@ -28,6 +28,7 @@ import {
 } from "@/renderer/components/ui/dialog"
 import { Input } from "@/renderer/components/ui/input"
 import { Label } from "@/renderer/components/ui/label"
+import { Switch } from "@/renderer/components/ui/switch"
 import { Archive, Loader2 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -44,10 +45,12 @@ export function RealTradingBackupDialog({
 	onOpenChange,
 }: RealTradingBackupDialogProps) {
 	const [dailyTime, setDailyTime] = useState(DEFAULT_TIME)
+	const [enabled, setEnabled] = useState(true)
 	const [sourceDir, setSourceDir] = useState("")
 	const [backupDir, setBackupDir] = useState("")
 	const [loadingConfig, setLoadingConfig] = useState(false)
 	const [savingTime, setSavingTime] = useState(false)
+	const [savingEnabled, setSavingEnabled] = useState(false)
 	const [runningBackup, setRunningBackup] = useState(false)
 	const [configWarning, setConfigWarning] = useState<string | null>(null)
 	const [backupConfirmOpen, setBackupConfirmOpen] = useState(false)
@@ -57,6 +60,7 @@ export function RealTradingBackupDialog({
 		setConfigWarning(null)
 		try {
 			const cfg = await window.electronAPI.getRealTradingBackupConfig()
+			setEnabled(cfg.enabled)
 			setDailyTime(cfg.dailyTime || DEFAULT_TIME)
 			setSourceDir(cfg.sourceDir)
 			setBackupDir(cfg.backupDir)
@@ -78,6 +82,19 @@ export function RealTradingBackupDialog({
 			setBackupConfirmOpen(false)
 		}
 	}, [open, loadConfig])
+
+	async function handleToggleEnabled(checked: boolean) {
+		setSavingEnabled(true)
+		try {
+			await window.electronAPI.setRealTradingBackupEnabled(checked)
+			setEnabled(checked)
+			toast.success(checked ? "已开启自动备份" : "已关闭自动备份")
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : "保存备份开关失败")
+		} finally {
+			setSavingEnabled(false)
+		}
+	}
 
 	async function handleSaveTime() {
 		setSavingTime(true)
@@ -122,9 +139,29 @@ export function RealTradingBackupDialog({
 							备份实盘数据
 						</DialogTitle>
 						<DialogDescription className="text-sm leading-relaxed">
-							每日备份实盘数据；在此设置自动备份时间并查看简要规则。数据量大时耗时较长，请保持该时段客户端在线。
+							在此开启或关闭自动备份，并设置备份时间；数据量大时耗时较长，请保持该时段客户端在线。
 						</DialogDescription>
 					</DialogHeader>
+
+					<div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2.5">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="real-backup-enabled"
+								className="text-sm font-medium"
+							>
+								开启自动备份
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								关闭后不会在设定时间自动备份实盘数据。
+							</p>
+						</div>
+						<Switch
+							id="real-backup-enabled"
+							checked={enabled}
+							disabled={loadingConfig || savingEnabled}
+							onCheckedChange={(checked) => void handleToggleEnabled(checked)}
+						/>
+					</div>
 
 					<div className="space-y-3 text-sm">
 						<div className="rounded-md border bg-muted/40 px-3 py-2.5 text-muted-foreground leading-normal">
@@ -146,13 +183,13 @@ export function RealTradingBackupDialog({
 									<span className="font-medium text-foreground">定时：</span>
 									到达下方时刻时，若当天为{" "}
 									<span className="font-mono">period_offset.csv</span>{" "}
-									中的交易日且客户端已启动，则自动备份；非交易日不执行。读不到交易日历时不自动备份。
+									中的交易日且客户端已启动、且已开启自动备份，则执行；非交易日不执行。读不到交易日历时不自动备份。
 								</li>
 								<li>
 									<span className="font-medium text-foreground">清理：</span>
-									每次备份前按修改时间删除早于「往前第 3 个交易日 0 点」的
-									zip（依据数据目录 period_offset.csv
-									交易日期列），约保留近三个交易日。
+									每次备份前按修改时间删除早于「往前第 2 个交易日 0 点」的
+									zip（依据数据目录 period_offset.csv 交易日期列），约保留 3
+									份（含当日）。
 								</li>
 							</ul>
 						</div>

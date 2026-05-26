@@ -23,12 +23,16 @@ import archiver from "archiver"
 import Store from "electron-store"
 import schedule from "node-schedule"
 
-const backupStore = new Store<{ realTradingBackupDailyTime?: string }>()
+const backupStore = new Store<{
+	realTradingBackupDailyTime?: string
+	realTradingBackupEnabled?: boolean
+}>()
 const SCHEDULE_KEY = "realTradingBackupDailyTime" as const
+const ENABLED_KEY = "realTradingBackupEnabled" as const
 export const DEFAULT_REAL_TRADING_BACKUP_TIME = "15:10"
 
-// -- 备份保留的交易日数
-const BACKUP_RETAIN_TRADING_DAYS = 3
+// -- 备份保留的交易日数（不含当日；配合当日备份约保留 3 份 zip）
+const BACKUP_RETAIN_TRADING_DAYS = 2
 
 // -- 生成 zip 文件名前缀
 const BACKUP_ZIP_PREFIX = "real_trading_"
@@ -37,6 +41,7 @@ let scheduledJob: schedule.Job | null = null
 let backupRunning = false
 
 export interface RealTradingBackupConfigPayload {
+	enabled: boolean
 	dailyTime: string
 	sourceDir: string
 	backupDir: string
@@ -59,13 +64,32 @@ async function resolveRealTradingBackupPaths(): Promise<
 	return { ok: true, sourceDir, backupDir }
 }
 
+export function getRealTradingBackupEnabled(): boolean {
+	const stored = backupStore.get(ENABLED_KEY)
+	return stored === undefined ? true : stored
+}
+
+export function setRealTradingBackupEnabled(enabled: boolean): { ok: true } {
+	backupStore.set(ENABLED_KEY, enabled)
+	refreshRealTradingBackupSchedule()
+	return { ok: true }
+}
+
 export async function getRealTradingBackupConfigPayload(): Promise<RealTradingBackupConfigPayload> {
+	const enabled = getRealTradingBackupEnabled()
 	const dailyTime = getRealTradingBackupDailyTime()
 	const paths = await resolveRealTradingBackupPaths()
 	if (!paths.ok) {
-		return { dailyTime, sourceDir: "", backupDir: "", warning: paths.error }
+		return {
+			enabled,
+			dailyTime,
+			sourceDir: "",
+			backupDir: "",
+			warning: paths.error,
+		}
 	}
 	return {
+		enabled,
 		dailyTime,
 		sourceDir: paths.sourceDir,
 		backupDir: paths.backupDir,
@@ -336,6 +360,10 @@ export async function runRealTradingBackup(
 	}
 
 	if (options?.autoSchedule) {
+		if (!getRealTradingBackupEnabled()) {
+			logger.info("[real-trading-backup] 自动备份已关闭，跳过本次自动备份")
+			return { ok: true, skipped: true }
+		}
 		const gate = await shouldRunScheduledRealTradingBackup()
 		if (!gate.run) {
 			logger.info(gate.message)
@@ -474,6 +502,10 @@ export function refreshRealTradingBackupSchedule(): void {
 	if (scheduledJob) {
 		scheduledJob.cancel()
 		scheduledJob = null
+	}
+	if (!getRealTradingBackupEnabled()) {
+		logger.info("[real-trading-backup] 自动备份已关闭，未设置自动备份计划")
+		return
 	}
 	const timeStr = getRealTradingBackupDailyTime()
 	const parsed = parseTimeHHmm(timeStr)

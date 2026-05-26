@@ -12,6 +12,7 @@ import {
 	getRealTradingBackupConfigPayload,
 	runRealTradingBackup,
 	setRealTradingBackupDailyTime,
+	setRealTradingBackupEnabled,
 } from "@/main/lib/real-trading-backup.js"
 import type {
 	RealTradingBackupConfigPayload,
@@ -38,6 +39,13 @@ export const regRealTradingBackupIPC = () => {
 		"real-trading-backup:set-daily-time",
 		async (_event, timeHHmm: string) => {
 			return setRealTradingBackupDailyTime(timeHHmm)
+		},
+	)
+
+	ipcMain.handle(
+		"real-trading-backup:set-enabled",
+		async (_event, enabled: boolean) => {
+			return setRealTradingBackupEnabled(enabled)
 		},
 	)
 

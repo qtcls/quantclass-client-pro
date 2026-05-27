@@ -37,6 +37,10 @@ const BACKUP_RETAIN_TRADING_DAYS = 2
 // -- 生成 zip 文件名前缀
 const BACKUP_ZIP_PREFIX = "real_trading_"
 
+const RUN_CACHE_BACKUP_REL =
+	"data/运行缓存/小中混_个股择时测试/股票预处理数据256.pkl"
+const FACTOR_CACHE_BACKUP_REL = "data/因子缓存/股票预处理数据256-1h.pkl"
+
 let scheduledJob: schedule.Job | null = null
 let backupRunning = false
 
@@ -308,13 +312,12 @@ async function addFilteredRealTradingToArchive(
 		addFile(rel)
 	}
 
-	for (const rel of [
-		"data/实盘选股结果",
-		"data/因子缓存",
-		"data/运行缓存",
-		"rocket/data",
-	]) {
+	for (const rel of ["data/实盘选股结果", "rocket/data"]) {
 		addTree(rel)
+	}
+
+	for (const rel of [RUN_CACHE_BACKUP_REL, FACTOR_CACHE_BACKUP_REL]) {
+		addFile(rel)
 	}
 
 	stats.copiedItems += addMatchedChildrenToArchive(

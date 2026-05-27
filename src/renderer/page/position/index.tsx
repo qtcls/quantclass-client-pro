@@ -14,10 +14,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/renderer/components/ui/tabs"
 import { H2 } from "@/renderer/components/ui/typography"
 import {
 	usePositionStockInfoColumns,
+	usePositionStockSummaryInfoColumns,
 	usePositionStrategyInfoColumns,
 } from "@/renderer/page/position/columns"
 import type {
 	PositionStockInfoType,
+	PositionStockSummaryInfoType,
 	PositionStrategyInfoType,
 } from "@/renderer/page/position/types"
 import { useQuery } from "@tanstack/react-query"
@@ -32,6 +34,7 @@ export default function PositionInfo() {
 
 	// 持仓信息列
 	const stockColumns = usePositionStockInfoColumns()
+	const stockSummaryColumns = usePositionStockSummaryInfoColumns()
 	const strategyColumns = usePositionStrategyInfoColumns()
 	const {
 		data: positions = { data: [], update_time: 0 },
@@ -66,6 +69,7 @@ export default function PositionInfo() {
 							<TabsList>
 								<TabsTrigger value="策略表现">策略表现</TabsTrigger>
 								<TabsTrigger value="个股表现">个股表现</TabsTrigger>
+								<TabsTrigger value="个股汇总表现">个股汇总表现</TabsTrigger>
 							</TabsList>
 						</Tabs>
 						<div className="text-sm text-muted-foreground">
@@ -118,6 +122,18 @@ export default function PositionInfo() {
 									(a.策略名称 ?? "").localeCompare(b.策略名称 ?? ""),
 							)}
 						columns={strategyColumns}
+						loading={loading}
+						refresh={() => {
+							refetch()
+						}}
+						pagination={false}
+						placeholder="查找所有列..."
+						_maxHeight="calc(100vh - 275px)"
+					/>
+				) : filename === "个股汇总表现" ? (
+					<DataTable<PositionStockSummaryInfoType, unknown>
+						data={positions.data || []}
+						columns={stockSummaryColumns}
 						loading={loading}
 						refresh={() => {
 							refetch()

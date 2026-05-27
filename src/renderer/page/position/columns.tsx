@@ -19,6 +19,7 @@ import { cn } from "@/renderer/lib/utils"
 import type {
 	PositionInfoType,
 	PositionStockInfoType,
+	PositionStockSummaryInfoType,
 	PositionStrategyInfoType,
 } from "@/renderer/page/position/types"
 import { formatCurrency } from "@/renderer/utils/formatCurrency"
@@ -247,6 +248,159 @@ export const usePositionStockInfoColumns =
 			{
 				accessorKey: "offset",
 				header: "offset",
+			},
+		]
+	}
+
+export const usePositionStockSummaryInfoColumns =
+	(): ColumnDef<PositionStockSummaryInfoType>[] => {
+		return [
+			{
+				header: "股票名称",
+				size: 268,
+				cell: ({ row }) => {
+					return (
+						<div className="flex flex-wrap gap-0.5">
+							<span className="text-sm font-mono">
+								{row.original?.证券代码 ?? "-"}
+							</span>
+							<Badge variant="outline" className="text-xs">
+								{row.original?.证券名称 ?? "-"}
+							</Badge>
+						</div>
+					)
+				},
+			},
+			{
+				accessorKey: "持仓量",
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="持仓量" />
+				),
+				enableSorting: true,
+				size: 100,
+				enableResizing: false,
+				cell: ({ row }) => {
+					return <span className="px-3">{row.original?.持仓量 ?? "-"}</span>
+				},
+			},
+			{
+				accessorKey: "占比",
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="占比" />
+				),
+				enableSorting: true,
+				size: 100,
+				enableResizing: false,
+				cell: ({ row }) => {
+					return (
+						<span className="px-3">
+							{((row.original?.占比 ?? 0) * 100).toFixed(2)}%
+						</span>
+					)
+				},
+			},
+			{
+				accessorKey: "当日盈亏",
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="当日盈亏" />
+				),
+				enableSorting: true,
+				cell: ({ row }) => {
+					return (
+						<span
+							className={cn(
+								row.original?.当日盈亏 > 0 ? "text-danger" : "text-success",
+								"px-3",
+							)}
+						>
+							￥{formatCurrency(row.original?.当日盈亏 ?? 0)}
+						</span>
+					)
+				},
+			},
+			{
+				accessorKey: "当日收益率",
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="当日收益率" />
+				),
+				enableSorting: true,
+				size: 100,
+				enableResizing: false,
+				cell: ({ row }) => {
+					return (
+						<span
+							className={cn(
+								row.original?.当日收益率 > 0 ? "text-danger" : "text-success",
+								"px-3",
+							)}
+						>
+							{((row.original?.当日收益率 ?? 0) * 100).toFixed(2)}%
+						</span>
+					)
+				},
+			},
+			{
+				accessorKey: "累计盈亏",
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="累计盈亏" />
+				),
+				enableSorting: true,
+				cell: ({ row }) => {
+					return (
+						<span
+							className={cn(
+								row.original?.累计盈亏 > 0 ? "text-danger" : "text-success",
+								"px-3",
+							)}
+						>
+							￥{formatCurrency(row.original?.累计盈亏 ?? 0)}
+						</span>
+					)
+				},
+			},
+			{
+				accessorKey: "累计收益率",
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="累计收益率" />
+				),
+				enableSorting: true,
+				size: 100,
+				enableResizing: false,
+				cell: ({ row }) => {
+					return (
+						<span
+							className={cn(
+								row.original?.累计收益率 > 0 ? "text-danger" : "text-success",
+								"px-3",
+							)}
+						>
+							{((row.original?.累计收益率 ?? 0) * 100).toFixed(2)}%
+						</span>
+					)
+				},
+			},
+			{
+				accessorKey: "滑点（‰）",
+				header: () => (
+					<Tooltip delayDuration={0}>
+						<TooltipTrigger>
+							<div className="flex items-center gap-2">
+								<InfoIcon className="w-4 h-4" />
+								<span>滑点（‰）</span>
+							</div>
+						</TooltipTrigger>
+						<TooltipContent side="left" align="start" sideOffset={10}>
+							<p>滑点为None的几个原因：</p>
+							<p>1、今天新买的股票，会在收盘之后计算滑点</p>
+							<p>2、历史持仓的股票无法计算滑点</p>
+							<p>3、无法识别策略的股票，也可能无法计算滑点</p>
+						</TooltipContent>
+					</Tooltip>
+				),
+				cell: ({ row }) => {
+					const slip = row.original?.["滑点（‰）"]
+					return <span>{slip == null ? "--" : slip}</span>
+				},
 			},
 		]
 	}

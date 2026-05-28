@@ -22,6 +22,8 @@ import {
 	HOME_PAGE,
 	REAL_TRADING_SECTION_PAGE,
 	REAL_TRADING_TAB_NAME,
+	RESEARCH_SECTION_PAGE,
+	RESEARCH_TAB_NAME,
 	SETTINGS_PAGE,
 	TRADING_MAIN_PAGE,
 	isWindows,
@@ -120,6 +122,8 @@ export const _SidebarHeader = () => {
 			setActiveTab(DATA_TAB_NAME)
 		} else if (REAL_TRADING_SECTION_PAGE.includes(pathname)) {
 			setActiveTab(REAL_TRADING_TAB_NAME)
+		} else if (RESEARCH_SECTION_PAGE.includes(pathname)) {
+			setActiveTab(RESEARCH_TAB_NAME)
 		} else if (pathname === HOME_PAGE) {
 			setActiveTab(HOME_PAGE)
 		}

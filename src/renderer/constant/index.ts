@@ -36,6 +36,10 @@ export const POSITION_INFO_PAGE = "/position_info"
 export const STRATEGY_LIBRARY_PAGE = "/strategy_library"
 // 综合策略库
 export const FUSION_STRATEGY_LIBRARY_PAGE = "/fusion_strategy_library"
+// 研究中心 - 精心随机策略库
+export const RESEARCH_STRATEGY_LIBRARY_PAGE = "/strategy_repo"
+// 研究中心 - 框架源码
+export const RESEARCH_FRAMEWORK_SOURCE_PAGE = "/framework_repo"
 // 策略试跑
 export const BACKTEST_PAGE = "/backtest"
 // 常见问题解答
@@ -57,6 +61,10 @@ export const REAL_TRADING_SECTION_PAGE = [
 	REAL_MARKET_CONFIG_PAGE,
 	SELECT_STOCK_STRATEGY_PAGE,
 ]
+export const RESEARCH_SECTION_PAGE = [
+	RESEARCH_STRATEGY_LIBRARY_PAGE,
+	RESEARCH_FRAMEWORK_SOURCE_PAGE,
+]
 
 export const TRADING_MAIN_PAGE = STRATEGY_LIBRARY_PAGE
 
@@ -66,6 +74,7 @@ export const POS_MGMT_STRATEGY_CONFIG = "pos_mgmt"
 
 export const DATA_TAB_NAME = "data"
 export const REAL_TRADING_TAB_NAME = "real_trading"
+export const RESEARCH_TAB_NAME = "research"
 
 // BASE_URL 已移至环境变量 VITE_BASE_URL，请直接使用 import.meta.env.VITE_BASE_URL
 

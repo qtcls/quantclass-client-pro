@@ -23,6 +23,9 @@ import {
 	HOME_PAGE,
 	POSITION_INFO_PAGE,
 	REAL_MARKET_CONFIG_PAGE,
+	RESEARCH_FRAMEWORK_SOURCE_PAGE,
+	RESEARCH_STRATEGY_LIBRARY_PAGE,
+	RESEARCH_TAB_NAME,
 	REAL_TRADING_TAB_NAME,
 	STRATEGY_LIBRARY_PAGE,
 	TRADING_PLAN_PAGE,
@@ -59,6 +62,14 @@ const breadcrumbList = {
 			[TRADING_PLAN_PAGE]: "当日交易",
 			[POSITION_INFO_PAGE]: "持仓信息",
 			[REAL_MARKET_CONFIG_PAGE]: "策略实盘",
+		},
+	},
+	[RESEARCH_TAB_NAME]: {
+		root: "#strategy_repo",
+		title: "研究中心",
+		routes: {
+			[RESEARCH_STRATEGY_LIBRARY_PAGE]: "精心随机策略库",
+			[RESEARCH_FRAMEWORK_SOURCE_PAGE]: "框架源码",
 		},
 	},
 }

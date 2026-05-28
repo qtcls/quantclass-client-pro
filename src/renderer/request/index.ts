@@ -9,6 +9,11 @@
  */
 
 import { ApiError, get, post } from "@/renderer/utils/request"
+import type {
+	ResearchDownloadLinkResponse,
+	ResearchListResponse,
+	ResearchTicketResponse,
+} from "@/renderer/types/research"
 
 const { rendererLog } = window.electronAPI
 
@@ -102,3 +107,46 @@ export const getExtraWorkStatus = async () => {
 		return { data: false }
 	}
 }
+
+// -- 研究中心：精心随机策略库 & 框架源码
+const buildResearchHandler =
+	(urlBuilder: (courseName: string) => string) =>
+	async (courseName: string): Promise<ResearchListResponse> => {
+		try {
+			return await get<ResearchListResponse>(urlBuilder(courseName))
+		} catch (error) {
+			if (error instanceof ApiError) {
+				return {
+					code: error.status,
+					data: [],
+					message:
+						typeof error.data === "string"
+							? error.data
+							: JSON.stringify(error.data),
+				}
+			}
+			return {
+				code: 500,
+				data: [],
+				message: error instanceof Error ? error.message : String(error),
+			}
+		}
+	}
+
+export const getResearchStrategies = buildResearchHandler(
+	(courseName) => `/download/stock-data-client/strategies/${courseName}`,
+)
+
+export const getResearchBasicCode = buildResearchHandler(
+	(courseName) => `/download/stock-data-client/basic-code/${courseName}`,
+)
+
+export const postResearchTicket = (fid: string) =>
+	post<ResearchTicketResponse>(`/download/${fid}/basic-code-download`, {
+		method: "link",
+	})
+
+export const getResearchDownloadLink = (ticket: string) =>
+	get<ResearchDownloadLinkResponse>(
+		`/download/get-code-download-link/${ticket}`,
+	)

@@ -28,6 +28,9 @@ import {
 	QUESTION_FEEDBACK_PAGE,
 	REAL_MARKET_CONFIG_PAGE,
 	REAL_TRADING_TAB_NAME,
+	RESEARCH_FRAMEWORK_SOURCE_PAGE,
+	RESEARCH_STRATEGY_LIBRARY_PAGE,
+	RESEARCH_TAB_NAME,
 	STRATEGY_LIBRARY_PAGE,
 	// TRADING_PLAN_PAGE,
 } from "@/renderer/constant"
@@ -267,14 +270,34 @@ export const _SidebarContent = () => {
 			</SidebarGroup>
 
 			<SidebarGroup>
-				<SidebarGroupLabel>研究中心（开发中）</SidebarGroupLabel>
+				<SidebarGroupLabel>研究中心</SidebarGroupLabel>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton disabled>
+						<SidebarMenuButton
+							onClick={() => {
+								setActiveTab(RESEARCH_TAB_NAME)
+								navigate(RESEARCH_STRATEGY_LIBRARY_PAGE)
+							}}
+							className={cn(
+								pathname === RESEARCH_STRATEGY_LIBRARY_PAGE &&
+									"bg-accent text-accent-foreground font-semibold",
+							)}
+						>
 							<Library />
 							<span>精心随机策略库</span>
 						</SidebarMenuButton>
-						<SidebarMenuButton disabled>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton
+							onClick={() => {
+								setActiveTab(RESEARCH_TAB_NAME)
+								navigate(RESEARCH_FRAMEWORK_SOURCE_PAGE)
+							}}
+							className={cn(
+								pathname === RESEARCH_FRAMEWORK_SOURCE_PAGE &&
+									"bg-accent text-accent-foreground font-semibold",
+							)}
+						>
 							<Code />
 							<span>框架源码</span>
 						</SidebarMenuButton>

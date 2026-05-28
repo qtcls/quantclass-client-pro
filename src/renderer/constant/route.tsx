@@ -17,6 +17,8 @@ import {
 	POSITION_INFO_PAGE,
 	REALTIME_DATA_PAGE,
 	REAL_MARKET_CONFIG_PAGE,
+	RESEARCH_FRAMEWORK_SOURCE_PAGE,
+	RESEARCH_STRATEGY_LIBRARY_PAGE,
 	SETTINGS_PAGE,
 	STRATEGY_LIBRARY_PAGE,
 	STRATEGY_PAGE,
@@ -30,6 +32,8 @@ import StrategyLibrary from "@/renderer/page/library"
 import FusionStrategyLibrary from "@/renderer/page/library/fusion"
 import PositionInfo from "@/renderer/page/position"
 import RealtimeData from "@/renderer/page/realtime-data"
+import ResearchFrameworkSourcePage from "@/renderer/page/research/basic-code"
+import ResearchStrategyLibraryPage from "@/renderer/page/research/strategies"
 import StrategySubscription from "@/renderer/page/subscription"
 import TradingPlan from "@/renderer/page/trading/plan"
 import { ListBulletIcon } from "@radix-ui/react-icons"
@@ -37,10 +41,12 @@ import { ListBulletIcon } from "@radix-ui/react-icons"
 import {
 	Activity,
 	BarChartIcon,
+	Code,
 	DatabaseIcon,
 	HelpCircleIcon,
 	HomeIcon,
 	LayoutGrid,
+	Library,
 	LibraryIcon,
 	Settings,
 	WeightIcon,
@@ -108,6 +114,18 @@ export const ROUTES = [
 		icon: ListBulletIcon,
 		label: "策略实盘",
 		element: TradingPage,
+	},
+	{
+		key: RESEARCH_STRATEGY_LIBRARY_PAGE,
+		icon: Library,
+		label: "精心随机策略库",
+		element: ResearchStrategyLibraryPage,
+	},
+	{
+		key: RESEARCH_FRAMEWORK_SOURCE_PAGE,
+		icon: Code,
+		label: "框架源码",
+		element: ResearchFrameworkSourcePage,
 	},
 	{
 		key: FAQ_PAGE,

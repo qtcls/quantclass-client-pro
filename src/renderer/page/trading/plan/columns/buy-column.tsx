@@ -33,6 +33,11 @@ export const useBuyColumns = (): ColumnDef<BuyRoot>[] => {
 				size: 120,
 			},
 			{
+				accessorKey: "个股择时",
+				header: "个股择时",
+				size: 90,
+			},
+			{
 				accessorKey: "证券代码",
 				header: "证券代码",
 				size: 100,

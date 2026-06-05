@@ -10,9 +10,11 @@
 
 import {
 	getBuyInfoList,
+	getBuyTimingInfoList,
 	getDataList,
 	getJsonDataFromFile,
 	getSellInfoList,
+	getSellTimingInfoList,
 } from "@/main/core/dataList.js"
 import {
 	downloadFullData,
@@ -130,6 +132,14 @@ async function getBuyInfoListHandler() {
 
 async function getSellInfoListHandler() {
 	ipcMain.handle("fetch_sell", async () => await getSellInfoList())
+}
+
+async function getBuyTimingInfoListHandler() {
+	ipcMain.handle("fetch_buy_timing", async () => await getBuyTimingInfoList())
+}
+
+async function getSellTimingInfoListHandler() {
+	ipcMain.handle("fetch_sell_timing", async () => await getSellTimingInfoList())
 }
 
 async function handleExecBinWithEnv() {
@@ -412,6 +422,8 @@ export const regDataIPC = () => {
 	getStrategySelectData()
 	getBuyInfoListHandler()
 	getSellInfoListHandler()
+	getBuyTimingInfoListHandler()
+	getSellTimingInfoListHandler()
 	handleUpdateStrategies()
 	handleUpdateOneProduct()
 	handleFetchRocketStatus()

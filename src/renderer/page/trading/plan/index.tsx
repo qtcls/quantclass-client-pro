@@ -10,6 +10,7 @@
 
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
+import { Checkbox } from "@/renderer/components/ui/checkbox"
 import { DataTableToolbar } from "@/renderer/components/ui/data-table-toolbar"
 import { ScrollArea } from "@/renderer/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger } from "@/renderer/components/ui/tabs"
@@ -23,11 +24,25 @@ import type {
 import { ReloadIcon } from "@radix-ui/react-icons"
 import { CircleHelpIcon, NotepadText } from "lucide-react"
 import { useRef, useState } from "react"
+import { toast } from "sonner"
 
 export default function TradingPlan() {
 	const [tab, setTab] = useState<"buy" | "sell">("buy")
+	const [showOriginal, setShowOriginal] = useState(true)
+	const [showGeguZeshi, setShowGeguZeshi] = useState(true)
 	const buyTableRef = useRef<BuyTableRef>(null)
 	const sellTableRef = useRef<SellTableRef>(null)
+
+	const handleRefresh = () => {
+		if (tab === "buy") {
+			buyTableRef.current?.refresh()
+		}
+
+		if (tab === "sell") {
+			sellTableRef.current?.refresh()
+		}
+		toast.success("刷新成功")
+	}
 
 	return (
 		<div className="flex flex-col h-full">
@@ -39,30 +54,50 @@ export default function TradingPlan() {
 				交易计划生成后，不会立即生成买入卖出计划。需要等到交易时间，才会自动加载计划并生成。
 			</p>
 			<div className="flex items-center justify-between">
-				<Tabs
-					defaultValue="buy"
-					onValueChange={(value) => setTab(value as "buy" | "sell")}
-				>
-					<TabsList>
-						<TabsTrigger value="buy">买入计划</TabsTrigger>
-						<TabsTrigger value="sell">卖出计划</TabsTrigger>
-					</TabsList>
-				</Tabs>
+				<div className="flex items-center gap-4">
+					<Tabs
+						defaultValue="buy"
+						onValueChange={(value) => setTab(value as "buy" | "sell")}
+					>
+						<TabsList>
+							<TabsTrigger value="buy">买入计划</TabsTrigger>
+							<TabsTrigger value="sell">卖出计划</TabsTrigger>
+						</TabsList>
+					</Tabs>
+					<div className="flex items-center gap-3">
+						<label
+							htmlFor="show-original"
+							className="flex items-center gap-1.5 cursor-pointer select-none"
+						>
+							<Checkbox
+								id="show-original"
+								checked={showOriginal}
+								onCheckedChange={(checked) => setShowOriginal(checked === true)}
+							/>
+							<span className="text-sm">原始策略</span>
+						</label>
+						<label
+							htmlFor="show-gegu-zeshi"
+							className="flex items-center gap-1.5 cursor-pointer select-none"
+						>
+							<Checkbox
+								id="show-gegu-zeshi"
+								checked={showGeguZeshi}
+								onCheckedChange={(checked) =>
+									setShowGeguZeshi(checked === true)
+								}
+							/>
+							<span className="text-sm">个股择时</span>
+						</label>
+					</div>
+				</div>
 
 				<div className="flex items-center gap-2">
 					<Button
 						size="sm"
 						variant="outline"
 						className="h-8 text-foreground lg:flex"
-						onClick={() => {
-							if (tab === "buy") {
-								buyTableRef.current?.refresh()
-							}
-
-							if (tab === "sell") {
-								sellTableRef.current?.refresh()
-							}
-						}}
+						onClick={handleRefresh}
 					>
 						<ReloadIcon className="mr-2 h-4 w-4" />
 						刷新列表
@@ -101,9 +136,17 @@ export default function TradingPlan() {
 			<ScrollArea className="h-full">
 				<div>
 					{tab === "buy" ? (
-						<BuyTable ref={buyTableRef} />
+						<BuyTable
+							ref={buyTableRef}
+							showOriginal={showOriginal}
+							showGeguZeshi={showGeguZeshi}
+						/>
 					) : (
-						<SellTable ref={sellTableRef} />
+						<SellTable
+							ref={sellTableRef}
+							showOriginal={showOriginal}
+							showGeguZeshi={showGeguZeshi}
+						/>
 					)}
 				</div>
 			</ScrollArea>

@@ -139,3 +139,17 @@ export const getSellInfoList = async () => {
 		"卖出信息文件不存在或为空",
 	)
 }
+
+export const getBuyTimingInfoList = async () => {
+	return getJsonDataFromFile(
+		["real_trading", "rocket", "data", "个股择时-买入计划.json"],
+		"个股择时买入计划文件不存在或为空",
+	)
+}
+
+export const getSellTimingInfoList = async () => {
+	return getJsonDataFromFile(
+		["real_trading", "rocket", "data", "个股择时-卖出计划.json"],
+		"个股择时卖出计划文件不存在或为空",
+	)
+}

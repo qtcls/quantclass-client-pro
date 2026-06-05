@@ -57,6 +57,8 @@ export const dataIPC = {
 	// 交易计划
 	getBuyInfoList: () => ipcRenderer.invoke("fetch_buy"),
 	getSellInfoList: () => ipcRenderer.invoke("fetch_sell"),
+	getBuyTimingInfoList: () => ipcRenderer.invoke("fetch_buy_timing"),
+	getSellTimingInfoList: () => ipcRenderer.invoke("fetch_sell_timing"),
 
 	// 数据库
 	checkDBFile: () => ipcRenderer.invoke("check-db-file"),

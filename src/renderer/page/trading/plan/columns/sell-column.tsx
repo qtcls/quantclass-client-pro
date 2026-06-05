@@ -29,6 +29,11 @@ export const useSellColumns = (): ColumnDef<SellRoot>[] => {
 				},
 			},
 			{
+				accessorKey: "个股择时",
+				header: "个股择时",
+				size: 90,
+			},
+			{
 				accessorKey: "策略名称",
 				header: "策略名称",
 			},

@@ -13,38 +13,66 @@ import { TradingPlanTableToolbar } from "@/renderer/page/trading/plan"
 import { useSellColumns } from "@/renderer/page/trading/plan/columns/sell-column"
 import type { SellRoot, SellTableRef } from "@/renderer/page/trading/plan/types"
 import { useQuery } from "@tanstack/react-query"
-import { forwardRef, useImperativeHandle } from "react"
+import { forwardRef, useImperativeHandle, useMemo } from "react"
 
-const SellTable = forwardRef<SellTableRef>((_, ref) => {
-	const { getSellInfoList } = window.electronAPI
-	const columns = useSellColumns()
-	const { data, refetch, isLoading } = useQuery({
-		queryKey: ["load-sell-info"],
-		queryFn: () => getSellInfoList(),
-		refetchInterval: 45 * 1000,
-	})
+export interface SellTableProps {
+	showOriginal: boolean
+	showGeguZeshi: boolean
+}
 
-	useImperativeHandle(ref, () => ({
-		refresh: () => {
-			refetch()
-		},
-	}))
+const SellTable = forwardRef<SellTableRef, SellTableProps>(
+	({ showOriginal, showGeguZeshi }, ref) => {
+		const { getSellInfoList, getSellTimingInfoList } = window.electronAPI
+		const columns = useSellColumns()
 
-	return (
-		<DataTable
-			data={data ?? []}
-			columns={columns}
-			pagination={false}
-			refresh={refetch}
-			loading={isLoading}
-			maxWidth="calc(100vw - 12rem - 2em)"
-			emptyText="暂无卖出计划，会在当日自动进行实盘选股之后，展示相关结果"
-			placeholder="搜索卖出计划..."
-			actionOptions={(props) => (
-				<TradingPlanTableToolbar<SellRoot> {...props} />
-			)}
-		/>
-	)
-})
+		const { data: sellData, refetch: refetchSell, isLoading: loadingSell } = useQuery({
+			queryKey: ["load-sell-info"],
+			queryFn: () => getSellInfoList(),
+			refetchInterval: 45 * 1000,
+		})
+
+		const { data: timingData, refetch: refetchTiming, isLoading: loadingTiming } = useQuery({
+			queryKey: ["load-sell-timing-info"],
+			queryFn: () => getSellTimingInfoList(),
+			refetchInterval: 45 * 1000,
+		})
+
+		const refetch = () => {
+			refetchSell()
+			refetchTiming()
+		}
+
+		useImperativeHandle(ref, () => ({
+			refresh: refetch,
+		}))
+
+		const mergedData = useMemo(() => {
+			const result: SellRoot[] = []
+			if (showOriginal && Array.isArray(sellData)) {
+				result.push(...sellData.map((item: SellRoot) => ({ ...item, 个股择时: "否" as const })))
+			}
+			if (showGeguZeshi && Array.isArray(timingData)) {
+				result.push(...timingData.map((item: SellRoot) => ({ ...item, 个股择时: "是" as const })))
+			}
+			return result
+		}, [sellData, timingData, showOriginal, showGeguZeshi])
+
+		return (
+			<DataTable
+				data={mergedData}
+				columns={columns}
+				pagination={false}
+				refresh={refetch}
+				loading={loadingSell || loadingTiming}
+				maxWidth="calc(100vw - 12rem - 2em)"
+				emptyText="暂无卖出计划，会在当日自动进行实盘选股之后，展示相关结果"
+				placeholder="搜索卖出计划..."
+				actionOptions={(props) => (
+					<TradingPlanTableToolbar<SellRoot> {...props} />
+				)}
+			/>
+		)
+	},
+)
 
 export default SellTable

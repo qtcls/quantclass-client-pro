@@ -222,34 +222,15 @@ async function handleExecMinData() {
 	})
 }
 
-async function handleExecMinDataFuzzy() {
-	ipcMain.handle("exec-min-data-fuzzy", async () => {
-		try {
-			await execBin(["min_data_fuzzy"], "获取模糊QMT数据")
-			return { code: 200, message: "获取模糊QMT数据执行完毕" }
-		} catch (error) {
-			logger.error(`[min-data] 执行模糊QMT数据获取失败: ${error}`)
-			return {
-				code: 400,
-				message: error instanceof Error ? error.message : "执行失败",
-			}
-		}
-	})
-}
-
 async function handleGetMinDataTaskStats() {
 	ipcMain.handle(
 		"get-min-data-task-stats",
 		async (
 			_event,
-			tableType: "accurate" | "fuzzy",
 			runDate?: string,
 			runIndex?: number,
 		) => {
-			const tableName =
-				tableType === "accurate"
-					? "min_data_update_task"
-					: "min_data_fuzzy_update_task"
+			const tableName = "min_data_update_task"
 
 			const dbManager = DBManager.getInstance()
 			const db = await dbManager.getConnection([tableName])
@@ -328,7 +309,6 @@ async function handleGetMinDataTaskStatus() {
 		"get-min-data-task-status",
 		async (
 			_event,
-			tableType: "accurate" | "fuzzy",
 			params: {
 				runDate?: string
 				runIndex?: number
@@ -338,10 +318,7 @@ async function handleGetMinDataTaskStatus() {
 				pageSize: number
 			},
 		) => {
-			const tableName =
-				tableType === "accurate"
-					? "min_data_update_task"
-					: "min_data_fuzzy_update_task"
+			const tableName = "min_data_update_task"
 
 			const dbManager = DBManager.getInstance()
 			const db = await dbManager.getConnection([tableName])
@@ -431,7 +408,6 @@ export const regDataIPC = () => {
 	handleUpdateFullProducts()
 	handleLoadAquaTradingInfo()
 	handleExecMinData()
-	handleExecMinDataFuzzy()
 	handleGetMinDataTaskStats()
 	handleGetMinDataTaskStatus()
 	console.log("[reg] data-ipc")

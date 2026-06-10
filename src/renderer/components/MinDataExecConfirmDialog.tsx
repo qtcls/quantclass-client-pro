@@ -22,14 +22,12 @@ import {
 interface MinDataExecConfirmDialogProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
-	type: "accurate" | "fuzzy" | null
 	onConfirm: () => void
 }
 
 export function MinDataExecConfirmDialog({
 	open,
 	onOpenChange,
-	type,
 	onConfirm,
 }: MinDataExecConfirmDialogProps) {
 	return (
@@ -39,29 +37,14 @@ export function MinDataExecConfirmDialog({
 					<AlertDialogTitle>确认手动执行</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div className="space-y-3 text-base leading-relaxed">
-							{type === "accurate" && (
-								<>
-									<p className="font-medium text-foreground">
-										即将手动获取准确 QMT 数据
-									</p>
-									<ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
-										<li>将拉取 5 分钟准确 QMT 数据</li>
-										<li>极速模式约需 1 分钟，稳定模式约需 3 分钟</li>
-									</ul>
-									<p className="text-muted-foreground">确定要现在执行吗？</p>
-								</>
-							)}
-							{type === "fuzzy" && (
-								<>
-									<p className="font-medium text-foreground">
-										即将手动获取模糊 QMT 数据
-									</p>
-									<ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
-										<li>将拉取模糊 QMT 数据</li>
-									</ul>
-									<p className="text-muted-foreground">确定要现在执行吗？</p>
-								</>
-							)}
+							<p className="font-medium text-foreground">
+								即将手动获取准确 QMT 数据
+							</p>
+							<ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
+								<li>将拉取 5 分钟准确 QMT 数据</li>
+								<li>极速模式约需 1 分钟，稳定模式约需 3 分钟</li>
+							</ul>
+							<p className="text-muted-foreground">确定要现在执行吗？</p>
 						</div>
 					</AlertDialogDescription>
 				</AlertDialogHeader>

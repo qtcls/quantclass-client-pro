@@ -69,19 +69,9 @@ export const dataIPC = {
 			code: number
 			message: string
 		}>,
-	execMinDataFuzzy: () =>
-		ipcRenderer.invoke("exec-min-data-fuzzy") as Promise<{
-			code: number
-			message: string
-		}>,
-	getMinDataTaskStats: (
-		tableType: "accurate" | "fuzzy",
-		runDate?: string,
-		runIndex?: number,
-	) =>
+	getMinDataTaskStats: (runDate?: string, runIndex?: number) =>
 		ipcRenderer.invoke(
 			"get-min-data-task-stats",
-			tableType,
 			runDate,
 			runIndex,
 		) as Promise<{
@@ -92,21 +82,15 @@ export const dataIPC = {
 			total: number
 			error?: string
 		}>,
-	getMinDataTaskStatus: (
-		tableType: "accurate" | "fuzzy",
-		params: {
-			runDate?: string
-			runIndex?: number
-			status?: string
-			search?: string
-			page: number
-			pageSize: number
-		},
-	) =>
-		ipcRenderer.invoke(
-			"get-min-data-task-status",
-			tableType,
-			params,
+	getMinDataTaskStatus: (params: {
+		runDate?: string
+		runIndex?: number
+		status?: string
+		search?: string
+		page: number
+		pageSize: number
+	}) =>
+		ipcRenderer.invoke("get-min-data-task-status", params,
 		) as Promise<{
 			datalist: Record<string, unknown>[]
 			total: number

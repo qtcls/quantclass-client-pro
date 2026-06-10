@@ -28,8 +28,6 @@ export const coreIPC = {
 	toggleMinDataSchedule: (options: {
 		isOn: boolean
 		mode?: "fast" | "stable"
-		autoAccurate?: boolean
-		autoFuzzy?: boolean
 	}) => ipcRenderer.invoke("toggle-min-data-schedule", options),
 	onMinDataScheduleStatus: (
 		callback: (

@@ -39,6 +39,7 @@ export const settingsAtom = atomWithElectronStore<SettingsType>("settings", {
 	libraryType: "select",
 	performance_mode: "EQUAL",
 	user_choice: false,
+	accelerated_data_source: false,
 })
 
 export const dataSubscribedAtom = atomWithElectronStore<IDataListType[]>(

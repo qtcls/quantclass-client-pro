@@ -66,8 +66,6 @@ async function toggleMinDataScheduleHandler(): Promise<void> {
 			options: {
 				isOn: boolean
 				mode?: "fast" | "stable"
-				autoAccurate?: boolean
-				autoFuzzy?: boolean
 			},
 		) => {
 			setAutoMinData(options)

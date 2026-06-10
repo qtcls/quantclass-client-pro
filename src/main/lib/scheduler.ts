@@ -38,8 +38,6 @@ interface SystemState {
 	job: schedule.Job | null
 	minDataJob: schedule.Job | null
 	minDataMode: "fast" | "stable"
-	minDataAccurate: boolean
-	minDataFuzzy: boolean
 	isOnline: boolean
 }
 
@@ -51,8 +49,6 @@ const systemState: SystemState = {
 	job: null,
 	minDataJob: null,
 	minDataMode: "fast",
-	minDataAccurate: true,
-	minDataFuzzy: true,
 	isOnline: true,
 }
 
@@ -429,35 +425,20 @@ async function wakeUpMinData() {
 		return
 	}
 
-	if (systemState.minDataFuzzy) {
-		mw?.webContents.send("min-data-schedule-status", {
-			type: "executing",
-			task: "fuzzy",
-		})
-		try {
-			await execBin(["min_data_fuzzy"], "定时获取模糊QMT数据")
-			logger.info("[min-data] 模糊数据获取完成")
-		} catch (error) {
-			logger.error(`[min-data] 模糊数据获取失败: ${error}`)
-		}
-	}
-
-	if (systemState.minDataAccurate) {
-		mw?.webContents.send("min-data-schedule-status", {
-			type: "executing",
-			task: "accurate",
-		})
-		try {
-			const args =
-				systemState.minDataMode === "stable"
-					? ["min_data", "thread"]
-					: ["min_data"]
-			const action = `定时获取准确QMT数据-${systemState.minDataMode === "stable" ? "稳定" : "极速"}模式`
-			await execBin(args, action)
-			logger.info("[min-data] 准确数据获取完成")
-		} catch (error) {
-			logger.error(`[min-data] 准确数据获取失败: ${error}`)
-		}
+	mw?.webContents.send("min-data-schedule-status", {
+		type: "executing",
+		task: "accurate",
+	})
+	try {
+		const args =
+			systemState.minDataMode === "stable"
+				? ["min_data", "thread"]
+				: ["min_data"]
+		const action = `定时获取准确QMT数据-${systemState.minDataMode === "stable" ? "稳定" : "极速"}模式`
+		await execBin(args, action)
+		logger.info("[min-data] 准确数据获取完成")
+	} catch (error) {
+		logger.error(`[min-data] 准确数据获取失败: ${error}`)
 	}
 
 	mw?.webContents.send("min-data-schedule-status", { type: "done" })
@@ -466,23 +447,15 @@ async function wakeUpMinData() {
 const setupMinDataScheduler = () => {
 	cancelMinDataScheduler()
 	systemState.minDataJob = schedule.scheduleJob("1/5 * * * 1-5", wakeUpMinData)
-	logger.info(
-		`[min-data] 定时任务已启动，模式: ${systemState.minDataMode}, 准确: ${systemState.minDataAccurate}, 模糊: ${systemState.minDataFuzzy}`,
-	)
+	logger.info(`[min-data] 定时任务已启动，模式: ${systemState.minDataMode}`)
 }
 
 const setAutoMinData = (options: {
 	isOn: boolean
 	mode?: "fast" | "stable"
-	autoAccurate?: boolean
-	autoFuzzy?: boolean
 }) => {
 	systemState.isSetAutoMinData = options.isOn
 	if (options.mode !== undefined) systemState.minDataMode = options.mode
-	if (options.autoAccurate !== undefined)
-		systemState.minDataAccurate = options.autoAccurate
-	if (options.autoFuzzy !== undefined)
-		systemState.minDataFuzzy = options.autoFuzzy
 
 	logger.info(
 		`[min-data] 自动更新: ${systemState.isSetAutoMinData}, 模式: ${systemState.minDataMode}`,

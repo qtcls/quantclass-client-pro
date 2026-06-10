@@ -21,4 +21,5 @@ export type SettingsType = {
 	libraryType: string
 	performance_mode: string
 	user_choice: boolean
+	accelerated_data_source: boolean
 }

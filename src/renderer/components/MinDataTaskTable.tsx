@@ -365,7 +365,6 @@ function StatusFilterBar({
 export interface MinDataTaskTableProps {
 	title: string
 	description: string
-	tableType: "accurate" | "fuzzy"
 	isExecuting: boolean
 	onExecute: () => void
 	mode?: "fast" | "stable"
@@ -375,7 +374,6 @@ export interface MinDataTaskTableProps {
 export function MinDataTaskTable({
 	title,
 	description,
-	tableType,
 	isExecuting,
 	onExecute,
 	mode,
@@ -404,19 +402,18 @@ export function MinDataTaskTable({
 	const fetchStats = useCallback(async () => {
 		try {
 			const result = await getMinDataTaskStats(
-				tableType,
 				undefined,
 				selectedRunIndex ?? undefined,
 			)
 			setStats(result as unknown as TaskStatsResult)
 		} catch (error) {
-			console.error(`[realtime-data] 查询 ${tableType} 统计失败:`, error)
+			console.error("[realtime-data] 查询统计失败:", error)
 		}
-	}, [tableType, selectedRunIndex])
+	}, [selectedRunIndex])
 
 	const fetchPage = useCallback(async () => {
 		try {
-			const result = await getMinDataTaskStatus(tableType, {
+			const result = await getMinDataTaskStatus({
 				runIndex: selectedRunIndex ?? undefined,
 				status: statusFilter ?? undefined,
 				search: searchValue || undefined,
@@ -425,9 +422,9 @@ export function MinDataTaskTable({
 			})
 			setPageData(result as unknown as TaskPageResult)
 		} catch (error) {
-			console.error(`[realtime-data] 查询 ${tableType} 分页失败:`, error)
+			console.error("[realtime-data] 查询分页失败:", error)
 		}
-	}, [tableType, selectedRunIndex, statusFilter, searchValue, page, pageSize])
+	}, [selectedRunIndex, statusFilter, searchValue, page, pageSize])
 
 	useEffect(() => {
 		fetchStats()
@@ -484,7 +481,6 @@ export function MinDataTaskTable({
 
 	const datalist = pageData.datalist as TaskRow[]
 	const totalPages = Math.ceil(pageData.total / pageSize) || 1
-	const isAccurate = tableType === "accurate"
 
 	return (
 		<Card>
@@ -618,32 +614,18 @@ export function MinDataTaskTable({
 										<TableHead className="w-[120px] z-[1] bg-background border-b sticky top-0">
 											股票代码
 										</TableHead>
-										{!isAccurate && (
-											<TableHead className="z-[1] bg-background border-b sticky top-0">
-												股票名称
-											</TableHead>
-										)}
 										<TableHead className="w-[80px] z-[1] bg-background border-b sticky top-0">
 											状态
 										</TableHead>
-										{isAccurate && (
-											<>
-												<TableHead className="z-[1] bg-background border-b sticky top-0">
-													开始时间
-												</TableHead>
-												<TableHead className="z-[1] bg-background border-b sticky top-0">
-													结束时间
-												</TableHead>
-												<TableHead className="z-[1] bg-background border-b sticky top-0 w-[80px]">
-													持续时间
-												</TableHead>
-											</>
-										)}
-										{!isAccurate && (
-											<TableHead className="z-[1] bg-background border-b sticky top-0 w-[80px]">
-												持续时间
-											</TableHead>
-										)}
+										<TableHead className="z-[1] bg-background border-b sticky top-0">
+											开始时间
+										</TableHead>
+										<TableHead className="z-[1] bg-background border-b sticky top-0">
+											结束时间
+										</TableHead>
+										<TableHead className="z-[1] bg-background border-b sticky top-0 w-[80px]">
+											持续时间
+										</TableHead>
 										<TableHead className="z-[1] bg-background border-b sticky top-0">
 											错误信息
 										</TableHead>
@@ -655,36 +637,21 @@ export function MinDataTaskTable({
 											<TableCell className="font-mono">
 												{row.stock_code}
 											</TableCell>
-											{!isAccurate && (
-												<TableCell>{row.stock_name ?? "-"}</TableCell>
-											)}
 											<TableCell>
 												<StatusBadge status={row.status} />
 											</TableCell>
-											{isAccurate && (
-												<>
-													<TableCell className="text-muted-foreground">
-														{row.fetch_start_time ?? "-"}
-													</TableCell>
-													<TableCell className="text-muted-foreground">
-														{row.fetch_end_time ?? "-"}
-													</TableCell>
-													<TableCell className="text-muted-foreground">
-														{formatDuration(
-															row.fetch_start_time,
-															row.fetch_end_time,
-														)}
-													</TableCell>
-												</>
-											)}
-											{!isAccurate && (
-												<TableCell className="text-muted-foreground">
-													{formatDuration(
-														row.fetch_start_time,
-														row.fetch_end_time,
-													)}
-												</TableCell>
-											)}
+											<TableCell className="text-muted-foreground">
+												{row.fetch_start_time ?? "-"}
+											</TableCell>
+											<TableCell className="text-muted-foreground">
+												{row.fetch_end_time ?? "-"}
+											</TableCell>
+											<TableCell className="text-muted-foreground">
+												{formatDuration(
+													row.fetch_start_time,
+													row.fetch_end_time,
+												)}
+											</TableCell>
 											<TableCell className="text-destructive max-w-[200px]">
 												{row.error_msg ? (
 													<Tooltip>

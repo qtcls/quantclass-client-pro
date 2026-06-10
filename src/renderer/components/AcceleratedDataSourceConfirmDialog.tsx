@@ -8,19 +8,22 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { AcceleratedDataSourceAgreementContent } from "@/renderer/components/AcceleratedDataSourceAgreementContent"
+import { Button } from "@/renderer/components/ui/button"
+import { Checkbox } from "@/renderer/components/ui/checkbox"
 import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/renderer/components/ui/alert-dialog"
-import { useEffect, useState } from "react"
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/renderer/components/ui/dialog"
+import { Label } from "@/renderer/components/ui/label"
+import { cn } from "@/renderer/lib/utils"
+import { useCallback, useEffect, useRef, useState } from "react"
 
-const COUNTDOWN_SECONDS = 10
+const SCROLL_THRESHOLD = 16
 
 interface AcceleratedDataSourceConfirmDialogProps {
 	open: boolean
@@ -28,69 +31,120 @@ interface AcceleratedDataSourceConfirmDialogProps {
 	onConfirm: () => void
 }
 
+function isScrolledToBottom(element: HTMLDivElement) {
+	return (
+		element.scrollHeight - element.scrollTop - element.clientHeight <=
+		SCROLL_THRESHOLD
+	)
+}
+
 export function AcceleratedDataSourceConfirmDialog({
 	open,
 	onOpenChange,
 	onConfirm,
 }: AcceleratedDataSourceConfirmDialogProps) {
-	const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS)
+	const scrollRef = useRef<HTMLDivElement>(null)
+	const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false)
+	const [hasAgreed, setHasAgreed] = useState(false)
+
+	const updateScrollState = useCallback(() => {
+		const element = scrollRef.current
+		if (!element) return
+		setHasScrolledToEnd(isScrolledToBottom(element))
+	}, [])
 
 	useEffect(() => {
 		if (!open) {
-			setCountdown(COUNTDOWN_SECONDS)
+			setHasScrolledToEnd(false)
+			setHasAgreed(false)
 			return
 		}
 
-		setCountdown(COUNTDOWN_SECONDS)
-		const timer = setInterval(() => {
-			setCountdown((prev) => {
-				if (prev <= 1) {
-					clearInterval(timer)
-					return 0
-				}
-				return prev - 1
-			})
-		}, 1000)
+		const element = scrollRef.current
+		if (element) {
+			element.scrollTop = 0
+		}
 
-		return () => clearInterval(timer)
-	}, [open])
+		requestAnimationFrame(updateScrollState)
+	}, [open, updateScrollState])
 
-	const isConfirmDisabled = countdown > 0
+	const canConfirm = hasScrolledToEnd && hasAgreed
 
 	return (
-		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>确认启用加速数据源</AlertDialogTitle>
-					<AlertDialogDescription asChild>
-						<div className="space-y-3 text-base leading-relaxed">
-							<p className="font-medium text-foreground">
-								加速数据源适用于因网络、电脑硬盘等原因，导致原始 QMT
-								准确数据获取较慢的情况。
-							</p>
-							<ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
-								<li>
-									内置多个加速通道源，可在秒级完成拉取，缓解本地环境导致的获取延迟
-								</li>
-								<li>
-									当网络不稳定、硬盘读写慢或 QMT 本地拉取耗时过长时，可优先尝试启用
-								</li>
-								<li>原始 QMT 数据准确性更高，建议作为最终参考依据</li>
-								<li>启用后，内核将优先使用加速数据源获取分钟级数据</li>
-							</ul>
-							<p className="text-muted-foreground">
-								加速源速度更快，但准确性不如原始 QMT。请确认您已了解上述差异，并愿意承担相应风险。
-							</p>
-						</div>
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>取消</AlertDialogCancel>
-					<AlertDialogAction disabled={isConfirmDisabled} onClick={onConfirm}>
-						{isConfirmDisabled ? `确认（${countdown}s）` : "确认"}
-					</AlertDialogAction>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[520px]">
+				<DialogHeader className="space-y-2 border-b px-6 py-5 text-center sm:text-center">
+					<DialogTitle className="text-base">
+						《加速数据源使用协议》
+					</DialogTitle>
+					<DialogDescription>
+						启用加速数据源前，请仔细阅读以下协议内容
+					</DialogDescription>
+				</DialogHeader>
+
+				<div className="px-6 py-4">
+					<div
+						ref={scrollRef}
+						onScroll={updateScrollState}
+						className="h-[360px] overflow-y-scroll rounded-lg border bg-muted/30 px-4 py-3 shadow-inner"
+					>
+						<AcceleratedDataSourceAgreementContent />
+					</div>
+				</div>
+
+				<div className="space-y-3 border-t bg-muted/10 px-6 py-4">
+					<p
+						className={cn(
+							"text-center text-xs",
+							hasScrolledToEnd
+								? "text-muted-foreground"
+								: "text-amber-600 dark:text-amber-500",
+						)}
+					>
+						{hasScrolledToEnd
+							? "您已阅读至协议末尾，请勾选同意后继续"
+							: "请滑动至底部查阅完整协议"}
+					</p>
+
+					<div className="flex items-start gap-3 rounded-md border bg-background px-3 py-3">
+						<Checkbox
+							id="accelerated-data-agreement"
+							checked={hasAgreed}
+							disabled={!hasScrolledToEnd}
+							onCheckedChange={(checked) => setHasAgreed(checked === true)}
+							className="mt-0.5"
+						/>
+						<Label
+							htmlFor="accelerated-data-agreement"
+							className={cn(
+								"text-sm leading-snug",
+								hasScrolledToEnd
+									? "cursor-pointer font-medium"
+									: "cursor-not-allowed text-muted-foreground",
+							)}
+						>
+							我已阅读并同意《加速数据源使用协议》
+						</Label>
+					</div>
+				</div>
+
+				<DialogFooter className="gap-3 border-t px-6 py-4 sm:justify-center">
+					<Button
+						variant="outline"
+						className="min-w-[120px]"
+						onClick={() => onOpenChange(false)}
+					>
+						暂不启用
+					</Button>
+					<Button
+						className="min-w-[160px]"
+						disabled={!canConfirm}
+						onClick={onConfirm}
+					>
+						我已理解，确认启用
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	)
 }

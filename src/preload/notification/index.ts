@@ -8,6 +8,8 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
+import { subscribeWithCleanup } from "@/shared/lib/ipc-subscription.js"
 import type {
 	ClientNotification,
 	NotificationListParams,
@@ -19,26 +21,22 @@ export const notificationIPC = {
 	listNotifications: (
 		params?: NotificationListParams,
 	): Promise<NotificationListResult> =>
-		ipcRenderer.invoke("notification:list", params),
+		ipcRenderer.invoke(IPC_CHANNELS.NOTIFICATION_LIST, params),
 
 	getUnreadNotificationCount: (): Promise<number> =>
-		ipcRenderer.invoke("notification:unread-count"),
+		ipcRenderer.invoke(IPC_CHANNELS.NOTIFICATION_UNREAD_COUNT),
 
 	markNotificationRead: (id: number): Promise<boolean> =>
-		ipcRenderer.invoke("notification:mark-read", id),
+		ipcRenderer.invoke(IPC_CHANNELS.NOTIFICATION_MARK_READ, id),
 
 	markAllNotificationsRead: (): Promise<number> =>
-		ipcRenderer.invoke("notification:mark-all-read"),
+		ipcRenderer.invoke(IPC_CHANNELS.NOTIFICATION_MARK_ALL_READ),
 
-	onNotification: (cb: (row: ClientNotification) => void): (() => void) => {
-		const listener = (_event: unknown, row: ClientNotification) => cb(row)
-		ipcRenderer.on("notification:new", listener)
-		return () => {
-			ipcRenderer.removeListener("notification:new", listener)
-		}
-	},
-
-	removeNotificationListeners: () => {
-		ipcRenderer.removeAllListeners("notification:new")
-	},
+	/** 订阅新通知推送（payload-only），返回只移除本次订阅的退订函数 */
+	onNotification: (cb: (row: ClientNotification) => void): (() => void) =>
+		subscribeWithCleanup(
+			ipcRenderer,
+			IPC_CHANNELS.NOTIFICATION_NEW,
+			(_event, row: ClientNotification) => cb(row),
+		),
 }

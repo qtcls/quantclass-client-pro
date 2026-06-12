@@ -9,16 +9,13 @@
  */
 
 import { useEffect, useRef, useState } from "react"
-const { subscribeScheduleStatus, unSubscribeSendScheduleStatusListener } =
-	window.electronAPI
-import { isUpdatingAtom } from "@/renderer/store"
+const { subscribeScheduleStatus } = window.electronAPI
 import { libraryTypeAtom } from "@/renderer/store/storage"
 import { useAtomValue } from "jotai"
 import "./index.css"
 export function KernalUpdateStatus() {
 	const [currentStatus, setCurrentStatus] = useState("") // 用于记录当前正在进行的状态
 	const currentStatusRef = useRef(currentStatus)
-	const isUpdating = useAtomValue(isUpdatingAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
 
 	const data = {
@@ -43,11 +40,6 @@ export function KernalUpdateStatus() {
 		const currentIndex = statusList.indexOf(currentStatusRef.current)
 		const statusIndex = statusList.indexOf(status)
 
-		// console.log("status", status) // 最新状态
-		// console.log("currentStatusRef.current", currentStatusRef.current) //目前正在运行的状态，初始为空
-		// console.log("currentStatusRefIndex", currentIndex) //默认是空，在数组中的index为-1
-		// console.log("statusIndex", statusIndex)
-
 		// 如果当前状态在数组中的索引大于最新状态的索引，无需更新
 		if (currentIndex > statusIndex) {
 			// 如果当前状态是"done"，重置currentStatusRef.current为空，避免下一轮执行时状态索引大于最新状态
@@ -63,16 +55,12 @@ export function KernalUpdateStatus() {
 	}
 
 	useEffect(() => {
-		subscribeScheduleStatus((_event, status) => {
+		const unsubscribe = subscribeScheduleStatus((_event, status) => {
 			// 判断是否需要更新状态
 			getKernalStatus(status)
 		})
+		return unsubscribe
 	}, [])
-	useEffect(() => {
-		if (!isUpdating) {
-			unSubscribeSendScheduleStatusListener()
-		}
-	}, [isUpdating])
 	return (
 		<>
 			<div className="flex gap-2">

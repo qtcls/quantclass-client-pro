@@ -30,29 +30,6 @@ export const WINDOW_MIN_WIDTH = 980
 
 export const isDev = !app.isPackaged
 
-export const MAIN_MSG_CODE = {
-	// 更新通知
-	UPDATE_NOTICE: 500,
-	// 更新不可用/已是最新
-	UPDATE_NOT_AVAILABLE: 501,
-	// 安装失败
-	UPDATE_INSTALL_FAILED: 502,
-	// 更新下载完毕，提示安装更新
-	UPDATE_DOWNLOAD_FINISH: 503,
-	// 回测使用代码
-	BACKTEST_CODE: 504,
-	// 计算交易计划
-	CALC_TRADING_PLAN: 600,
-	// Real Trading 正在运行中
-	REAL_TRADING_RUNNING: 700,
-}
-
-export enum Channels {
-	// app updater
-	AppUpdaterConfirm = "AppUpdaterConfirm",
-	AppUpdaterProgress = "AppUpdaterProgress",
-	AppUpdaterAbort = "AppUpdaterAbort",
-}
 /**
  * 获取内核路径
  * @param kernel 内核名称

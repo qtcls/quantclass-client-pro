@@ -9,37 +9,42 @@
  */
 
 import type { IRes } from "@/main/server/types/index.js"
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
+import { subscribeWithCleanup } from "@/shared/lib/ipc-subscription.js"
+import type { SetAutoTradingAck } from "@/shared/types/trading.js"
 import { ipcRenderer } from "electron"
 
 export const coreIPC = {
-	reportError: (cb: (res: IRes) => void) =>
-		ipcRenderer.on("report-msg", (_event, res: IRes) => cb(res)),
-	removeReportErrorListener: () => {
-		ipcRenderer.removeAllListeners("report-msg")
-	},
+	/** 订阅 main 推送的消息报告（payload-only），返回只移除本次订阅的退订函数 */
+	reportError: (cb: (res: IRes) => void): (() => void) =>
+		subscribeWithCleanup(
+			ipcRenderer,
+			IPC_CHANNELS.REPORT_MSG,
+			(_event, res: IRes) => cb(res),
+		),
 	toggleHandler: (isUpdating: boolean) =>
-		ipcRenderer.invoke("toggle-handle", isUpdating),
+		ipcRenderer.invoke(IPC_CHANNELS.TOGGLE_HANDLE, isUpdating),
 	syncNetworkStatus: (isOnline: boolean) => {
-		ipcRenderer.send("sync-network-status", isOnline)
+		ipcRenderer.send(IPC_CHANNELS.SYNC_NETWORK_STATUS, isOnline)
 	},
-	setAutoTrading: (isAutoTrading: boolean) => {
-		ipcRenderer.invoke("set-auto-trading", isAutoTrading)
-	},
+	setAutoTrading: (isAutoTrading: boolean): Promise<SetAutoTradingAck> =>
+		ipcRenderer.invoke(IPC_CHANNELS.SET_AUTO_TRADING, isAutoTrading),
 	toggleMinDataSchedule: (options: {
 		isOn: boolean
 		mode?: "fast" | "stable"
 		autoAccurate?: boolean
 		autoFuzzy?: boolean
-	}) => ipcRenderer.invoke("toggle-min-data-schedule", options),
+	}) => ipcRenderer.invoke(IPC_CHANNELS.TOGGLE_MIN_DATA_SCHEDULE, options),
+	/** 订阅 min-data 调度状态推送，返回只移除本次订阅的退订函数 */
 	onMinDataScheduleStatus: (
 		callback: (
 			event: Electron.IpcRendererEvent,
 			status: { type: string; task?: string; reason?: string },
 		) => void,
-	) => {
-		ipcRenderer.on("min-data-schedule-status", callback)
-	},
-	removeMinDataScheduleStatusListener: () => {
-		ipcRenderer.removeAllListeners("min-data-schedule-status")
-	},
+	): (() => void) =>
+		subscribeWithCleanup(
+			ipcRenderer,
+			IPC_CHANNELS.MIN_DATA_SCHEDULE_STATUS,
+			callback,
+		),
 }

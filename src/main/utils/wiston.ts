@@ -43,7 +43,7 @@ async function cleanOldLogs() {
 				// logger.info(`已删除过期日志文件: ${file}`)
 			}
 		}
-	} catch (error) {
+	} catch {
 		// logger.error(`清理日志文件失败: ${error}`)
 	}
 }

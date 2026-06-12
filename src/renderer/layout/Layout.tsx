@@ -79,7 +79,6 @@ const Layout: FC = () => {
 	useRouterGuard()
 	useNetInterval()
 	useLifeCycle()
-	// useMigrateStrategyData()
 	useCalcTotalWeight()
 	useNetworkToast()
 	useRendererMigrations()

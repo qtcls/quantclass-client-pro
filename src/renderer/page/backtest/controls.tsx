@@ -162,22 +162,6 @@ export const BacktestControls = () => {
 					<Badge variant="outline">{testTime.startTime}</Badge>
 					<div className="text-sm">耗时:</div>
 					<Badge variant="outline">{formatTime(spendTime)}</Badge>
-					{/* <Button
-						size="sm"
-						variant="ghost"
-						onClick={async () => {
-							// const res = await refresh()
-							await refresh()
-	
-							// if (res.status === "success") {
-							// 	toast.dismiss()
-							// 	toast.success("加载成功")
-							// }
-						}}
-					>
-						<ReloadIcon className="w-4 h-4 mr-2" />
-						重新加载结果
-					</Button> */}
 				</div>
 			)}
 

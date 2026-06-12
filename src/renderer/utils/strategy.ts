@@ -55,29 +55,6 @@ export const regenerateRebTime = (
 	}
 }
 
-// -- 处理偏移列表，支持中英文逗号，去重和转换为数字
-export const processOffsetList = (offsetListStr: string): number[] => {
-	return Array.from(
-		new Set(
-			offsetListStr
-				.replace(/，/g, ",")
-				.split(",")
-				.map((s) => s.trim().replace(/\s+/g, "")) // -- 处理空格
-				.filter((s) => s !== "") // -- 过滤空字符串
-				.map(Number), // -- 转换为数字
-		),
-	).sort((a, b) => a - b) // -- 排序
-}
-
-// -- 生成随机交易时间
-// export const generateTradeTime = () => {
-// 	return {
-// 		buy_time: generateRandomTime(9, 24, 50),
-// 		sell_time: generateRandomTime(14, 45, 50),
-// 		split_order_amount: Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
-// 	}
-// }
-
 const genSelectStgInfo = (strategy: SelectStgType, includeInfo = true) => {
 	return {
 		name: strategy.name,
@@ -153,16 +130,6 @@ export const saveStrategyList = async (
 		}
 	}
 
-	// -- 生成策略配置字典，添加index
-	// const strategyDict = strategiesWithAdjustedWeight.reduce(
-	// 	(acc, item, index) => {
-	// 		acc[`#${index}.${item.name}`] = genSelectStrategyDict(
-	// 			item as SelectStgType,
-	// 		)
-	// 		return acc
-	// 	},
-	// 	{},
-	// )
 	// -- 生成aqua内核策略列表
 	const selectStrategyList = strategiesWithAdjustedWeight.map((stg) =>
 		genSelectStgInfo(stg, false),
@@ -305,47 +272,5 @@ export const saveStrategyListFusion = async (
 			delete rebTimeConfig[rebTime]
 		}
 	}
-	// -- 生成策略配置字典，添加index
-	// const strategyDict = strategiesWithAdjustedWeight.reduce(
-	// 	(
-	// 		acc: Record<string, any>,
-	// 		item: PosStrategyType | SelectStgType | StgGroupType,
-	// 		index: number,
-	// 	) => {
-	// 		const strategyName = `X${index + 1}-${item.name}`
-
-	// 		switch (item.type) {
-	// 			case "pos":
-	// 				acc[strategyName] = genPosMgmtStrategyDict(item as PosStrategyType)
-	// 				break
-	// 			case "group":
-	// 				if (item.strategy_list.length > 1) {
-	// 					item.strategy_list.forEach((curr1, index1) => {
-	// 						const key = `${strategyName}#${index1}.${curr1.name}`
-	// 						acc[key] = genSelectStrategyDict({
-	// 							...curr1,
-	// 							cap_weight: (curr1.cap_weight / 100) * (item.cap_weight ?? 0),
-	// 						})
-	// 					})
-	// 				} else {
-	// 					acc[strategyName] = genSelectStrategyDict({
-	// 						...item.strategy_list[0],
-	// 						cap_weight:
-	// 							(item.strategy_list[0].cap_weight / 100) *
-	// 							(item.cap_weight ?? 0),
-	// 					})
-	// 				}
-	// 				break
-	// 			default:
-	// 				acc[strategyName] = genSelectStrategyDict({
-	// 					...item,
-	// 					cap_weight: item.cap_weight ?? 0 / 100,
-	// 				})
-	// 				break
-	// 		}
-	// 		return acc
-	// 	},
-	// 	{},
-	// )
 	return { strategyDict, rebTimeConfig }
 }

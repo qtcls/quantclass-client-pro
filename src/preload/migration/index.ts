@@ -8,11 +8,12 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import { ipcRenderer } from "electron"
 
 export const migrationIPC = {
 	getPendingRendererMigrations: (): Promise<string[]> =>
-		ipcRenderer.invoke("get-pending-renderer-migrations"),
+		ipcRenderer.invoke(IPC_CHANNELS.GET_PENDING_RENDERER_MIGRATIONS),
 	markMigrationDone: (id: string, success: boolean, error?: string) =>
-		ipcRenderer.invoke("mark-migration-done", id, success, error),
+		ipcRenderer.invoke(IPC_CHANNELS.MARK_MIGRATION_DONE, id, success, error),
 }

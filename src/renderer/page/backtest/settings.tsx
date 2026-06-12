@@ -23,12 +23,14 @@ import {
 	POS_MGMT_STRATEGY_CONFIG,
 	SELECT_STOCK_STRATEGY_CONFIG,
 } from "@/renderer/constant"
+import { useSaveRealMarketConfig } from "@/renderer/hooks/useSaveRealMarketConfig"
 import { SettingsGearIcon } from "@/renderer/icons/SettingsGearIcon"
 import {
 	backtestConfigAtom,
 	libraryTypeAtom,
 	realMarketConfigSchemaAtom,
 } from "@/renderer/store/storage"
+import type { RealMarketConfigUi } from "@/shared/lib/real-market-config-codec"
 import dayjs from "dayjs"
 import { useDebounceFn, useMount } from "etc-hooks"
 import { useAtom, useAtomValue } from "jotai"
@@ -139,17 +141,6 @@ export function BacktestSettings() {
 		// 	"",
 		// )
 
-		// if (
-		// 	!endDate &&
-		// 	dayjs(endDate).format("YYYY-MM-DD") !==
-		// 		dayjs(new Date()).format("YYYY-MM-DD")
-		// ) {
-		// 	setBacktestConfig((prev) => ({
-		// 		...prev,
-		// 		end_date: new Date(),
-		// 	}))
-		// }
-
 		if (!startDate) {
 			await setStoreValue(
 				`${configKey}.start_date`,
@@ -158,9 +149,24 @@ export function BacktestSettings() {
 		}
 	})
 
-	const [realMarketConfig, setRealMarketConfig] = useAtom(
-		realMarketConfigSchemaAtom,
-	)
+	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
+	const saveRealMarketConfig = useSaveRealMarketConfig()
+
+	// -- S2a：单字段 partial merge 落盘板块过滤（main 侧 merge 保兄弟字段 use_fuzzy/use_open_sell/
+	// -- date_start/reverse_repo_keep 不被 clobber）。Radix `checked === true` 严格判定避免三态
+	// -- "indeterminate" 被 truthy 误判为开启；ack 失败（含 rocket 运行中）由 hook toast、不更新 UI。
+	const saveFilter = async (
+		key: "filter_kcb" | "filter_cyb" | "filter_bj",
+		checked: boolean | "indeterminate",
+		label: string,
+	) => {
+		const value = checked === true ? "1" : "0"
+		const patch: Partial<RealMarketConfigUi> = {}
+		patch[key] = value
+		if (await saveRealMarketConfig(patch, "修改过滤设置")) {
+			toast.success(value === "1" ? `过滤${label}` : `不过滤${label}`)
+		}
+	}
 
 	return (
 		<div className="grid grid-cols-1 space-y-1">
@@ -310,61 +316,27 @@ export function BacktestSettings() {
 								<div className="flex items-center gap-1">
 									<Checkbox
 										checked={realMarketConfig.filter_kcb === "1"}
-										onCheckedChange={(checked) => {
-											const formattedValues = {
-												...realMarketConfig,
-												filter_kcb: checked,
-												filter_cyb: realMarketConfig.filter_cyb === "1",
-												filter_bj: realMarketConfig.filter_bj === "1",
-											}
-											setStoreValue("real_market_config", formattedValues)
-											setRealMarketConfig({
-												...realMarketConfig,
-												filter_kcb: checked ? "1" : "0",
-											})
-
-											toast.success(checked ? "过滤科创板" : "不过滤科创板")
-										}}
+										onCheckedChange={(checked) =>
+											saveFilter("filter_kcb", checked, "科创板")
+										}
 									/>
 									<span className="text-sm">过滤科创板</span>
 								</div>
 								<div className="flex items-center gap-1">
 									<Checkbox
 										checked={realMarketConfig.filter_cyb === "1"}
-										onCheckedChange={(checked) => {
-											const formattedValues = {
-												...realMarketConfig,
-												filter_kcb: realMarketConfig.filter_kcb === "1",
-												filter_cyb: checked,
-												filter_bj: realMarketConfig.filter_bj === "1",
-											}
-											setStoreValue("real_market_config", formattedValues)
-											setRealMarketConfig({
-												...realMarketConfig,
-												filter_cyb: checked ? "1" : "0",
-											})
-											toast.success(checked ? "过滤创业板" : "不过滤创业板")
-										}}
+										onCheckedChange={(checked) =>
+											saveFilter("filter_cyb", checked, "创业板")
+										}
 									/>
 									<span className="text-sm">过滤创业板</span>
 								</div>
 								<div className="flex items-center gap-1">
 									<Checkbox
 										checked={realMarketConfig.filter_bj === "1"}
-										onCheckedChange={(checked) => {
-											const formattedValues = {
-												...realMarketConfig,
-												filter_kcb: realMarketConfig.filter_kcb === "1",
-												filter_cyb: realMarketConfig.filter_cyb === "1",
-												filter_bj: checked,
-											}
-											setStoreValue("real_market_config", formattedValues)
-											setRealMarketConfig({
-												...realMarketConfig,
-												filter_bj: checked ? "1" : "0",
-											})
-											toast.success(checked ? "过滤北交所" : "不过滤北交所")
-										}}
+										onCheckedChange={(checked) =>
+											saveFilter("filter_bj", checked, "北交所")
+										}
 									/>
 									<span className="text-sm">过滤北交所</span>
 								</div>

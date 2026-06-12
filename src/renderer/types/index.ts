@@ -9,7 +9,6 @@
  */
 
 export type { SettingsType } from "./settings.js"
-export type { RealMarketConfigType } from "./trading.js"
 
 // 定义一个基础策略类型
 export interface BaseStrategy {

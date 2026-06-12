@@ -10,8 +10,9 @@
 
 import path from "node:path"
 import windowManager from "@/main/lib/WindowManager.js"
-import { MAIN_MSG_CODE } from "@/main/utils/common.js"
 import { BASE_URL } from "@/main/vars.js"
+import { MSG_CODE } from "@/shared/constants.js"
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import { is, platform } from "@electron-toolkit/utils"
 import { app, ipcMain } from "electron"
 import pkg from "electron-updater"
@@ -51,13 +52,13 @@ export default async () => {
 		// -- 检查是否为 sha512 校验错误
 		if (_info.toString().includes("sha512 checksum mismatch")) {
 			logger.error("sha512 校验失败")
-			win.webContents.send("report-msg", {
-				code: MAIN_MSG_CODE.UPDATE_INSTALL_FAILED,
+			win.webContents.send(IPC_CHANNELS.REPORT_MSG, {
+				code: MSG_CODE.UPDATE_INSTALL_FAILED,
 				message: "安装失败，请前往网站下载最新版本覆盖",
 			})
 		} else {
-			win.webContents.send("report-msg", {
-				code: MAIN_MSG_CODE.UPDATE_INSTALL_FAILED,
+			win.webContents.send(IPC_CHANNELS.REPORT_MSG, {
+				code: MSG_CODE.UPDATE_INSTALL_FAILED,
 				message: "检查更新失败",
 			})
 			logger.error(`检查更新失败: ${_info}`)
@@ -74,15 +75,15 @@ export default async () => {
 		logger.info(info)
 		// TODO: 暂时只在 Windows 下自动下载，有 Apple 开发者账号后接触限制
 		platform.isWindows && autoUpdater.downloadUpdate()
-		win.webContents.send("report-msg", {
-			code: MAIN_MSG_CODE.UPDATE_NOTICE,
+		win.webContents.send(IPC_CHANNELS.REPORT_MSG, {
+			code: MSG_CODE.UPDATE_NOTICE,
 			message: info,
 		})
 	})
 
 	autoUpdater.on("update-not-available", (_info) => {
-		win.webContents.send("report-msg", {
-			code: MAIN_MSG_CODE.UPDATE_NOT_AVAILABLE,
+		win.webContents.send(IPC_CHANNELS.REPORT_MSG, {
+			code: MSG_CODE.UPDATE_NOT_AVAILABLE,
 			message: "客户端已是最新版本",
 		})
 	})
@@ -92,27 +93,29 @@ export default async () => {
 		logger.info("下载完毕！提示安装更新")
 		logger.info(JSON.stringify(info, null, 2))
 
-		win.webContents.send("report-msg", {
-			code: MAIN_MSG_CODE.UPDATE_DOWNLOAD_FINISH,
+		win.webContents.send(IPC_CHANNELS.REPORT_MSG, {
+			code: MSG_CODE.UPDATE_DOWNLOAD_FINISH,
 			message: "更新下载完毕，请空闲时手动确认或重启客户端自动安装",
 			info: info,
 		})
 		// autoUpdater.quitAndInstall(false)
 	})
 
-	ipcMain.once("app-updater-confirm", () => {
+	ipcMain.once(IPC_CHANNELS.APP_UPDATER_CONFIRM, () => {
 		logger.info("应用客户端更新")
 		autoUpdater.quitAndInstall(false)
 	})
 
 	// 监听下载进度
+	// ⚠️ "download-progress" 是 electron-updater 的 EventEmitter 事件名（非 IPC 频道），
+	// 与 IPC_CHANNELS.DOWNLOAD_PROGRESS 同名纯属巧合，勿替换成常量
 	autoUpdater.on("download-progress", (progress) => {
 		logger.info(`下载进度, ${JSON.stringify(progress, null, 2)}`)
-		win.webContents.send("update-progress", progress)
+		win.webContents.send(IPC_CHANNELS.UPDATE_PROGRESS, progress)
 	})
 
 	// 这个updater主要是用于客户端的自更新逻辑，短时间内都没有启用的计划
-	ipcMain.handle("check-github-update", async () => {
+	ipcMain.handle(IPC_CHANNELS.CHECK_GITHUB_UPDATE, async () => {
 		return await autoUpdater.checkForUpdates()
 	})
 }

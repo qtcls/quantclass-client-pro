@@ -8,10 +8,6 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-export type {
-	FuelProbeResult,
-	RunFuelProbeOptions,
-} from "@/main/lib/startup-check/fuel-probe.js"
 export { runFuelProbe } from "@/main/lib/startup-check/fuel-probe.js"
 
 export type { StartupCheckResult } from "@/main/lib/startup-check/network-qmt.js"

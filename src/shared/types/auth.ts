@@ -28,10 +28,3 @@ export interface AuthRefreshResponse {
 	access_token: string
 	refresh_token?: string
 }
-
-// -- `POST /user/client/token` 响应体
-export interface AuthClientTokenResponse {
-	success: boolean
-	access_token: string
-	refresh_token: string
-}

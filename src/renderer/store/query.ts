@@ -10,6 +10,7 @@
 
 import { isWindows } from "@/renderer/constant"
 import type { IDataListType } from "@/renderer/schemas/data-schema"
+import { DEFAULT_SERVER_PORT, SERVER_PORT_KEY } from "@/shared/constants"
 import { atomWithQuery } from "jotai-tanstack-query"
 
 const { VITE_XBX_ENV } = import.meta.env
@@ -60,9 +61,9 @@ export const productStatusAtom = atomWithQuery(() => ({
 	staleTime: Number.POSITIVE_INFINITY,
 	gcTime: Number.POSITIVE_INFINITY,
 	queryFn: async () => {
-		const port = await getStoreValue("server_port", 8787)
+		const port = await getStoreValue(SERVER_PORT_KEY, DEFAULT_SERVER_PORT)
 		// 1. 获取产品状态
-		const res = await fetch(`http://localhost:${port}/product-status`)
+		const res = await fetch(`http://127.0.0.1:${port}/product-status`)
 		if (!res.ok) {
 			rendererLog(
 				"warning",
@@ -194,7 +195,7 @@ export const localProductsAtom = atomWithQuery(() => ({
 		try {
 			const result = await loadProductStatus()
 			return Object.values(result)
-		} catch (error) {
+		} catch {
 			return null
 		}
 	},

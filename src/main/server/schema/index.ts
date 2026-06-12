@@ -26,5 +26,3 @@ export const productStatus = sqliteTable("product_status", {
 	full_data_download_expires: text("full_data_download_expires"),
 	ts: text("ts"),
 })
-
-export type ProductStatus = typeof productStatus.$inferSelect

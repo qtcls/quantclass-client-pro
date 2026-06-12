@@ -31,7 +31,6 @@ import Store from "electron-store"
 import iconv from "iconv-lite"
 import { isUndefined } from "lodash-es"
 import { getKernalPath } from "../utils/common.js"
-import windowManager from "./WindowManager.js"
 
 const _store = new Store()
 
@@ -334,26 +333,8 @@ function handlePythonProcess<T = any>(
 	kernel: "fuel" | "rocket" | "aqua" | "zeus",
 	action: string,
 ) {
-	const mainWindow = windowManager.getWindow()
-	const terminalWindow = windowManager.getWindowById("terminal")
-	const logType = kernel === "fuel" ? "fuel" : "realMarket"
-
-	pythonProcess.stdout.on("data", (data: any) => {
-		const utf8Data = `${data.toString("utf8")}`
-
-		if (mainWindow?.webContents) {
-			mainWindow.webContents.send("send-python-output", utf8Data, logType)
-			if (terminalWindow) {
-				terminalWindow?.webContents.send(
-					"send-python-output",
-					utf8Data,
-					logType,
-				)
-			}
-		} else {
-			logger.error("主窗口或主窗口的 webContents 未定义")
-		}
-	})
+	// -- stdout 必须保持消费（防子进程管道背压阻塞）；日志展示走 kernel-log IPC，此处仅排空
+	pythonProcess.stdout.resume()
 
 	pythonProcess.stderr.on("data", (data: any) => {
 		const utf8Data = `${data.toString("utf8")}`

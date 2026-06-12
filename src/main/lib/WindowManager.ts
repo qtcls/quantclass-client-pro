@@ -44,6 +44,8 @@ class WindowManager {
 				),
 				nodeIntegration: true,
 				webSecurity: false,
+				// -- 显式固化（与 Electron ≥12 默认一致，零行为变更）：contextBridge 白名单依赖隔离世界，勿翻转
+				contextIsolation: true,
 			},
 		})
 		this.mainWindow.webContents.session.setPermissionRequestHandler(
@@ -118,6 +120,8 @@ class WindowManager {
 				nodeIntegration: true,
 				webSecurity: false,
 				...options.webPreferences,
+				// -- 置于 spread 之后：windows-ipc 会透传 renderer 提供的 options，隔离开关不可被调用方翻转
+				contextIsolation: true,
 			},
 		})
 
@@ -156,6 +160,12 @@ class WindowManager {
 	// -- 新增方法，通过 id 获取窗口
 	getWindowById(windowId = "main"): BrowserWindow | undefined {
 		return this.windows.get(windowId)
+	}
+
+	// -- 取存活窗口（已销毁的视为不存在）；活窗判定的唯一出处，调用点勿自行内联 isDestroyed 守卫
+	getLiveWindow(windowId = "main"): BrowserWindow | undefined {
+		const win = this.windows.get(windowId)
+		return win && !win.isDestroyed() ? win : undefined
 	}
 
 	// -- 获取所有窗口

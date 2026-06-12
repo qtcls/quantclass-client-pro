@@ -18,7 +18,7 @@ import type { IDataListType } from "@/renderer/schemas/data-schema"
 export const readJsonFile = async (filePath: string) => {
 	try {
 		await fs.access(filePath)
-	} catch (error) {
+	} catch {
 		logger.warn(`[json] 文件 ${filePath} 不存在`)
 		return null
 	}
@@ -45,7 +45,7 @@ export const getJsonDataFromFile = async <T = unknown>(
 	const fullPath = await store.getAllDataPath(filePath)
 	try {
 		await fs.access(fullPath)
-	} catch (error) {
+	} catch {
 		logger.warn(`[json] 文件 ${fullPath} 不存在`)
 		return defaultValue
 	}

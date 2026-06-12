@@ -27,10 +27,7 @@ export function setupErrorHandlers() {
 
 		// -- 重启渲染进程
 		if (details.reason === "killed") {
-			const win = WindowManager.getWindow()
-			if (win) {
-				win.reload()
-			}
+			WindowManager.getLiveWindow()?.reload()
 		}
 	})
 

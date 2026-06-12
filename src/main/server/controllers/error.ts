@@ -10,6 +10,7 @@
 
 import windowManager from "@/main/lib/WindowManager.js"
 import logger from "@/main/utils/wiston.js"
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import type { Context } from "hono"
 import type { IRes } from "../types/index.js"
 
@@ -18,7 +19,7 @@ export async function reportError(c: Context) {
 	logger.warn("error", JSON.stringify(body))
 
 	const mainWindow = windowManager.getWindow()
-	mainWindow?.webContents.send("report-msg", body)
+	mainWindow?.webContents.send(IPC_CHANNELS.REPORT_MSG, body)
 
 	return c.json({ ...body })
 }

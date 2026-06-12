@@ -17,7 +17,6 @@ import { useConfig } from "@/renderer/hooks/useConfig"
 import { useHandleTimeTask } from "@/renderer/hooks/useHandleTimeTask"
 import { useMinDataSchedule } from "@/renderer/hooks/useMinDataSchedule"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
-import { onPowerStatus, unPowerStatusListener } from "@/renderer/ipc/listener"
 
 import {
 	isFullscreenAtom,
@@ -27,15 +26,20 @@ import {
 import {
 	accountKeyAtom,
 	backtestConfigAtom,
+	configHydratedAtom,
 	isAutoLoginAtom,
 	libraryTypeAtom,
 	reTimingAtom,
 	realMarketConfigSchemaAtom,
 } from "@/renderer/store/storage"
+import { LIBRARY_TYPE } from "@/shared/constants"
+import { decodeToUi } from "@/shared/lib/real-market-config-codec"
 import { macAddressAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsEffectAtom } from "@/renderer/store/versions"
-import { useMount, useUnmount, useUpdateEffect } from "etc-hooks"
+import type { PowerStatus } from "@/shared/types"
+import { useMemoizedFn, useMount, useUnmount, useUpdateEffect } from "etc-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useRef } from "react"
 import { toast } from "sonner"
 import { useAppVersions } from "./useAppVersion"
 import { useFusionManager } from "./useFusionManager"
@@ -45,8 +49,6 @@ import { useUserInfoSync } from "./useUserInfoSync"
 const {
 	fetchFullscreenState,
 	subscribeScheduleStatus,
-	removeReportErrorListener,
-	unSubscribeSendScheduleStatusListener,
 	// checkDBFile,
 	getMacAddress,
 	setAutoLaunch,
@@ -87,52 +89,33 @@ export const useLifeCycle = () => {
 		setIsFullscreen: useSetAtom(isFullscreenAtom),
 		setAccountKey: useSetAtom(accountKeyAtom),
 		setRealMarketConfig: useSetAtom(realMarketConfigSchemaAtom),
+		setConfigHydrated: useSetAtom(configHydratedAtom),
 		setBacktestConfig: useSetAtom(backtestConfigAtom),
 		setReTiming: useSetAtom(reTimingAtom),
 	}
 
-	// -- 用于保存休眠前的更新状态
-	let isUpdatingBeforeSuspend: boolean | null = null
+	// -- 用于保存休眠前的更新状态（ref 跨渲染存活；首个 suspend 取胜，resume 消费后清空）
+	const isUpdatingBeforeSuspendRef = useRef<boolean | null>(null)
+	// -- IPC 反向推送的作用域退订集合（useMount 订阅、useUnmount drain，只清自己不殃及其他订阅者）
+	const ipcUnsubscribesRef = useRef<Array<() => void>>([])
 	// useMarketDataManager() // -- 使用实时市场数据管理的自定义 Hook
 	/**
 	 * -- 初始化定时任务
 	 */
 	const initScheduleTask = async () => {
-		const realMarketConfig = await getStoreValue("real_market_config", {
-			filter_kcb: true,
-			filter_cyb: true,
-			filter_bj: true,
-			qmt_path: "",
-			account_id: "",
-			qmt_port: "58610",
-			message_robot_url: "",
-			performance_mode: "EQUAL",
-			date_start: new Date(
-				new Date().setFullYear(new Date().getFullYear() - 3),
-			),
-		})
-
-		if (realMarketConfig && isWindows) {
-			setters.setRealMarketConfig((prevConfig) => ({
-				...prevConfig,
-				date_start:
-					realMarketConfig.date_start &&
-					typeof realMarketConfig.date_start === "string"
-						? new Date(realMarketConfig.date_start as string)
-						: new Date(new Date().setFullYear(new Date().getFullYear() - 3)),
-				filter_kcb: realMarketConfig.filter_kcb ? "1" : "0",
-				filter_cyb: realMarketConfig?.filter_cyb ? "1" : "0",
-				filter_bj: realMarketConfig?.filter_bj ? "1" : "0",
-				qmt_path: realMarketConfig?.qmt_path ?? "",
-				account_id: realMarketConfig?.account_id ?? "",
-				qmt_port: realMarketConfig?.qmt_port ?? "58610",
-				message_robot_url: realMarketConfig?.message_robot_url ?? "",
-				performance_mode: (realMarketConfig.performance_mode || "EQUAL") as
-					| "EQUAL"
-					| "PERFORMANCE"
-					| "ECONOMY",
-			}))
+		// -- S2a：从 config.json（real_market_config 唯一权威源）全量水合 UI 投影 atom。
+		// -- decodeToUi 统一补齐 use_fuzzy/use_open_sell/reverse_repo_keep（闭合历史水合遗漏）
+		// -- 与 filter bool→"0"/"1"、date "YYYY-MM-DD"→Date 的解码；完成后置水合标志。
+		const wire = await getStoreValue("real_market_config", {})
+		if (isWindows) {
+			setters.setRealMarketConfig(decodeToUi(wire))
 		}
+		setters.setConfigHydrated(true)
+		// -- 清理历史 localStorage 平行源（已收敛到 config.json，移除残留避免误读）
+		try {
+			localStorage.removeItem("realMarketConfig")
+			localStorage.removeItem("real_market_config")
+		} catch {}
 	}
 
 	/**
@@ -142,7 +125,7 @@ export const useLifeCycle = () => {
 		const [apiKey, uuid, libraryType, macAddress] = await Promise.all([
 			getStoreValue("settings.api_key", ""),
 			getStoreValue("settings.hid", ""),
-			getStoreValue("settings.libraryType", "select"),
+			getStoreValue(LIBRARY_TYPE, "select"),
 			getMacAddress(),
 		])
 
@@ -201,16 +184,26 @@ export const useLifeCycle = () => {
 
 	/**
 	 * -- 处理电源状态变化
+	 * -- useMemoizedFn：订阅引用稳定（一次订阅），每次调用读最新闭包——isUpdating 与
+	 * -- handleTimeTask 内部的会员/账号/实盘状态均为当前值，消除首渲染陈旧闭包。
+	 * -- 实盘安全关停不依赖本链路：Windows suspend 由 main 权威 fail-closed 兜底。
 	 */
-	const handlePowerStatusChange = (status: string) => {
+	const handlePowerStatusChange = useMemoizedFn((status: PowerStatus) => {
 		if (status === "suspend") {
-			isUpdatingBeforeSuspend = isUpdating
-			handleTimeTask(true)
+			// -- 连续 suspend 只记首次的睡前状态（首次处理后 isUpdating 已被置 false，后写会毁掉恢复判断）
+			if (isUpdatingBeforeSuspendRef.current === null) {
+				isUpdatingBeforeSuspendRef.current = isUpdating
+			}
+			void handleTimeTask(true)
 		}
 		if (status === "resume") {
-			handleTimeTask(!isUpdatingBeforeSuspend)
+			const wasUpdating = isUpdatingBeforeSuspendRef.current
+			isUpdatingBeforeSuspendRef.current = null
+			// -- 无配对 suspend 的 resume：不猜测睡前状态（原实现 !null 会误暂停）
+			if (wasUpdating === null) return
+			void handleTimeTask(!wasUpdating)
 		}
-	}
+	})
 
 	const initAutoLauncher = async (apiKey: string, uuid: string) => {
 		if (!apiKey || !uuid) return
@@ -232,8 +225,10 @@ export const useLifeCycle = () => {
 		const shouldStartRocket =
 			isAutoLaunchRealTrading && isAutoLaunchUpdate && isAutoLaunchMinData
 
+		// -- 实际是否开启自动实盘以 main 权威 ack 为准（失败不在下方误报「自动实盘」）
+		let rocketStarted = false
 		if (shouldStartRocket) {
-			await handleToggleAutoRocket(true, false, true)
+			rocketStarted = await handleToggleAutoRocket(true, false, true)
 		} else {
 			await handleToggleAutoRocket(false, false, true)
 		}
@@ -241,7 +236,7 @@ export const useLifeCycle = () => {
 		const parts: string[] = []
 		if (isAutoLaunchUpdate) parts.push("自动更新历史数据")
 		if (isAutoLaunchMinData) parts.push("自动更新实时数据")
-		if (shouldStartRocket) parts.push("自动实盘")
+		if (rocketStarted) parts.push("自动实盘")
 		if (parts.length > 0) {
 			toast.success(`已为您开启：${parts.join("、")}`)
 		}
@@ -249,6 +244,15 @@ export const useLifeCycle = () => {
 
 	// -- 生命周期钩子
 	useMount(async () => {
+		// -- 订阅置于首个 await 之前：闭合 async mount 下 cleanup 先于 push 的泄漏竞态窗口
+		// -- （回调为 useMemoizedFn/稳定引用，早到事件读取的是当前值，行为同 boot 期）
+		ipcUnsubscribesRef.current.push(
+			window.electronAPI.onPowerStatus(handlePowerStatusChange),
+			subscribeScheduleStatus(
+				(_event, status) => status === "done" && refetchLocalVersions(),
+			),
+		)
+
 		// versionCheck.start()
 		const [_, { apiKey, uuid, libraryType }] = await Promise.all([
 			initScheduleTask(),
@@ -258,23 +262,15 @@ export const useLifeCycle = () => {
 		// -- 初始化回测配置
 		await initBacktestConfig(libraryType)
 
-		// -- 初始化监听器
-		onPowerStatus(handlePowerStatusChange)
-		subscribeScheduleStatus(
-			(_event, status) => status === "done" && refetchLocalVersions(),
-		)
-
 		// -- 初始化其他状态
 		const initialFullscreenState = await fetchFullscreenState()
 		setters.setIsFullscreen(initialFullscreenState)
 
 		// -- 清理实时市场数据，这个虽然useMarket的过程中会清理，但是这里是为了保险起见，初始化时再清理一次
 		// await cleanMarketData()
-		await Promise.all([
-			syncSelectStgList(),
-			syncFusion(),
-			initAutoLauncher(apiKey, uuid),
-		])
+		// -- Q2：先同步当前库策略落盘，再 initAutoLauncher，确保 main 自动实盘自校验读到的不是空策略列表
+		await Promise.all([syncSelectStgList(), syncFusion()])
+		await initAutoLauncher(apiKey, uuid)
 	})
 
 	// -- 更新效果
@@ -287,9 +283,9 @@ export const useLifeCycle = () => {
 	}, [config])
 
 	// -- 清理
-	useUnmount(async () => {
-		unSubscribeSendScheduleStatusListener()
-		removeReportErrorListener()
-		unPowerStatusListener()
+	useUnmount(() => {
+		for (const unsubscribe of ipcUnsubscribesRef.current.splice(0)) {
+			unsubscribe()
+		}
 	})
 }

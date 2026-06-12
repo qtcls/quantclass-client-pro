@@ -12,18 +12,21 @@ jobs:
     name: build and release electron app
     runs-on: ${{ matrix.os }}
 
+    permissions:
+      contents: write
+
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         # os: [windows-latest, macos-latest, ubuntu-latest]
         os: [windows-latest, macos-latest]
 
     steps:
       - name: Check out git repository
-        uses: actions/checkout@v3.0.0
+        uses: actions/checkout@v5
 
       - name: Install Node.js
-        uses: actions/setup-node@v3.0.0
+        uses: actions/setup-node@v5
         with:
           node-version: "20"
 
@@ -38,7 +41,7 @@ jobs:
         run: |
           pnpm build:win
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_BASE_URL: ${{ secrets.VITE_BASE_URL || 'https://api.quantclass.cn' }}
           VITE_XBX_ENV: production
           VITE_APP_VERSION: ${{ github.ref_name }}
@@ -48,7 +51,7 @@ jobs:
         run: |
           pnpm build:mac
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_BASE_URL: ${{ secrets.VITE_BASE_URL || 'https://api.quantclass.cn' }}
           VITE_XBX_ENV: production
           VITE_APP_VERSION: ${{ github.ref_name }}
@@ -60,9 +63,14 @@ jobs:
       #     path: release
 
       - name: release
-        uses: softprops/action-gh-release@v0.1.14
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: "dist/**"
+          files: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.yml
+            dist/*.blockmap
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

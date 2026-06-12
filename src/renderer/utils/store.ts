@@ -589,33 +589,6 @@ export function useStoreReloadBatch(atoms: ElectronStoreAtom<any>[]) {
 // ============================================================================
 
 export type ElectronStoreAtom<T> = ReturnType<typeof atomWithElectronStore<T>>
-export type ElectronStoreProAtom<T> = ReturnType<
-	typeof atomWithElectronStorePro<T>
->
-
-// ============================================================================
-// 🔍 调试和工具函数
-// ============================================================================
-
-/**
- * 🔍 检查 Electron Store 连接状态
- */
-export function checkElectronStoreConnection(): boolean {
-	return (
-		window.electronAPI && typeof window.electronAPI.getStoreValue === "function"
-	)
-}
-
-/**
- * 📊 获取所有活跃的跨窗口监听器统计
- */
-export function getCrossWindowListenerStats() {
-	const stats = new Map<string, number>()
-	for (const [key, listeners] of crossWindowListeners) {
-		stats.set(key, listeners.size)
-	}
-	return Object.fromEntries(stats)
-}
 
 /**
  * 🧹 缓存管理工具

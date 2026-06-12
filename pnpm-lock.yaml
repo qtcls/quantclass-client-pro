@@ -26,12 +26,6 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.68.0(react@18.3.1))
-      '@tanstack/react-virtual':
-        specifier: ^3.11.2
-        version: 3.13.13(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/adm-zip':
-        specifier: ^0.5.7
-        version: 0.5.7
       adm-zip:
         specifier: ^0.5.16
         version: 0.5.16
@@ -50,12 +44,12 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      dayjs:
+        specifier: ^1.11.13
+        version: 1.11.19
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.4(@types/better-sqlite3@7.6.13)(@types/react@18.3.16)(better-sqlite3@12.5.0)(react@18.3.1)
-      drizzle-zod:
-        specifier: ^0.6.1
-        version: 0.6.1(drizzle-orm@0.38.4(@types/better-sqlite3@7.6.13)(@types/react@18.3.16)(better-sqlite3@12.5.0)(react@18.3.1))(zod@3.25.76)
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@18.3.1)
@@ -80,9 +74,6 @@ importers:
       node-schedule:
         specifier: ^2.1.1
         version: 2.1.1
-      qrcode.react:
-        specifier: ^4.2.0
-        version: 4.2.0(react@18.3.1)
       react-aria:
         specifier: ^3.36.0
         version: 3.45.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -126,6 +117,9 @@ importers:
       '@electron-toolkit/tsconfig':
         specifier: ^1.0.1
         version: 1.0.1(@types/node@22.10.6)
+      '@electron/notarize':
+        specifier: ^2.5.0
+        version: 2.5.0
       '@heroui/input':
         specifier: ^2.4.9
         version: 2.4.29(@heroui/system@2.4.24(@heroui/theme@2.4.24(tailwindcss@3.4.19(tsx@4.21.0)))(framer-motion@11.18.2(@emotion/is-prop-valid@1.4.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@heroui/theme@2.4.24(tailwindcss@3.4.19(tsx@4.21.0)))(@types/react@18.3.16)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -222,6 +216,9 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.20.6
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/adm-zip':
+        specifier: ^0.5.7
+        version: 0.5.7
       '@types/archiver':
         specifier: ^6.0.3
         version: 6.0.4
@@ -270,9 +267,6 @@ importers:
       cz-conventional-changelog:
         specifier: ^3.3.0
         version: 3.3.0(@types/node@22.10.6)(typescript@5.9.3)
-      dayjs:
-        specifier: ^1.11.13
-        version: 1.11.19
       drizzle-kit:
         specifier: ^0.30.1
         version: 0.30.6
@@ -378,9 +372,6 @@ importers:
       vite:
         specifier: ^5.4.11
         version: 5.4.21(@types/node@22.10.6)(lightningcss@1.30.2)
-      vite-plugin-electron:
-        specifier: ^0.29.0
-        version: 0.29.0
 
 packages:
 
@@ -506,28 +497,24 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@biomejs/cli-linux-arm64@1.9.4':
     resolution: {integrity: sha512-fJIW0+LYujdjUgJJuwesP4EjIBl/N/TcOX3IvIHJQNsAqvV2CHIogsmA94BPG6jZATS4Hi+xv4SkBBQSt1N4/g==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@biomejs/cli-linux-x64-musl@1.9.4':
     resolution: {integrity: sha512-gEhi/jSBhZ2m6wjV530Yy8+fNqG8PAinM3oV7CyO+6c3CEh16Eizm21uHVsyVBEB6RIM8JHIl6AGYCv6Q6Q9Tg==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@biomejs/cli-linux-x64@1.9.4':
     resolution: {integrity: sha512-lRCJv/Vi3Vlwmbd6K+oQ0KhLHMAysN8lXoCI7XeHlxaajk06u7G+UsFSO01NAs5iYuWKmVZjmiOzJ0OJmGsMwg==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@biomejs/cli-win32-arm64@1.9.4':
     resolution: {integrity: sha512-tlbhLk+WXZmgwoIKwHIHEBZUwxml7bRJgk0X2sPyNR3S93cdRq6XulAZRQJ17FYGGzWne0fgrXBKpl7l4M87Hg==}
@@ -3235,67 +3222,56 @@ packages:
     resolution: {integrity: sha512-dV3T9MyAf0w8zPVLVBptVlzaXxka6xg1f16VAQmjg+4KMSTWDvhimI/Y6mp8oHwNrmnmVl9XxJ/w/mO4uIQONA==}
     cpu: [arm]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.53.5':
     resolution: {integrity: sha512-wIGYC1x/hyjP+KAu9+ewDI+fi5XSNiUi9Bvg6KGAh2TsNMA3tSEs+Sh6jJ/r4BV/bx/CyWu2ue9kDnIdRyafcQ==}
     cpu: [arm]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-arm64-gnu@4.53.5':
     resolution: {integrity: sha512-Y+qVA0D9d0y2FRNiG9oM3Hut/DgODZbU9I8pLLPwAsU0tUKZ49cyV1tzmB/qRbSzGvY8lpgGkJuMyuhH7Ma+Vg==}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-musl@4.53.5':
     resolution: {integrity: sha512-juaC4bEgJsyFVfqhtGLz8mbopaWD+WeSOYr5E16y+1of6KQjc0BpwZLuxkClqY1i8sco+MdyoXPNiCkQou09+g==}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-loong64-gnu@4.53.5':
     resolution: {integrity: sha512-rIEC0hZ17A42iXtHX+EPJVL/CakHo+tT7W0pbzdAGuWOt2jxDFh7A/lRhsNHBcqL4T36+UiAgwO8pbmn3dE8wA==}
     cpu: [loong64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-gnu@4.53.5':
     resolution: {integrity: sha512-T7l409NhUE552RcAOcmJHj3xyZ2h7vMWzcwQI0hvn5tqHh3oSoclf9WgTl+0QqffWFG8MEVZZP1/OBglKZx52Q==}
     cpu: [ppc64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-gnu@4.53.5':
     resolution: {integrity: sha512-7OK5/GhxbnrMcxIFoYfhV/TkknarkYC1hqUw1wU2xUN3TVRLNT5FmBv4KkheSG2xZ6IEbRAhTooTV2+R5Tk0lQ==}
     cpu: [riscv64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-musl@4.53.5':
     resolution: {integrity: sha512-GwuDBE/PsXaTa76lO5eLJTyr2k8QkPipAyOrs4V/KJufHCZBJ495VCGJol35grx9xryk4V+2zd3Ri+3v7NPh+w==}
     cpu: [riscv64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-s390x-gnu@4.53.5':
     resolution: {integrity: sha512-IAE1Ziyr1qNfnmiQLHBURAD+eh/zH1pIeJjeShleII7Vj8kyEm2PF77o+lf3WTHDpNJcu4IXJxNO0Zluro8bOw==}
     cpu: [s390x]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.53.5':
     resolution: {integrity: sha512-Pg6E+oP7GvZ4XwgRJBuSXZjcqpIW3yCBhK4BcsANvb47qMvAbCjR6E+1a/U2WXz1JJxp9/4Dno3/iSJLcm5auw==}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-x64-musl@4.53.5':
     resolution: {integrity: sha512-txGtluxDKTxaMDzUduGP0wdfng24y1rygUMnmlUJ88fzCCULCLn7oE5kb2+tRB+MWq1QDZT6ObT5RrR8HFRKqg==}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-openharmony-arm64@4.53.5':
     resolution: {integrity: sha512-3DFiLPnTxiOQV993fMc+KO8zXHTcIjgaInrqlG8zDp1TlhYl6WgrOHuJkJQ6M8zHEcntSJsUp1XFZSY8C1DYbg==}
@@ -3370,21 +3346,12 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  '@tanstack/react-virtual@3.13.13':
-    resolution: {integrity: sha512-4o6oPMDvQv+9gMi8rE6gWmsOjtUZUYIJHv7EB+GblyYdi8U6OqLl8rhHWIUZSL1dUU2dPwTdTgybCKf9EjIrQg==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
   '@tanstack/table-core@8.21.3':
     resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
     engines: {node: '>=12'}
 
   '@tanstack/virtual-core@3.11.3':
     resolution: {integrity: sha512-v2mrNSnMwnPJtcVqNvV0c5roGCBqeogN8jDtgtuHCphdwBasOZ17x8UV8qpHUh+u0MLfX43c0uUHKje0s+Zb0w==}
-
-  '@tanstack/virtual-core@3.13.13':
-    resolution: {integrity: sha512-uQFoSdKKf5S8k51W5t7b2qpfkyIbdHMzAn+AMQvHPxKUPeo1SsGaA4JRISQT87jm28b7z8OEqPcg1IOZagQHcA==}
 
   '@tootallnate/once@2.0.0':
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
@@ -4377,12 +4344,6 @@ packages:
       sqlite3:
         optional: true
 
-  drizzle-zod@0.6.1:
-    resolution: {integrity: sha512-huEbUgnsuR8tupnmLiyB2F1I2H9dswI3GfM36IbIqx9i0YUeYjRsDpJVyFVeziUvI1ogT9JHRL2Q03cC4QmvxA==}
-    peerDependencies:
-      drizzle-orm: '>=0.36.0'
-      zod: '>=3.0.0'
-
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -4570,7 +4531,6 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   etc-csv-napi-win32-x64-msvc@0.0.9:
     resolution: {integrity: sha512-N7h5dUxr3eIYuJdY6UTpPbnLdBg7yYv4D5+08mlN693pukcmqoFCbdvWNVhOr3Yh/inrnMrFdtMWTKH5Uuz5sw==}
@@ -5327,28 +5287,24 @@ packages:
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   lightningcss-linux-arm64-musl@1.30.2:
     resolution: {integrity: sha512-5Vh9dGeblpTxWHpOx8iauV02popZDsCYMPIgiuw97OJ5uaDsL86cnqSFs5LZkG3ghHoX5isLgWzMs+eD1YzrnA==}
     engines: {node: '>= 12.0.0'}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   lightningcss-linux-x64-gnu@1.30.2:
     resolution: {integrity: sha512-Cfd46gdmj1vQ+lR6VRTTadNHu6ALuw2pKR9lYq4FnhvgBc4zWY1EtZcAc6EffShbb1MFrIPfLDXD6Xprbnni4w==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   lightningcss-linux-x64-musl@1.30.2:
     resolution: {integrity: sha512-XJaLUUFXb6/QG2lGIW6aIk6jKdtjtcffUT0NKvIqhSBY3hh9Ch+1LCeH80dR9q9LBjG3ewbDjnumefsLsP6aiA==}
     engines: {node: '>= 12.0.0'}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   lightningcss-win32-arm64-msvc@1.30.2:
     resolution: {integrity: sha512-FZn+vaj7zLv//D/192WFFVA0RgHawIcHqLX9xuWiQt7P0PtdFEVaxgF9rjM/IRYHQXNnk61/H/gb2Ei+kUQ4xQ==}
@@ -5997,11 +5953,6 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
-
-  qrcode.react@4.2.0:
-    resolution: {integrity: sha512-QpgqWi8rD9DsS9EP3z7BT+5lY5SFhsqGjpgW5DY/i3mK4M9DTBNz3ErMi8BWYEfI3L0d8GIbGmcdFAS1uIRGjA==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
@@ -6790,14 +6741,6 @@ packages:
 
   victory-vendor@36.9.2:
     resolution: {integrity: sha512-PnpQQMuxlwYdocC8fIJqVXvkeViHYzotI+NJrCuav0ZYFoq912ZHBk3mCeuj+5/VpodOjPe1z0Fk2ihgzlXqjQ==}
-
-  vite-plugin-electron@0.29.0:
-    resolution: {integrity: sha512-HP0DI9Shg41hzt55IKYVnbrChWXHX95QtsEQfM+szQBpWjVhVGMlqRjVco6ebfQjWNr+Ga+PeoBjMIl8zMaufw==}
-    peerDependencies:
-      vite-plugin-electron-renderer: '*'
-    peerDependenciesMeta:
-      vite-plugin-electron-renderer:
-        optional: true
 
   vite@5.4.21:
     resolution: {integrity: sha512-o5a9xKjbtuhY6Bi5S3+HvbRERmouabWbyUcpXXUA1u+GNUKoROi9byOJ8M0nHbHYHkYICiMlqxkg1KkYmm25Sw==}
@@ -10258,17 +10201,9 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@tanstack/react-virtual@3.13.13(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@tanstack/virtual-core': 3.13.13
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-
   '@tanstack/table-core@8.21.3': {}
 
   '@tanstack/virtual-core@3.11.3': {}
-
-  '@tanstack/virtual-core@3.13.13': {}
 
   '@tootallnate/once@2.0.0': {}
 
@@ -11292,11 +11227,6 @@ snapshots:
       '@types/react': 18.3.16
       better-sqlite3: 12.5.0
       react: 18.3.1
-
-  drizzle-zod@0.6.1(drizzle-orm@0.38.4(@types/better-sqlite3@7.6.13)(@types/react@18.3.16)(better-sqlite3@12.5.0)(react@18.3.1))(zod@3.25.76):
-    dependencies:
-      drizzle-orm: 0.38.4(@types/better-sqlite3@7.6.13)(@types/react@18.3.16)(better-sqlite3@12.5.0)(react@18.3.1)
-      zod: 3.25.76
 
   dunder-proto@1.0.1:
     dependencies:
@@ -13156,10 +13086,6 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  qrcode.react@4.2.0(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-
   queue-microtask@1.2.3: {}
 
   quick-lru@5.1.1: {}
@@ -14099,8 +14025,6 @@ snapshots:
       d3-shape: 3.2.0
       d3-time: 3.1.0
       d3-timer: 3.0.1
-
-  vite-plugin-electron@0.29.0: {}
 
   vite@5.4.21(@types/node@22.10.6)(lightningcss@1.30.2):
     dependencies:

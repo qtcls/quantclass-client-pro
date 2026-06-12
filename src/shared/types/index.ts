@@ -17,6 +17,9 @@ export type {
 // 内核相关类型
 export type { KernalType } from "./kernal.js"
 
+// IPC 反向推送负载类型
+export type { LoopStatus, PowerStatus } from "./ipc.js"
+
 // 用户相关类型
 export type {
 	WebUserInfo,
@@ -28,7 +31,6 @@ export type {
 	AccessTokenJwtPayload,
 	AccessTokenStorage,
 	AuthRefreshResponse,
-	AuthClientTokenResponse,
 } from "./auth.js"
 
 // 策略状态相关类型
@@ -51,3 +53,9 @@ export type {
 
 // 客户端通知中心
 export type { ClientNotification } from "./client-notification.js"
+
+// 自动实盘控制 ack
+export type {
+	SetAutoTradingAck,
+	SaveRealMarketDataAck,
+} from "./trading.js"

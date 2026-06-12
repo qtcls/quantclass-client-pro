@@ -18,7 +18,7 @@ import { useAppUpdate } from "@/renderer/hooks/useAppUpdate"
 import { errAlertAtom, loadingAnimeAtom } from "@/renderer/store"
 import { useSetAtom } from "jotai"
 
-const { reportError, removeReportErrorListener } = window.electronAPI
+const { reportError } = window.electronAPI
 
 export const useReportErr = () => {
 	const { setStatus, setUpdateInfo } = useAppUpdate()
@@ -28,9 +28,7 @@ export const useReportErr = () => {
 	const [content, setContent] = useState<string>()
 
 	useEffect(() => {
-		removeReportErrorListener()
-
-		reportError((res) => {
+		const unsubscribe = reportError((res) => {
 			toast.dismiss()
 			switch (res.code) {
 				case 400:
@@ -55,7 +53,7 @@ export const useReportErr = () => {
 					break
 				case RENDERER_MSG_CODE.BACKTEST_CODE:
 					toast.dismiss()
-					toast[res.msgType](res.message as string, { duration: 6 * 1000 })
+					toast[res.msgType!](res.message as string, { duration: 6 * 1000 })
 					break
 				case RENDERER_MSG_CODE.CALC_TRADING_PLAN:
 					setLoading(res.message === "start")
@@ -78,9 +76,7 @@ export const useReportErr = () => {
 			}
 		})
 
-		return () => {
-			removeReportErrorListener()
-		}
+		return unsubscribe
 	}, [])
 
 	return {

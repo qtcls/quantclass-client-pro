@@ -6,15 +6,18 @@ import { TabsTrigger } from "./ui/tabs"
 export const SelectTabs = ({
 	tabs,
 	defaultValue,
+	value,
 	onValueChange,
 }: {
 	tabs: { label: string; value: string }[]
 	defaultValue: string
+	/** 传入则为受控（选中态反映该值）；不传则沿用 defaultValue 的非受控行为。 */
+	value?: string
 	onValueChange: (value: string) => void
 }) => {
 	return (
 		<Tabs
-			defaultValue={defaultValue}
+			{...(value !== undefined ? { value } : { defaultValue })}
 			onValueChange={(value) => {
 				onValueChange(value)
 			}}
@@ -33,11 +36,14 @@ export const SelectTabs = ({
 export const PerformanceModeSelectTabs = ({
 	name,
 	defaultValue,
+	value,
 	onValueChange,
 	showToast = true,
 }: {
 	name: string
 	defaultValue: string
+	/** 传入则为受控（选中态反映该值，便于 ack 失败时不误显示新选项）。 */
+	value?: string
 	onValueChange: (value: string) => void
 	showToast?: boolean
 }) => {
@@ -55,6 +61,7 @@ export const PerformanceModeSelectTabs = ({
 		<SelectTabs
 			tabs={tabs}
 			defaultValue={defaultValue}
+			value={value}
 			onValueChange={(value) => {
 				onValueChange(value)
 				if (showToast) {

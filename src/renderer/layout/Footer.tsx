@@ -71,12 +71,12 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu"
+import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "../components/ui/popover"
-import { useRealMarketConfig } from "../hooks/useRealMarketConfig"
 
 const { openUserDirectory, openDataDirectory, openDirectory } =
 	window.electronAPI
@@ -84,7 +84,9 @@ const { openUserDirectory, openDataDirectory, openDirectory } =
 export const Footer: FC = () => {
 	const setIsShowMonitorPanel = useSetAtom(isShowMonitorPanelAtom)
 	const navigate = useNavigate()
-	const { realMarketConfig } = useRealMarketConfig()
+	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
+	// -- schema atom 为 Partial：qmt_path 可能 undefined；捕获为 const 以便 && 守卫窄化进闭包
+	const qmtPath = realMarketConfig.qmt_path
 	const [isLogModalOpen, setIsLogModalOpen] = useState(false)
 
 	useHotkeys([
@@ -112,9 +114,9 @@ export const Footer: FC = () => {
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent>
-						{realMarketConfig.qmt_path && (
+						{qmtPath && (
 							<DropdownMenuItem
-								onClick={() => openDirectory([realMarketConfig.qmt_path])}
+								onClick={() => openDirectory([qmtPath])}
 							>
 								<ExternalLink />
 								QMT文件夹

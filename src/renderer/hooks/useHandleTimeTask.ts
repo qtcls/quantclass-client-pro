@@ -17,7 +17,7 @@ import { useAtomValue, useSetAtom } from "jotai"
 import { toast } from "sonner"
 
 // -- 定义消息类型接口
-export interface ToastMessage {
+interface ToastMessage {
 	pauseInfo: string
 	successInfo: string
 }
@@ -75,7 +75,7 @@ export const useHandleTimeTask = () => {
 			}
 
 			return true
-		} catch (error) {
+		} catch {
 			toast.dismiss()
 			toast.error("操作失败，请重试")
 			return false

@@ -10,15 +10,9 @@
 
 import { accountKeyAtom } from "@/renderer/store/storage"
 import { useAtomValue } from "jotai"
-import { useEffect, useState } from "react"
 
 export const useAuthUpdate = () => {
-	const [disabled, setDisabled] = useState<boolean>(false)
 	const { uuid = "", apiKey = "" } = useAtomValue(accountKeyAtom)
 
-	useEffect(() => {
-		setDisabled(uuid === "" || apiKey === "")
-	}, [uuid, apiKey])
-
-	return disabled
+	return uuid === "" || apiKey === ""
 }

@@ -11,7 +11,7 @@
  * 数据通常来自 period_offset.csv 第一列「交易日期」。
  */
 
-function pad2(n: number): string {
+export function pad2(n: number): string {
 	return String(n).padStart(2, "0")
 }
 

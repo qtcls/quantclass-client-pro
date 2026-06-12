@@ -10,21 +10,14 @@
 
 import DBManager from "@/main/lib/db-manager.js"
 import logger from "@/main/utils/wiston.js"
-
-function getLocalDateYYYYMMDD(): string {
-	const d = new Date()
-	const y = d.getFullYear()
-	const m = String(d.getMonth() + 1).padStart(2, "0")
-	const day = String(d.getDate()).padStart(2, "0")
-	return `${y}-${m}-${day}`
-}
+import { getLocalCalendarYmd } from "@/shared/lib/trading-day.js"
 
 export async function resetMinDataRoundsRunningForToday(): Promise<void> {
 	const dbManager = DBManager.getInstance()
 	const db = await dbManager.getConnection(["min_data_rounds"])
 	if (!db) return
 
-	const today = getLocalDateYYYYMMDD()
+	const today = getLocalCalendarYmd(new Date())
 
 	try {
 		const result = db

@@ -407,7 +407,7 @@ export async function runRealTradingBackup(
 	}
 
 	const ts = new Date()
-	const ymd = `${ts.getFullYear()}-${String(ts.getMonth() + 1).padStart(2, "0")}-${String(ts.getDate()).padStart(2, "0")}`
+	const ymd = getLocalCalendarYmd(ts)
 	const stamp = `${ymd}_${String(ts.getHours()).padStart(2, "0")}${String(ts.getMinutes()).padStart(2, "0")}${String(ts.getSeconds()).padStart(2, "0")}`
 	const zipPath = path.join(backupDir, `${BACKUP_ZIP_PREFIX}${stamp}.zip`)
 	const rootName = path.basename(sourceDir)

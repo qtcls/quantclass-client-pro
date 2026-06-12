@@ -18,11 +18,6 @@ import type { IDataListType } from "@/renderer/schemas/data-schema"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Check, HardDrive, Server, TriangleAlert } from "lucide-react"
 
-// -- 辅助函数：格式化日期时间字符串
-// const formatDateTime = (dateTimeString: string): string => {
-// 	const [year, month, day, hour, minute] = dateTimeString.split("-")
-// 	return `${year}-${month}-${day} ${hour}:${minute}`
-// }
 import { cn } from "@renderer/lib/utils"
 
 export const dataColumns = (
@@ -110,13 +105,6 @@ export const dataColumns = (
 				)
 			}
 
-			// if (row.original.name === "stock-1h-trading-data-daily") {
-			// 	return (
-			// 		<div className="text-muted-foreground">
-			// 			{row.original?.ts ? formatDateTime(row.original.ts) : "--:--:--"}
-			// 		</div>
-			// 	)
-			// }
 			if (row.original.dataContentTime === "1990-01-01") {
 				dataContentTime = "--:--:--"
 			}
@@ -188,16 +176,6 @@ export const dataColumns = (
 			)
 		},
 	},
-	// {
-	// 	accessorKey: "lastUpdateTime",
-	// 	size: 120,
-	// 	header: () => <div className="text-foreground">客户端检查更新时间</div>,
-	// 	cell: ({ row }) => (
-	// 		<div className="text-muted-foreground">
-	// 			{row.original?.lastUpdateTime || "--:--:--"}
-	// 		</div>
-	// 	),
-	// },
 	{
 		id: "action",
 		header: "操作",

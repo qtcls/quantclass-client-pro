@@ -30,7 +30,7 @@ import { createSuggestions } from "./suggestions"
 const { setStoreValue, rendererLog } = window.electronAPI
 
 // -- 检测 Python 代码中的 strategy_list 变量并转换为 JSON
-function detectStgList(code: string): string | null {
+function detectStgList(_code: string): string | null {
 	try {
 		const jsonStr = null
 		if (!jsonStr) return null

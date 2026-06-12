@@ -32,28 +32,3 @@ export const ALLOWED_HOLD_PERIODS = {
 		"M",
 	],
 } as const
-
-// -- 持仓频率选项
-export const FREQUENCY_OPTIONS = [
-	{ value: "day", label: "按天" },
-	{ value: "week", label: "按周" },
-	{ value: "month", label: "按月" },
-] as const
-
-// -- 判断 hold_period 属于哪种类型
-export const getHoldPeriodType = (holdPeriod: any) => {
-	// -- 判断是否在 day 列表中
-	if (ALLOWED_HOLD_PERIODS.day.includes(holdPeriod?.toUpperCase())) {
-		return "day"
-	}
-	// -- 判断是否在 week 列表中
-	if (ALLOWED_HOLD_PERIODS.week.includes(holdPeriod?.toUpperCase())) {
-		return "week"
-	}
-	// -- 判断是否在 month 列表中
-	if (ALLOWED_HOLD_PERIODS.month.includes(holdPeriod?.toUpperCase())) {
-		return "month"
-	}
-	// -- 如果都不在，返回 undefined
-	return undefined
-}

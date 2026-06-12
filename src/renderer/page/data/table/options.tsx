@@ -143,7 +143,7 @@ export function DataTableActionOptions<TData>({
 							} else {
 								toast.error(result.message || "更新 period_offset.csv 失败")
 							}
-						} catch (error) {
+						} catch {
 							toast.error("更新 period_offset.csv 失败")
 						} finally {
 							setIsUpdatingPeriodOffset(false)

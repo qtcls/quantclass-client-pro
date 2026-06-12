@@ -8,69 +8,84 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
+import { subscribeWithCleanup } from "@/shared/lib/ipc-subscription.js"
 import { ipcRenderer } from "electron"
 
 export const dataIPC = {
 	// 原有方法
 	handleExecDownloadZip: (product_name: string) =>
-		ipcRenderer.invoke("exec-download-zip", product_name),
+		ipcRenderer.invoke(IPC_CHANNELS.EXEC_DOWNLOAD_ZIP, product_name),
 	handleUpdateOneProduct: (product?: string) =>
-		ipcRenderer.invoke("update-one-product", product),
+		ipcRenderer.invoke(IPC_CHANNELS.UPDATE_ONE_PRODUCT, product),
 	handleUpdateFullProducts: (product_name: string, full_data_name?: string) =>
-		ipcRenderer.invoke("update-full-products", product_name, full_data_name),
+		ipcRenderer.invoke(
+			IPC_CHANNELS.UPDATE_FULL_PRODUCTS,
+			product_name,
+			full_data_name,
+		),
 	handleUpdateStrategies: (strategy?: string) =>
-		ipcRenderer.invoke("update-strategies", strategy),
-	getStrategySelectData: () => ipcRenderer.invoke("strategy-select-data"),
+		ipcRenderer.invoke(IPC_CHANNELS.UPDATE_STRATEGIES, strategy),
+	getStrategySelectData: () =>
+		ipcRenderer.invoke(IPC_CHANNELS.STRATEGY_SELECT_DATA),
 	queryDataList: (params: {
 		cur: number
 		pageSize: number
 		file_name: string
-	}) => ipcRenderer.invoke("query-data-list", params),
+	}) => ipcRenderer.invoke(IPC_CHANNELS.QUERY_DATA_LIST, params),
 	execFuelWithEnv: (
 		args: string[],
 		action: string,
 		kernel: string,
 		extraEnv?: string,
-	) => ipcRenderer.invoke("exec-fuel-with-env", args, action, kernel, extraEnv),
+	) =>
+		ipcRenderer.invoke(
+			IPC_CHANNELS.EXEC_FUEL_WITH_ENV,
+			args,
+			action,
+			kernel,
+			extraEnv,
+		),
 	// 从renderer/ipc/index.ts迁移的方法
 	rendererLog: (type: "info" | "error" | "warning", msg: string) =>
-		ipcRenderer.invoke("do-renderer-log", type, msg),
+		ipcRenderer.invoke(IPC_CHANNELS.DO_RENDERER_LOG, type, msg),
 
 	// 账户相关
-	loadAccount: () => ipcRenderer.invoke("load-account"),
+	loadAccount: () => ipcRenderer.invoke(IPC_CHANNELS.LOAD_ACCOUNT),
 
 	// 状态查询
-	fetchRocketStatus: () => ipcRenderer.invoke("fetch-rocket-status"),
-	killRocket: () => ipcRenderer.invoke("kill-rocket"),
-	fetchFuelStatus: () => ipcRenderer.invoke("fuel-status"),
+	fetchRocketStatus: () => ipcRenderer.invoke(IPC_CHANNELS.FETCH_ROCKET_STATUS),
+	killRocket: () => ipcRenderer.invoke(IPC_CHANNELS.KILL_ROCKET),
+	fetchFuelStatus: () => ipcRenderer.invoke(IPC_CHANNELS.FUEL_STATUS),
 
 	// 产品状态
 	loadProductStatus: () =>
-		ipcRenderer.invoke("load-product-status") as Promise<
+		ipcRenderer.invoke(IPC_CHANNELS.LOAD_PRODUCT_STATUS) as Promise<
 			Partial<Record<string, any>>
 		>,
 
 	// 运行结果
 	getStrategyResultPath: (mode = "backtest") =>
-		ipcRenderer.invoke("strategy-result-path", mode),
+		ipcRenderer.invoke(IPC_CHANNELS.STRATEGY_RESULT_PATH, mode),
 
 	// 交易计划
-	getBuyInfoList: () => ipcRenderer.invoke("fetch_buy"),
-	getSellInfoList: () => ipcRenderer.invoke("fetch_sell"),
-	getBuyTimingInfoList: () => ipcRenderer.invoke("fetch_buy_timing"),
-	getSellTimingInfoList: () => ipcRenderer.invoke("fetch_sell_timing"),
+	getBuyInfoList: () => ipcRenderer.invoke(IPC_CHANNELS.FETCH_BUY),
+	getSellInfoList: () => ipcRenderer.invoke(IPC_CHANNELS.FETCH_SELL),
+	getBuyTimingInfoList: () => ipcRenderer.invoke(IPC_CHANNELS.FETCH_BUY_TIMING),
+	getSellTimingInfoList: () =>
+		ipcRenderer.invoke(IPC_CHANNELS.FETCH_SELL_TIMING),
 
 	// 数据库
-	checkDBFile: () => ipcRenderer.invoke("check-db-file"),
+	checkDBFile: () => ipcRenderer.invoke(IPC_CHANNELS.CHECK_DB_FILE),
 
 	// 实时数据（QMT 分钟数据）
 	execMinData: (mode: "fast" | "stable") =>
-		ipcRenderer.invoke("exec-min-data", mode) as Promise<{
+		ipcRenderer.invoke(IPC_CHANNELS.EXEC_MIN_DATA, mode) as Promise<{
 			code: number
 			message: string
 		}>,
 	execMinDataFuzzy: () =>
-		ipcRenderer.invoke("exec-min-data-fuzzy") as Promise<{
+		ipcRenderer.invoke(IPC_CHANNELS.EXEC_MIN_DATA_FUZZY) as Promise<{
 			code: number
 			message: string
 		}>,
@@ -80,7 +95,7 @@ export const dataIPC = {
 		runIndex?: number,
 	) =>
 		ipcRenderer.invoke(
-			"get-min-data-task-stats",
+			IPC_CHANNELS.GET_MIN_DATA_TASK_STATS,
 			tableType,
 			runDate,
 			runIndex,
@@ -104,7 +119,7 @@ export const dataIPC = {
 		},
 	) =>
 		ipcRenderer.invoke(
-			"get-min-data-task-status",
+			IPC_CHANNELS.GET_MIN_DATA_TASK_STATUS,
 			tableType,
 			params,
 		) as Promise<{
@@ -114,13 +129,14 @@ export const dataIPC = {
 		}>,
 
 	// 监控
-	fetchMonitorProcesses: () => ipcRenderer.invoke("fetch-monitor-processes"),
+	fetchMonitorProcesses: () =>
+		ipcRenderer.invoke(IPC_CHANNELS.FETCH_MONITOR_PROCESSES),
 
 	// 导入功能
 	parseCsvFile: (csvfileName = "最新选股结果", mode = "backtest") =>
-		ipcRenderer.invoke("parse-csv-file", csvfileName, mode),
+		ipcRenderer.invoke(IPC_CHANNELS.PARSE_CSV_FILE, csvfileName, mode),
 
-	// 下载进度监听
+	// 下载进度监听（payload-only），返回只移除本次订阅的退订函数
 	onDownloadProgress: (
 		callback: (progress: {
 			product_name: string
@@ -129,13 +145,13 @@ export const dataIPC = {
 			percent: number
 			bytesPerSecond: number
 		}) => void,
-	) => {
-		ipcRenderer.on("download-progress", (_event, progress) => {
-			console.log("[下载进度]", progress)
-			callback(progress)
-		})
-	},
-	removeDownloadProgressListener: () => {
-		ipcRenderer.removeAllListeners("download-progress")
-	},
+	): (() => void) =>
+		subscribeWithCleanup(
+			ipcRenderer,
+			IPC_CHANNELS.DOWNLOAD_PROGRESS,
+			(_event, progress) => {
+				console.log("[下载进度]", progress)
+				callback(progress)
+			},
+		),
 }

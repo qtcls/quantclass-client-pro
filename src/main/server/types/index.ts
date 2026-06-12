@@ -16,12 +16,7 @@ export interface IRes {
 	message: string | UpdateInfo
 	process?: ProgressInfo
 	code: number
-}
-
-export interface IApiResponse<T = any> {
-	code: number
-	message: string
-	data?: T
+	msgType?: "info" | "success" | "warning" | "error"
 }
 
 export interface Env {

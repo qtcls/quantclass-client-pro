@@ -26,13 +26,6 @@ import "./themes.css"
 
 dayjs.locale("zh-cn")
 
-// if (typeof window !== "undefined") {
-// 	scan({
-// 		enabled: true,
-// 		log: true, // logs render info to console (default: false)
-// 	})
-// }
-
 const container = document.getElementById("app")!
 const root = createRoot(container)
 

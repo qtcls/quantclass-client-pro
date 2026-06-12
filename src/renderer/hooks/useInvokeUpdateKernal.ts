@@ -30,8 +30,10 @@ export const useInvokeUpdateKernal = () => {
 		)
 		console.log(`Updating ${kernal} to version ${targetVersion}`)
 
+		let success = false
 		try {
 			const res = await updateKernal(kernal, targetVersion)
+			success = res.success
 			if (res.success) {
 				toast.success(`${kernal} 内核更新成功`, { id: toastId })
 			} else {
@@ -40,11 +42,12 @@ export const useInvokeUpdateKernal = () => {
 					description: res.error,
 				})
 			}
-		} catch (error) {
+		} catch {
 			toast.error(`${kernal} 内核更新失败`, { id: toastId })
 		} finally {
 			await refetchLocalVersions() // -- 更新后重新请求本地版本
 		}
-		return true
+		// -- 如实返回单内核更新结果（INV8：失败返回 false，供调用方聚合）
+		return success
 	}
 }

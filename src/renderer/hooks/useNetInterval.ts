@@ -10,11 +10,10 @@
 
 import { isUpdatingAtom } from "@/renderer/store"
 import { useAtomValue } from "jotai"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 
 export const useNetInterval = () => {
-	const [intervalId] = useState(null)
 	const isUpdating = useAtomValue(isUpdatingAtom)
 	const isUpdatingRef = useRef(isUpdating) // 定义一个引用
 
@@ -23,17 +22,15 @@ export const useNetInterval = () => {
 	}, [isUpdating])
 
 	useEffect(() => {
-		window.electronAPI.subscribeScheduleStatus((__e, status) => {
-			if (status === "outline") {
-				toast.dismiss()
-				toast.warning("网络连接已断开", { duration: 8 * 1000 })
-			}
-		})
+		const unsubscribe = window.electronAPI.subscribeScheduleStatus(
+			(__e, status) => {
+				if (status === "outline") {
+					toast.dismiss()
+					toast.warning("网络连接已断开", { duration: 8 * 1000 })
+				}
+			},
+		)
 
-		return () => {
-			if (intervalId) {
-				clearInterval(intervalId)
-			}
-		}
-	}, [intervalId])
+		return unsubscribe
+	}, [])
 }

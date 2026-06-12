@@ -101,14 +101,6 @@ const MonitorDialog: FC = () => {
 									))}
 								</div>
 							</div>
-
-							{/* <DataTable
-							data={data ?? []}
-							// maxWidth="450px"
-							columns={monitorColumns()}
-							loading={false}
-							pagination={false}
-						/> */}
 						</ScrollArea>
 					</DialogHeader>
 				</DialogContent>

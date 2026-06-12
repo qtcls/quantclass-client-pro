@@ -30,12 +30,6 @@ class RepoStore {
 		return this.listRecords().filter((r) => r.fid === fid)
 	}
 
-	hasSuccessBaseFolderByFid(fid: string, baseFolderName: string): boolean {
-		return this.listRecords().some(
-			(r) => r.fid === fid && r.success && r.folderName === baseFolderName,
-		)
-	}
-
 	appendRecord(record: RepoDownloadRecord): RepoDownloadRecord {
 		const records = this.listRecords()
 		records.push(record)

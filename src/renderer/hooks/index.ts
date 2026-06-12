@@ -13,7 +13,6 @@ import { useAuthUpdate } from "./useAuthUpdate"
 import { useCalcTotalWeight } from "./useCalcTotalWeight"
 import { useDataConsistencyCheckOnEnter } from "./useDataConsistencyCheckOnEnter"
 import { useDataSubscribed } from "./useDataSubscribed"
-import { useDataTable } from "./useDataTable"
 import { useGlobalValue } from "./useGlobalValue"
 import { useHandleTimeTask } from "./useHandleTimeTask"
 import { useLifeCycle } from "./useLifeCycle"
@@ -21,15 +20,10 @@ import { useMinDataSchedule } from "./useMinDataSchedule"
 import { useNetInterval } from "./useNetInterval"
 import { useNetworkToast } from "./useNetworkToast"
 import { usePermissionCheck } from "./usePermissionCheck"
-import { usePostUserAction } from "./usePostUserAction"
-import { useQueryVersion } from "./useQueryVersion"
 import { useRouterGuard } from "./useRouterGuard"
 import { useScheduleTimes } from "./useScheduleTimes"
-import { useShallowEffect } from "./useShallowEffect"
-import { useStepsTourModal } from "./useStepsTourModal"
 import { useStrategyOptions } from "./useStrategyOptions"
 import { useSystemOnline } from "./useSystemOnline"
-import { useToggle } from "./useToggle"
 import { useToggleAutoRealTrading } from "./useToggleAutoRealTrading"
 
 export {
@@ -37,7 +31,6 @@ export {
 	useAuthUpdate,
 	useCalcTotalWeight,
 	useDataConsistencyCheckOnEnter,
-	useDataTable,
 	useGlobalValue,
 	useHandleTimeTask,
 	useLifeCycle,
@@ -45,14 +38,9 @@ export {
 	useNetInterval,
 	useNetworkToast,
 	usePermissionCheck,
-	usePostUserAction,
-	useQueryVersion,
 	useRouterGuard,
-	useShallowEffect,
-	useStepsTourModal,
 	useStrategyOptions,
 	useSystemOnline,
-	useToggle,
 	useToggleAutoRealTrading,
 	useScheduleTimes,
 	useDataSubscribed,

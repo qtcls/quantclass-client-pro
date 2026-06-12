@@ -8,35 +8,35 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import { type OpenDialogOptions, ipcRenderer } from "electron"
 
 export const fileSysIPC = {
-	openUrl: (url: string) => ipcRenderer.send("open-url", url),
-	openDirectory: (path: string[]) => ipcRenderer.invoke("open-directory", path),
+	openUrl: (url: string) => ipcRenderer.send(IPC_CHANNELS.OPEN_URL, url),
+	openDirectory: (path: string[]) =>
+		ipcRenderer.invoke(IPC_CHANNELS.OPEN_DIRECTORY, path),
 	openDataDirectory: (path?: string[] | string) =>
-		ipcRenderer.invoke("open-data-directory", path),
+		ipcRenderer.invoke(IPC_CHANNELS.OPEN_DATA_DIRECTORY, path),
 	openUserDirectory: (path?: string[] | string) =>
-		ipcRenderer.invoke("open-user-directory", path),
-	getStoreValue: (key: string, defaultValue?: any) =>
-		ipcRenderer.invoke("get-store", key, defaultValue),
-	setStoreValue: (key: string, value: any) =>
-		ipcRenderer.invoke("set-store", key, value),
-	deleteStoreValue: (key: string) => ipcRenderer.invoke("delete-store", key),
+		ipcRenderer.invoke(IPC_CHANNELS.OPEN_USER_DIRECTORY, path),
+	// -- S4：get/set/deleteStoreValue 三元组改由 storeIPC 唯一提供
+	// --（原与 store 域双暴露同一频道，spread 后置者胜出，去重后行为等价）
 	createRealTradingDir: (dirName = "real_trading") =>
-		ipcRenderer.invoke("create-real-trading-dir", dirName),
+		ipcRenderer.invoke(IPC_CHANNELS.CREATE_REAL_TRADING_DIR, dirName),
 	selectDirectory: (
 		properties: OpenDialogOptions["properties"] = ["openDirectory"],
 		opts: OpenDialogOptions = {},
-	) => ipcRenderer.invoke("open-directory-select", properties, opts),
+	) => ipcRenderer.invoke(IPC_CHANNELS.OPEN_DIRECTORY_SELECT, properties, opts),
 	selectFile: (opts: OpenDialogOptions = {}) =>
-		ipcRenderer.invoke("open-directory-select", ["openFile"], opts),
+		ipcRenderer.invoke(IPC_CHANNELS.OPEN_DIRECTORY_SELECT, ["openFile"], opts),
 	importSelectStock: (configFilePath: string) =>
-		ipcRenderer.invoke("import-select-stock", configFilePath),
+		ipcRenderer.invoke(IPC_CHANNELS.IMPORT_SELECT_STOCK, configFilePath),
 	importFusion: (configFilePath: string) =>
-		ipcRenderer.invoke("import-fusion", configFilePath),
-	readChangelog: () => ipcRenderer.invoke("read-changelog"),
+		ipcRenderer.invoke(IPC_CHANNELS.IMPORT_FUSION, configFilePath),
+	readChangelog: () => ipcRenderer.invoke(IPC_CHANNELS.READ_CHANGELOG),
 	loadPositionJson: (filename: string) =>
-		ipcRenderer.invoke("load-position-json", filename),
-	deletePeriodOffset: () => ipcRenderer.invoke("delete-period-offset"),
-	clearFactorCache: () => ipcRenderer.invoke("clear-factor-cache"),
+		ipcRenderer.invoke(IPC_CHANNELS.LOAD_POSITION_JSON, filename),
+	deletePeriodOffset: () =>
+		ipcRenderer.invoke(IPC_CHANNELS.DELETE_PERIOD_OFFSET),
+	clearFactorCache: () => ipcRenderer.invoke(IPC_CHANNELS.CLEAR_FACTOR_CACHE),
 }

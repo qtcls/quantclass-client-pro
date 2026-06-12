@@ -15,6 +15,7 @@ import path from "node:path"
 import util from "node:util"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
+import { DEFAULT_SERVER_PORT, SERVER_PORT_KEY } from "@/shared/constants.js"
 import type { KernalType } from "@/shared/types/kernal.js"
 import { platform } from "@electron-toolkit/utils"
 import { serve } from "@hono/node-server"
@@ -119,7 +120,7 @@ const _isPidRunningUnix = (pid: string) => {
 	try {
 		execSync(`kill -0 ${pid}`)
 		return true
-	} catch (e) {
+	} catch {
 		return false
 	}
 }
@@ -400,16 +401,16 @@ export const killAllKernalByName = async (
 }
 
 /**
- * 在可用端口上启动服务器
+ * 在可用端口上启动服务器（仅绑定 IPv4 loopback 127.0.0.1，探测与绑定同地址）
  * @param initialPort - 初始尝试的端口号
  * @param server - 服务器实例
- * @returns Promise<number> 成功启动的端口号
+ * @returns Promise<number> 成功启动的端口号（真实 listening 之后才 resolve）
  */
 export const startServerOnAvailablePort = async (
 	initialPort: number,
 	server: any,
 ): Promise<number> => {
-	// -- 检查端口是否可用
+	// -- 检查端口是否可用（与实际绑定同为 127.0.0.1：仅 loopback 占用才触发退避）
 	const isPortAvailable = (port: number): Promise<boolean> => {
 		return new Promise((resolve) => {
 			const tester = net
@@ -418,18 +419,29 @@ export const startServerOnAvailablePort = async (
 				.once("listening", () => {
 					tester.once("close", () => resolve(true)).close()
 				})
-				.listen(port)
+				.listen(port, "127.0.0.1")
 		})
 	}
 
 	// -- 递归尝试启动服务器
 	const startServer = async (port: number): Promise<number> => {
 		if (await isPortAvailable(port)) {
-			serve({ fetch: server.fetch, port }, (info) => {
-				logger.info(`服务器正在监听 http://localhost:${info.port}`)
+			// -- 等到真实 listening 才 resolve：调用方写 server_port 必然后置于绑定成功；
+			// -- 启动期 bind 失败 reject 进调用方 catch（此前是无监听者的未捕获异常）。
+			// -- listening 后摘除启动期 error 监听器，运行期 error 行为保持与改前一致
+			await new Promise<void>((resolve, reject) => {
+				const onError = (error: Error) => reject(error)
+				const srv = serve(
+					{ fetch: server.fetch, hostname: "127.0.0.1", port },
+					(info) => {
+						srv.off("error", onError)
+						logger.info(`内核回调服务正在监听 127.0.0.1:${info.port}`)
+						resolve()
+					},
+				)
+				srv.once("error", onError)
 			})
 			// if (platform.isWindows) await startHeartbeatCheck()
-			logger.info("启动心跳检查")
 			return port
 		}
 		logger.warn(`端口 ${port} 不可用,尝试下一个端口`)
@@ -502,9 +514,12 @@ export async function checkDownloadLimit(
 
 export const sendErrorToClient = async (errorMessage: string) => {
 	try {
-		const server_port = await store.getValue("server_port", 8787)
+		const server_port = await store.getValue(
+			SERVER_PORT_KEY,
+			DEFAULT_SERVER_PORT,
+		)
 
-		await fetch(`http://localhost:${server_port}/error`, {
+		await fetch(`http://127.0.0.1:${server_port}/error`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({

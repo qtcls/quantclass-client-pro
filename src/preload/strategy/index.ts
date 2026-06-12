@@ -8,13 +8,14 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import { ipcRenderer } from "electron"
 
 export const strategyIPC = {
 	// 策略状态可视化
 	getStrategyStatus: (date: string) =>
-		ipcRenderer.invoke("get-strategy-status", date),
+		ipcRenderer.invoke(IPC_CHANNELS.GET_STRATEGY_STATUS, date),
 	// 个股择时可视化
 	getStockTimingView: (date: string) =>
-		ipcRenderer.invoke("get-stock-timing-view", date),
+		ipcRenderer.invoke(IPC_CHANNELS.GET_STOCK_TIMING_VIEW, date),
 }

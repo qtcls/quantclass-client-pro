@@ -19,6 +19,7 @@ import { postUserMainAction } from "@/main/request/index.js"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import type { AppVersions } from "@/shared/types/index.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
@@ -155,7 +156,7 @@ export async function downloadKernal(
 		const canDownload = await checkDownloadLimit(kernal, 16)
 		if (!canDownload) {
 			logger.warn(`[${kernal}] 内核今日下载次数已达上限`)
-			mainWindow?.webContents.send("report-msg", {
+			mainWindow?.webContents.send(IPC_CHANNELS.REPORT_MSG, {
 				code: 400,
 				message: "今日内核下载次数已达上限，请联系助教再试",
 			})
@@ -173,11 +174,6 @@ export async function downloadKernal(
 		}
 
 		const buffer = Buffer.from(await res.arrayBuffer())
-
-		// await Promise.all([
-		// 	writeFile(versionFileName, version),
-		// 	writeFile(kernalZipPath, buffer),
-		// ])
 
 		// 下载内核文件
 		await writeFile(kernalZipPath, buffer)
@@ -220,7 +216,7 @@ export async function downloadKernal(
 			await writeFile(versionFileName, version)
 		} catch (error) {
 			logger.error(`[${kernal}] 文件系统权限错误: ${error}`)
-			mainWindow?.webContents.send("report-msg", {
+			mainWindow?.webContents.send(IPC_CHANNELS.REPORT_MSG, {
 				code: 400,
 				message: `文件系统权限错误，内核下载失败: ${error}`,
 			})

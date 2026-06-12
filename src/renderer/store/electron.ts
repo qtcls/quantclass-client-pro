@@ -10,10 +10,7 @@
 
 import type { IDataListType } from "@/renderer/schemas/data-schema"
 import type { SettingsType } from "@/renderer/types"
-import type {
-	BlacklistItem,
-	RealMarketConfigType,
-} from "@/renderer/types/trading"
+import type { BlacklistItem } from "@/renderer/types/trading"
 import { atomWithElectronStore } from "@/renderer/utils/store"
 
 /**
@@ -58,33 +55,16 @@ export const scheduleTimesAtom = atomWithElectronStore<{
 })
 
 /**
- * 实盘配置
- * @deprecated 此atom已废弃，实盘配置 Dialog、表单与新逻辑请改用 `storage.ts` 中的 `realMarketConfigSchemaAtom`
- */
-export const realMarketConfigAtom = atomWithElectronStore<RealMarketConfigType>(
-	"real_market_config",
-	{
-		filter_kcb: true,
-		filter_cyb: true,
-		filter_bj: true,
-		performance_mode: "EQUAL",
-		date_start: new Date(new Date().setFullYear(new Date().getFullYear() - 3)),
-		qmt_path: "",
-		account_id: "",
-		qmt_port: "58610",
-		message_robot_url: "",
-		reverse_repo_keep: 1000,
-	},
-)
-
-/**
  * 自动初始化
  * 配置在列表中后，会自动初始化
+ *
+ * 注：实盘配置 `real_market_config` 的 @deprecated `realMarketConfigAtom` 已于 S2a 移除
+ * —— config.json 为唯一权威源，UI 投影为 `storage.ts` 的 `realMarketConfigSchemaAtom`
+ * （由 boot 水合 + saveRealMarketConfig ack 派生）。
  */
 export const autoInitAtoms = [
 	settingsAtom,
 	scheduleTimesAtom,
 	buyBlacklistAtom,
 	dataSubscribedAtom,
-	realMarketConfigAtom,
 ]

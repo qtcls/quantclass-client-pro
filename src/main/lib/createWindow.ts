@@ -18,7 +18,7 @@ import { postUserMainAction } from "@/main/request/index.js"
 import logger from "@/main/utils/wiston.js"
 import { is } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
-import { type Tray, app, dialog, ipcMain } from "electron"
+import { type Tray, app, dialog } from "electron"
 import Store from "electron-store"
 
 const { platform } = process
@@ -27,6 +27,36 @@ const store = new Store()
 
 let isQuitting = false // -- 添加一个标志来表示是否正在退出应用
 let isClosing = false
+
+// -- 在线时长埋点：模块级注册一次（createWindow 可能因 macOS activate 重建窗口被多次调用，挂在函数体内会累积重复 handler）
+app.on("before-quit", async () => {
+	try {
+		// -- 计算在线时长并发送埋点
+		const endTime = dayjs()
+		const _startTime = store.get("app.start_time", "") as string
+
+		if (_startTime) {
+			const startTime = dayjs(_startTime)
+			const duration = endTime.diff(startTime, "minute")
+
+			if (tokenStore.hasBothTokensInMemory()) {
+				await postUserMainAction({
+					role: "user",
+					action: `客户端在线时长: ${duration} 分钟`,
+				})
+				logger.info(`在线时长 ${duration} 分钟`)
+			}
+		}
+	} catch {
+		logger.error("在线时长计算失败")
+	}
+
+	// -- 删除内核更新锁文件
+	// await cleanLockFiles()
+
+	// stopHeartbeatCheck()
+	// app.quit()
+})
 
 export const createWindow = async (tray?: Tray): Promise<void> => {
 	windowManager.createWindow()
@@ -103,7 +133,7 @@ export const createWindow = async (tray?: Tray): Promise<void> => {
 				mainWindow?.hide()
 
 				if (platform === "darwin") {
-					app.dock.hide()
+					app.dock!.hide()
 				}
 			} finally {
 				isClosing = false // 重置关闭标志
@@ -116,42 +146,4 @@ export const createWindow = async (tray?: Tray): Promise<void> => {
 			app.quit()
 		})
 	})
-
-	app.on("before-quit", async () => {
-		try {
-			// -- 计算在线时长并发送埋点
-			const endTime = dayjs()
-			const _startTime = store.get("app.start_time", "") as string
-
-			if (_startTime) {
-				const startTime = dayjs(_startTime)
-				const duration = endTime.diff(startTime, "minute")
-
-				if (tokenStore.hasBothTokensInMemory()) {
-					await postUserMainAction({
-						role: "user",
-						action: `客户端在线时长: ${duration} 分钟`,
-					})
-					logger.info(`在线时长 ${duration} 分钟`)
-				}
-			}
-		} catch {
-			logger.error("在线时长计算失败")
-		}
-
-		// -- 删除内核更新锁文件
-		// await cleanLockFiles()
-
-		// stopHeartbeatCheck()
-		// app.quit()
-	})
-
-	ipcMain.on(
-		"log-error",
-		(_event, { message, source, lineno, colno, error }) => {
-			logger.error(
-				`message: ${message}, source: ${source}, lineno: ${lineno}, colno: ${colno}, error: ${error}`,
-			)
-		},
-	)
 }

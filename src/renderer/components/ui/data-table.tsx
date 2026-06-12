@@ -39,12 +39,10 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table"
-import { useVirtualizer } from "@tanstack/react-virtual"
 import { PrimitiveAtom, useAtom } from "jotai"
 import {
 	Dispatch,
 	FC,
-	Fragment,
 	SetStateAction,
 	useMemo,
 	useRef,
@@ -113,27 +111,23 @@ export function DataTable<TData, TValue>({
 	refresh,
 	classNames,
 	placeholder,
-	renderSubComponent,
 	atom = rowSelectionAtom,
 	getRowId,
 	title,
 	maxWidth,
 	_maxHeight = "calc(100vh - 21.5em)",
-	emptyText = "暂无数据",
 	loading = false,
 	pagination = true,
 	showSelectNum = false,
 	enableRowSelection = false,
-	enableRowSelectionWithRowClick = false,
 	checkboxDisabled,
 	getRowCanExpand = () => false,
 	actionOptions: ActionOptions,
 	titlePosition = "below-action",
-	enableVirtualization = false,
 	tableRef,
 	fixedWidth = false,
 }: DataTableProps<TData, TValue>) {
-	const { container, tableContainer, empty, _table, tableHeader } =
+	const { container, tableContainer, _table, tableHeader } =
 		classNames || {}
 	const [rowSelection, setRowSelection] = useAtom(atom)
 
@@ -192,22 +186,6 @@ export function DataTable<TData, TValue>({
 			? table.getPaginationRowModel().rows
 			: sortedAndFilteredRows
 	}, [table.getSortedRowModel(), table.getPaginationRowModel(), pagination])
-
-	const rowVirtualizer = useVirtualizer({
-		count: rows.length,
-		getScrollElement: () => finalTableRef.current,
-		estimateSize: () => 45,
-		overscan: 10,
-		enabled: enableVirtualization,
-	})
-
-	const totalSize = rowVirtualizer.getTotalSize()
-	const virtualRows = rowVirtualizer.getVirtualItems()
-	const paddingTop = virtualRows.length > 0 ? virtualRows?.[0]?.start || 0 : 0
-	const paddingBottom =
-		virtualRows.length > 0
-			? totalSize - (virtualRows?.[virtualRows.length - 1]?.end || 0)
-			: 0
 
 	if (typeof pagination === "object") {
 		const { pageIndex, pageSize } = table.getState().pagination

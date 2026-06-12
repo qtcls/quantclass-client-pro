@@ -20,6 +20,7 @@ import {
 	type NotificationLevel,
 	type NotificationSource,
 } from "@/shared/constants.js"
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import type {
 	ClientNotification,
 	NotificationListParams,
@@ -176,10 +177,10 @@ export async function createNotification(c: Context<Env>) {
 		const mainWindow = windowManager.getWindow()
 
 		// -- 始终推送一条 notification:new，前端用来更新未读数 / 列表
-		mainWindow?.webContents.send("notification:new", row)
+		mainWindow?.webContents.send(IPC_CHANNELS.NOTIFICATION_NEW, row)
 
 		if (body.silent !== true) {
-			mainWindow?.webContents.send("report-msg", {
+			mainWindow?.webContents.send(IPC_CHANNELS.REPORT_MSG, {
 				code: NOTIFICATION_REPORT_CODE,
 				msgType: body.level,
 				message: body.message,

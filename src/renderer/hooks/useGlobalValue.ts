@@ -12,42 +12,21 @@ import { isUpdatingAtom } from "@/renderer/store"
 import { whiteListQueryAtom } from "@/renderer/store/whitelist"
 import { useAtomValue, useSetAtom } from "jotai"
 import { useEffect } from "react"
-// import { onPythonOutPut, unPythonOutPutListener } from "../ipc/listener"
 
 const { sendUpdateStatus } = window.electronAPI
 
 export const useGlobalValue = () => {
 	const setIsUpdating = useSetAtom(isUpdatingAtom)
-	// const setPythonOutput = useSetAtom(fuelOutPutAtom)
 
 	useAtomValue(whiteListQueryAtom)
 
 	useEffect(() => {
-		// 移除监听, 防止重复监听
-		// unPythonOutPutListener()
-
-		// const handler = (output: string) => {
-		// 	setPythonOutput((currentOutput) => {
-		// 		// 拼接当前输出和新数据
-		// 		const updatedOutput = `${currentOutput}<br/>${output}`
-		// 		// 计算需要截取的起始位置
-		// 		const start = Math.max(0, updatedOutput.length - 50000)
-
-		// 		// 返回截取的字符串
-		// 		return updatedOutput.substring(start)
-		// 	})
-		// }
-
 		const handlerUpdateStatus = (_event: any, data: boolean) => {
 			setIsUpdating(data)
 		}
 
-		sendUpdateStatus(handlerUpdateStatus)
+		const unsubscribe = sendUpdateStatus(handlerUpdateStatus)
 
-		// onPythonOutPut(handler)
-
-		// return () => {
-		// 	unPythonOutPutListener()
-		// }
+		return unsubscribe
 	}, [])
 }

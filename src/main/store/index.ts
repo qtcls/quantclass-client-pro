@@ -28,7 +28,6 @@ export const ROCKET_STR_INFO_PATH = path.join(
 	app.getPath("userData"),
 	"real_market_25.json",
 )
-export const EXEC_FUEL_PATH = path.join(app.getPath("userData"), "fuel")
 
 const setValue = (key: string, value: any) => {
 	store.set(key, value)

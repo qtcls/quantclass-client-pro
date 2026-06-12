@@ -1,5 +1,3 @@
-import dayjs from "dayjs"
-
 const escapeHtml = (unsafe: string) => {
 	return unsafe
 		.replace(/&/g, "&amp;")
@@ -46,8 +44,3 @@ export const processLogUpdate = (
 
 	return updatedOutput
 }
-
-export const createTimestampHeader = () =>
-	`<span class="block text-center text-muted-foreground mb-1">-----${dayjs().format(
-		"YYYY-MM-DD HH:mm:ss",
-	)}-----</span>`

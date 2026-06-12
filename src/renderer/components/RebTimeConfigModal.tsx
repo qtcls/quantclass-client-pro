@@ -33,6 +33,8 @@ import type {
 	SelectStgType,
 } from "@/renderer/types/strategy"
 import { generateNonStrategySelectStrategyConfig } from "@/renderer/utils"
+import { buildRealMarketData } from "@/renderer/utils/real-market-data"
+import { formatRebTimeDisplay } from "@/renderer/utils/time"
 import {
 	regenerateRebTime,
 	saveStrategyList,
@@ -43,22 +45,11 @@ import { Clock, InfoIcon, RefreshCw } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
-const { saveRealMarketData, cleanRealMarketData, checkKernalRunning } =
-	window.electronAPI
+const { saveRealMarketData, checkKernalRunning } = window.electronAPI
 
 interface RebTimeConfigModalProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
-}
-
-const formatTimeValue = (
-	time: { hour: number; minute: number; second?: number } | undefined,
-): string => {
-	if (!time) return "--:--:--"
-	const hour = time.hour.toString().padStart(2, "0")
-	const minute = time.minute.toString().padStart(2, "0")
-	const second = (time.second ?? 0).toString().padStart(2, "0")
-	return `${hour}:${minute}:${second}`
 }
 
 function RebTimeConfigBody() {
@@ -120,16 +111,14 @@ function RebTimeConfigBody() {
 			setSelectStgDict(selectStgDict)
 			setRebTimeConfig(finalRebTimeConfig)
 
-			const parsedData: Record<string, any> = {}
-			Object.entries({
-				...(selectStgDict ?? {}),
-				非策略选股: NON_STRATEGY_CONFIG,
-			}).forEach(([key, value], index) => {
-				parsedData[`strategy_${index}`] = { ...(value ?? {}), name: key }
-			})
-			const strategyKeys = Object.keys(parsedData)
-			await cleanRealMarketData(strategyKeys)
-			await saveRealMarketData(parsedData)
+			// -- S2b：共用纯构造 + 原子全量替换落盘（去独立 clean）；落盘失败不报成功 toast
+			const parsedData = buildRealMarketData(selectStgDict, NON_STRATEGY_CONFIG)
+			const ack = await saveRealMarketData(parsedData)
+			if (!ack.ok) {
+				console.error("[reb-time] real_market_25.json 落盘失败", ack.error)
+				toast.error("换仓时间已更新，但保存到实盘配置失败，请重试")
+				return
+			}
 
 			toast.success(`已重新生成 "${rebTime}" 的换仓时间`)
 		} catch (error) {
@@ -181,7 +170,7 @@ function RebTimeConfigBody() {
 										卖出时间:
 									</span>
 									<span className="font-mono text-sm bg-muted px-2 py-1 rounded">
-										{formatTimeValue(config.sell_time)}
+										{formatRebTimeDisplay(config.sell_time)}
 									</span>
 								</div>
 								<div className="flex items-center gap-2">
@@ -189,7 +178,7 @@ function RebTimeConfigBody() {
 										买入时间:
 									</span>
 									<span className="font-mono text-sm bg-muted px-2 py-1 rounded">
-										{formatTimeValue(config.buy_time)}
+										{formatRebTimeDisplay(config.buy_time)}
 									</span>
 								</div>
 							</div>

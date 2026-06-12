@@ -27,12 +27,16 @@ import { useHandleTimeTask, useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useAppVersions } from "@/renderer/hooks/useAppVersion"
 import { useInvokeUpdateKernal } from "@/renderer/hooks/useInvokeUpdateKernal"
 import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
-import { useRealMarketConfig } from "@/renderer/hooks/useRealMarketConfig"
+import { useSaveRealMarketConfig } from "@/renderer/hooks/useSaveRealMarketConfig"
 import { useSettings } from "@/renderer/hooks/useSettings"
 import { useVersionCheck } from "@/renderer/hooks/useVersionCheck"
 import { cn } from "@/renderer/lib/utils"
 import Contributors from "@/renderer/page/settings/contributors"
-import { isAutoLoginAtom, versionListAtom } from "@/renderer/store/storage"
+import {
+	isAutoLoginAtom,
+	realMarketConfigSchemaAtom,
+	versionListAtom,
+} from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
 import type { SettingsType } from "@/renderer/types"
@@ -79,7 +83,27 @@ export default function SettingsPage() {
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading() // 自动交易控制
 
 	const { settings, updateSettings, isFusionMode } = useSettings()
-	const { realMarketConfig, setPerformanceMode } = useRealMarketConfig()
+	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
+	const saveRealMarketConfig = useSaveRealMarketConfig()
+	// -- S2a：选股性能模式（real_market_config 一员）经唯一权威 hook 单字段 merge 落盘。
+	// -- INV-S2-4：成功 ack 后才弹成功 toast（选择控件传 showToast=false 关掉无条件成功提示，
+	// -- 并受控 value 反映权威 atom）；失败（含 rocket 忙）由 hook toast.error、不更新 UI。
+	const handleSelectPerformanceMode = async (value: string) => {
+		if (!isMember) return
+		const labels: Record<string, string> = {
+			ECONOMY: "经济",
+			EQUAL: "均衡",
+			PERFORMANCE: "性能",
+		}
+		if (
+			await saveRealMarketConfig(
+				{ performance_mode: value as "EQUAL" | "PERFORMANCE" | "ECONOMY" },
+				"修改性能模式",
+			)
+		) {
+			toast.success(`选股性能模式设置为${labels[value] ?? value}`)
+		}
+	}
 	const isAutoLaunchRealTrading = useMemo(() => {
 		return settings.is_auto_launch_real_trading
 	}, [settings.is_auto_launch_real_trading])
@@ -189,18 +213,26 @@ export default function SettingsPage() {
 				// -- 更新前强制杀死所有内核
 				await killAllKernals(true)
 
-				// -- 更新内核
+				// -- 更新内核（INV8：仅当每个内核都成功才报「更新完成」）
+				let allOk = true
 				for (const kernal of [
 					"fuel",
 					isFusionMode ? "zeus" : "aqua",
 					"rocket",
 				]) {
-					await invokeUpdateKernal(kernal as KernalType)
+					const ok = await invokeUpdateKernal(kernal as KernalType)
+					if (!ok) allOk = false
 				}
 				await refetchLocalVersions()
-				toast.success("内核更新完成", {
-					duration: 4 * 1000,
-				})
+				if (allOk) {
+					toast.success("内核更新完成", {
+						duration: 4 * 1000,
+					})
+				} else {
+					toast.warning("部分内核更新失败，请重试或查看日志", {
+						duration: 4 * 1000,
+					})
+				}
 			},
 		})
 	}
@@ -397,10 +429,9 @@ export default function SettingsPage() {
 						<PerformanceModeSelectTabs
 							name="选股"
 							defaultValue={realMarketConfig.performance_mode || "EQUAL"}
-							onValueChange={(value) => {
-								if (!isMember) return
-								setPerformanceMode(value)
-							}}
+							value={realMarketConfig.performance_mode || "EQUAL"}
+							showToast={false}
+							onValueChange={handleSelectPerformanceMode}
 						/>
 					</div>
 				</div>

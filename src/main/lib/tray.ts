@@ -16,7 +16,7 @@ import MacTray from "/build/XBX-bar.png?asset"
 import WinTray from "/build/icon.ico?asset"
 
 export function createTray() {
-	const mw = windowManager.getWindow()
+	// -- 点击时惰性取窗：tray 先于主窗口创建，创建期捕获只会拿到 null
 	let imgPath: string | NativeImage = ""
 
 	if (is.dev) {
@@ -43,7 +43,7 @@ export function createTray() {
 			role: "unhide",
 			type: "normal",
 			click: () => {
-				mw?.show()
+				windowManager.getLiveWindow()?.show()
 			},
 		},
 		{
@@ -52,7 +52,7 @@ export function createTray() {
 			accelerator: "CmdOrCtrl+Q",
 			click: () => {
 				tray.destroy()
-				mw?.destroy()
+				windowManager.getLiveWindow()?.destroy()
 				app.quit()
 			},
 		},
@@ -62,7 +62,7 @@ export function createTray() {
 	tray.setContextMenu(contextMenu)
 
 	tray.on("double-click", () => {
-		mw?.show()
+		windowManager.getLiveWindow()?.show()
 	})
 
 	return tray

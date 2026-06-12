@@ -38,7 +38,7 @@ export async function getKernelVersion(kernal = "fuel") {
 			return "暂无内核"
 		}
 		return ymlFile.replace(".yml", "")
-	} catch (error) {
+	} catch {
 		return "暂无内核"
 	}
 }
@@ -63,7 +63,7 @@ export async function getAppAndKernalVersions() {
 			zeusVersion,
 			rocketVersion,
 		}
-	} catch (error) {
+	} catch {
 		const { version } = PACKAGE_INFO
 
 		return {

@@ -12,12 +12,6 @@ import { DATA_TAB_NAME } from "@/renderer/constant"
 import dayjs from "dayjs"
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
-interface RecordType {
-	key: string
-	title: string
-	fullData: string
-	description: string
-}
 
 export const isShowSpotlightAtom = atom(false)
 
@@ -48,23 +42,7 @@ export const csvFileNameAtom = atom("最新选股结果")
 
 export const stepAtom = atom(0)
 
-export const sizeAtom = atom(75)
-
 export const rowSelectionAtom = atom<Record<string, boolean>>({})
-
-export const kanbanRowSelectionAtom = atom<Record<string, boolean>>({})
-
-export const transferAtom = atom<RecordType[]>([])
-
-export const remoteVersionAtom = atom<string>("")
-
-export const downloadLinkAtom = atom<string>("")
-
-export const settingDataKeysAtom = atom<any[]>([])
-
-export const strategyAtom = atom<any[]>([])
-
-export const hasNetworkAtom = atom<boolean>(true)
 
 export const isShowMonitorPanelAtom = atom<boolean>(false)
 
@@ -74,11 +52,7 @@ export const activeTabAtom = atom<string>(DATA_TAB_NAME)
 
 export const loadingAnimeAtom = atom<boolean>(false)
 
-export const realTradingTabAtom = atom<string>("tradingPlan")
-
 export const errAlertAtom = atom<boolean>(false)
-
-export const terminalTabAtom = atom<string>("fuel")
 
 export const realConfigEditModalAtom = atom<boolean>(false) // 实盘配置页面的modal
 

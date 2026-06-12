@@ -52,10 +52,6 @@ export function useProductList() {
 	 * 根据API返回值、本地的数据状态、白名单的数据列表，返回一个产品信息列表
 	 */
 	const productList = useMemo(() => {
-		// console.log("api:", apiProductList)
-		// console.log("local:", localProductList)
-		// console.log("config:", dataSubscribedNameList)
-
 		// 过滤出符合白名单的产品信息
 		const filteredProductInfoList = subscribedApiProductList.map((item) => ({
 			...item,

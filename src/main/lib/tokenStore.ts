@@ -12,6 +12,7 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL } from "@/main/vars.js"
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import type {
 	AccessTokenJwtPayload,
 	AccessTokenStorage,
@@ -40,7 +41,7 @@ const resolveFilePath = (): string =>
 export const broadcastAuthSessionInvalid = (): void => {
 	for (const win of BrowserWindow.getAllWindows()) {
 		if (!win.isDestroyed()) {
-			win.webContents.send("auth:session-invalid")
+			win.webContents.send(IPC_CHANNELS.AUTH_SESSION_INVALID)
 		}
 	}
 }

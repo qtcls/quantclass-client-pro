@@ -77,10 +77,6 @@ const EditableNumberCell: FC<EditableNumberCellProps> = ({
 			toast.dismiss()
 			toast.warning("资金占比输入错误，已自动调整为 0%")
 			newValue = 0
-			// setInputValue("0")
-			// onChange(0)
-			// setTotalWeight((prevTotal) => prevTotal - value + 1)
-			// return
 		}
 
 		if (newValue !== value) {

@@ -9,6 +9,7 @@
  */
 import type { RealMarketConfigSchema } from "@/renderer/page/trading/config-form"
 import type { RebTimeConfig, SelectStgType } from "@/renderer/types/strategy"
+import { decodeToUi } from "@/shared/lib/real-market-config-codec"
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import type { z } from "zod"
@@ -50,21 +51,6 @@ export const totalWeightAtom = atomWithStorage<number>(
 export const statusExpiresAtom = atomWithStorage<string>(
 	"statusExpires",
 	"",
-	undefined,
-	{ getOnInit: true },
-)
-
-export const isAutoLaunchUpdateAtom = atomWithStorage<boolean>(
-	"isAutoLaunchUpdate",
-	false,
-	undefined,
-	{ getOnInit: true },
-)
-
-// 策略选择，疑似为是否之前是否实盘的逻辑，目前已经废弃，需要逐步替换。2025-02-25 14:46:16
-export const stgSelectionAtom = atomWithStorage<Record<string, boolean>>(
-	"strategySelection",
-	{},
 	undefined,
 	{ getOnInit: true },
 )
@@ -124,14 +110,6 @@ export const accountKeyAtom = atomWithStorage<{
 	{ getOnInit: true },
 )
 
-// 0: 路人
-// 1: 基础课程学生
-// 2: 分享会学生
-// export const accountRoleAtom = atomWithStorage<{
-// 	msg: string
-// 	role: 0 | 1 | 2
-// }>("accountRole", { msg: "NONE", role: 0 }, undefined, { getOnInit: true })
-
 export const isAutoLoginAtom = atomWithStorage<boolean>(
 	"isAutoLogin",
 	true,
@@ -146,26 +124,17 @@ export const isAutoLoginAtom = atomWithStorage<boolean>(
 // 	{ getOnInit: true },
 // )
 
-export const realMarketConfigSchemaAtom = atomWithStorage<
+// -- S2a：实盘配置 UI 投影（纯内存，单一权威源为 config.json）。
+// -- 不再用 atomWithStorage 平行持久化（消除"两持久化 key、两编码"的静默分叉）；
+// -- 由 useLifeCycle boot 与 saveRealMarketConfig 的 ack 从 config.json 经 decodeToUi 水合。
+// -- 初值由 codec 默认派生（decodeToUi(undefined)），避免默认值在 atom 与 codec 两处漂移。
+export const realMarketConfigSchemaAtom = atom<
 	Partial<z.infer<typeof RealMarketConfigSchema>>
->(
-	"realMarketConfig",
-	{
-		qmt_path: "",
-		account_id: "",
-		qmt_port: "58610",
-		message_robot_url: "",
-		filter_kcb: "1",
-		filter_cyb: "1",
-		filter_bj: "1",
-		performance_mode: "EQUAL",
-		use_fuzzy: "1",
-		use_open_sell: "0",
-		date_start: new Date(new Date().setFullYear(new Date().getFullYear() - 3)),
-	},
-	undefined,
-	{ getOnInit: true },
-)
+>(decodeToUi(undefined))
+
+// -- S2a：config.json → schema atom 水合完成标志。
+// -- 水合前实盘配置仅为内存默认值，禁止保存/启动实盘（fail-closed，避免用默认值覆盖 config.json）。
+export const configHydratedAtom = atom(false)
 
 export const showMoneyAtom = atomWithStorage<boolean>(
 	"showMoney",

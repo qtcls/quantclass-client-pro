@@ -40,6 +40,10 @@ asarUnpack:
   - resources/**
 releaseInfo:
   releaseNotesFile: CHANGELOG.md
+publish:
+  provider: github
+  owner: Rogers-F
+  repo: quantclass-client-pro-H
 win:
   executableName: quantclass
 nsis:

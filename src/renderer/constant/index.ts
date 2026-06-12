@@ -8,7 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { NOTIFICATION_REPORT_CODE } from "@/shared/constants"
+import { MSG_CODE, NOTIFICATION_REPORT_CODE } from "@/shared/constants"
 
 export * from "./contributors"
 
@@ -68,9 +68,11 @@ export const RESEARCH_SECTION_PAGE = [
 
 export const TRADING_MAIN_PAGE = STRATEGY_LIBRARY_PAGE
 
-// -- 选股 config
-export const SELECT_STOCK_STRATEGY_CONFIG = "select_stock"
-export const POS_MGMT_STRATEGY_CONFIG = "pos_mgmt"
+// -- 选股 config（单源在 shared/constants，此处转出供 renderer 既有 import 路径使用）
+export {
+	POS_MGMT_STRATEGY_CONFIG,
+	SELECT_STOCK_STRATEGY_CONFIG,
+} from "@/shared/constants"
 
 export const DATA_TAB_NAME = "data"
 export const REAL_TRADING_TAB_NAME = "real_trading"
@@ -79,23 +81,10 @@ export const RESEARCH_TAB_NAME = "research"
 // BASE_URL 已移至环境变量 VITE_BASE_URL，请直接使用 import.meta.env.VITE_BASE_URL
 
 export const isWindows = window.electron.process.platform === "win32"
-export const { ipcRenderer: _ipcRenderer } = window.electron
 
+// -- 500-700 段单源在 shared/constants 的 MSG_CODE；renderer 侧追加 NOTIFICATION
 export const RENDERER_MSG_CODE = {
-	// 更新通知
-	UPDATE_NOTICE: 500,
-	// 更新不可用/已是最新
-	UPDATE_NOT_AVAILABLE: 501,
-	// 安装失败
-	UPDATE_INSTALL_FAILED: 502,
-	// 更新下载完毕，提示安装更新
-	UPDATE_DOWNLOAD_FINISH: 503,
-	// 回测使用代码
-	BACKTEST_CODE: 504,
-	// 计算交易计划
-	CALC_TRADING_PLAN: 600,
-	// Real Trading 正在运行中
-	REAL_TRADING_RUNNING: 700,
+	...MSG_CODE,
 	// 内核通知（来自 POST /notify）
 	NOTIFICATION: NOTIFICATION_REPORT_CODE,
 }

@@ -227,18 +227,6 @@ export const RealMarketKanban = () => {
 
 				{/* <div className="flex items-center gap-2"></div> */}
 
-				{/* {libraryType !== "pos" && (
-					<Card className="p-0">
-						<CardContent className="p-2">
-							<FinPieChart
-								withTitle={false}
-								totalCap={data?.总资产 ?? -1}
-								availCap={data?.可用资金 ?? -1}
-							/>
-						</CardContent>
-					</Card>
-				)} */}
-
 				<StatusTimeline />
 				<StockTimingView />
 				<div className="space-y-1">

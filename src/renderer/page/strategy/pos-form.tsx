@@ -24,6 +24,7 @@ import { Input as InputUI } from "@/renderer/components/ui/input"
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { rebTimeConfigAtom } from "@/renderer/store/storage"
 import type { PosStrategyType } from "@/renderer/types/strategy"
+import { formatRebTimeDisplay } from "@/renderer/utils/time"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useAtomValue } from "jotai"
 import { Biohazard, CircleHelp, Loader, Shuffle } from "lucide-react"
@@ -31,16 +32,6 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
-
-function formatRebTimeDisplay(
-	time: { hour: number; minute: number; second?: number } | undefined,
-): string {
-	if (!time) return "--:--:--"
-	const hour = time.hour.toString().padStart(2, "0")
-	const minute = time.minute.toString().padStart(2, "0")
-	const second = (time.second ?? 0).toString().padStart(2, "0")
-	return `${hour}:${minute}:${second}`
-}
 
 const schema = z.object({
 	split_order_amount: z.union([z.number(), z.string()]).refine(

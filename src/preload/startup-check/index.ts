@@ -8,7 +8,9 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import type { StartupCheckResult } from "@/preload/startup-check/startup-check-ipc.js"
+// -- S4：类型直指真源（type-only，preload 对 @/main 不引入运行时依赖）
+import type { StartupCheckResult } from "@/main/lib/startup-check/network-qmt.js"
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin.js"
 import type {
 	DataConsistencyActionResult,
@@ -24,30 +26,34 @@ export type {
 
 export const startupCheckIPC = {
 	checkStartupNetwork: () =>
-		ipcRenderer.invoke("startup-check:network") as Promise<StartupCheckResult>,
+		ipcRenderer.invoke(
+			IPC_CHANNELS.STARTUP_CHECK_NETWORK,
+		) as Promise<StartupCheckResult>,
 	checkStartupQmtConnect: () =>
-		ipcRenderer.invoke("startup-check:qmt") as Promise<StartupCheckResult>,
+		ipcRenderer.invoke(
+			IPC_CHANNELS.STARTUP_CHECK_QMT,
+		) as Promise<StartupCheckResult>,
 	checkDataConsistencyAnalyze: () =>
 		ipcRenderer.invoke(
-			"startup-check:data:analyze",
+			IPC_CHANNELS.STARTUP_CHECK_DATA_ANALYZE,
 		) as Promise<DataConsistencyReport>,
 	checkDataConsistencyAlign: (report: DataConsistencyReport) =>
 		ipcRenderer.invoke(
-			"startup-check:data:align",
+			IPC_CHANNELS.STARTUP_CHECK_DATA_ALIGN,
 			report,
 		) as Promise<DataConsistencyActionResult>,
 	getDataRecycleBin: () =>
 		ipcRenderer.invoke(
-			"startup-check:data:recycle-bin:list",
+			IPC_CHANNELS.STARTUP_CHECK_DATA_RECYCLE_BIN_LIST,
 		) as Promise<DataRecycleBinEntry[]>,
 	removeDataRecycleBinItems: (names: string[]) =>
 		ipcRenderer.invoke(
-			"startup-check:data:recycle-bin:remove",
+			IPC_CHANNELS.STARTUP_CHECK_DATA_RECYCLE_BIN_REMOVE,
 			names,
 		) as Promise<DataConsistencyActionResult>,
 	purgeDataRecycleBinItems: (names: string[]) =>
 		ipcRenderer.invoke(
-			"startup-check:data:recycle-bin:purge",
+			IPC_CHANNELS.STARTUP_CHECK_DATA_RECYCLE_BIN_PURGE,
 			names,
 		) as Promise<DataConsistencyActionResult>,
 }

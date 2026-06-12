@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import type {
 	RepoApiType,
 	RepoDeleteResult,
@@ -18,28 +19,18 @@ import { ipcRenderer } from "electron"
 
 export const repoIPC = {
 	listRepoRecords: (): Promise<RepoDownloadRecord[]> =>
-		ipcRenderer.invoke("repo:list-records"),
+		ipcRenderer.invoke(IPC_CHANNELS.REPO_LIST_RECORDS),
 
 	appendRepoRecord: (
 		record: RepoDownloadRecord,
 	): Promise<RepoDownloadRecord | null> =>
-		ipcRenderer.invoke("repo:append-record", record),
+		ipcRenderer.invoke(IPC_CHANNELS.REPO_APPEND_RECORD, record),
 
 	updateRepoRecord: (
 		ticket: string,
 		patch: Partial<RepoDownloadRecord>,
 	): Promise<RepoDownloadRecord | null> =>
-		ipcRenderer.invoke("repo:update-record", ticket, patch),
-
-	hasRepoSuccessBaseFolderByFid: (
-		fid: string,
-		baseFolderName: string,
-	): Promise<boolean> =>
-		ipcRenderer.invoke(
-			"repo:has-success-base-folder-by-fid",
-			fid,
-			baseFolderName,
-		),
+		ipcRenderer.invoke(IPC_CHANNELS.REPO_UPDATE_RECORD, ticket, patch),
 
 	downloadAndExtractRepo: (args: {
 		link: string
@@ -47,8 +38,8 @@ export const repoIPC = {
 		versionName: string
 		overwrite?: boolean
 	}): Promise<RepoDownloadResult> =>
-		ipcRenderer.invoke("repo:download-and-extract", args),
+		ipcRenderer.invoke(IPC_CHANNELS.REPO_DOWNLOAD_AND_EXTRACT, args),
 
 	deleteRepoDownload: (ticket: string): Promise<RepoDeleteResult> =>
-		ipcRenderer.invoke("repo:delete-record", ticket),
+		ipcRenderer.invoke(IPC_CHANNELS.REPO_DELETE_RECORD, ticket),
 }

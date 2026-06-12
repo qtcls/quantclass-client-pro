@@ -29,6 +29,7 @@ import type {
 } from "@/renderer/page/strategy/types"
 import { SelectStgFormSchema } from "@/renderer/schemas/strategy"
 import { rebTimeConfigAtom } from "@/renderer/store/storage"
+import { formatRebTimeDisplay } from "@/renderer/utils/time"
 import { Input } from "@heroui/input"
 import { Select, SelectItem, SelectSection } from "@heroui/select"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -59,16 +60,6 @@ import {
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-
-function formatRebTimeDisplay(
-	time: { hour: number; minute: number; second?: number } | undefined,
-): string {
-	if (!time) return "--:--:--"
-	const hour = time.hour.toString().padStart(2, "0")
-	const minute = time.minute.toString().padStart(2, "0")
-	const second = (time.second ?? 0).toString().padStart(2, "0")
-	return `${hour}:${minute}:${second}`
-}
 
 export function SelectStgForm({
 	defaultValues,
@@ -816,7 +807,7 @@ export function SelectStgForm({
 										</FormLabel>
 										<Separator />
 										<div className="px-4">
-											{field.value?.length > 0 ? (
+											{(field.value?.length ?? 0) > 0 ? (
 												<Accordion type="multiple" className="w-full pb-4">
 													{field.value?.map((crossItem, index) => (
 														<AccordionItem key={index} value={`cross-${index}`}>

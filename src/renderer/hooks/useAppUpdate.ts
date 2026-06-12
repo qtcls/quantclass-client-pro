@@ -8,12 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { _ipcRenderer } from "@/renderer/constant"
 import { UpdateStatus, useUpdate } from "@/renderer/context/update-context"
-import {
-	onUpdateProgress,
-	unUpdateProgressListener,
-} from "@/renderer/ipc/listener"
 import { useEffect } from "react"
 
 export const useAppUpdate = () => {
@@ -28,13 +23,13 @@ export const useAppUpdate = () => {
 
 	const confirmCallback = (option: boolean) => {
 		if (option) {
-			_ipcRenderer.send("app-updater-confirm", option)
+			window.electronAPI.appUpdaterConfirm(option)
 			setStatus(UpdateStatus.Waiting)
 		}
 	}
 
 	useEffect(() => {
-		onUpdateProgress((progress) => {
+		const unsubscribe = window.electronAPI.onUpdateProgress((progress) => {
 			if (status === UpdateStatus.Waiting) {
 				setStatus(UpdateStatus.Downloading)
 			}
@@ -44,9 +39,7 @@ export const useAppUpdate = () => {
 			setProgress(progress)
 		})
 
-		return () => {
-			unUpdateProgressListener()
-		}
+		return unsubscribe
 	}, [status])
 
 	return {

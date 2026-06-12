@@ -13,24 +13,28 @@ import { StrategyTableActionOptions } from "@/renderer/components/ui/strategy-ta
 import { H2 } from "@/renderer/components/ui/typography"
 import { strategyColumns } from "@/renderer/page/subscription/stg-column"
 import { strategyListQueryAtom } from "@/renderer/store/query"
-import { useMount } from "etc-hooks"
+import { useMount, useUnmount } from "etc-hooks"
 import { useAtom } from "jotai"
-import type { FC } from "react"
+import { type FC, useRef } from "react"
 
 const { subscribeScheduleStatus } = window.electronAPI
 
 const StrategySubscription: FC = () => {
 	const [{ data, isLoading, refetch }] = useAtom(strategyListQueryAtom)
+	const unsubscribeRef = useRef<(() => void) | null>(null)
 
 	useMount(() => {
-		subscribeScheduleStatus((_event, status) => {
+		unsubscribeRef.current = subscribeScheduleStatus((_event, status) => {
 			if (status === "done") {
 				refetch()
 			}
 		})
 	})
 
-	// useUnmount(() => unSubscribeSendScheduleStatusListener())
+	useUnmount(() => {
+		unsubscribeRef.current?.()
+		unsubscribeRef.current = null
+	})
 
 	return (
 		<div className="h-full flex-1 flex-col space-y-8 md:flex">

@@ -8,7 +8,9 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import type { RealTradingBackupConfigPayload } from "@/preload/real-trading-backup/real-trading-backup-ipc.js"
+// -- S4：类型直指真源（type-only，preload 对 @/main 不引入运行时依赖）
+import type { RealTradingBackupConfigPayload } from "@/main/lib/real-trading-backup.js"
+import { IPC_CHANNELS } from "@/shared/ipc-channels.js"
 import { ipcRenderer } from "electron"
 
 export interface RealTradingBackupRunResult {
@@ -21,11 +23,11 @@ export interface RealTradingBackupRunResult {
 export const realTradingBackupIPC = {
 	getRealTradingBackupConfig: () =>
 		ipcRenderer.invoke(
-			"real-trading-backup:get-config",
+			IPC_CHANNELS.REAL_TRADING_BACKUP_GET_CONFIG,
 		) as Promise<RealTradingBackupConfigPayload>,
 	setRealTradingBackupDailyTime: (timeHHmm: string) =>
 		ipcRenderer.invoke(
-			"real-trading-backup:set-daily-time",
+			IPC_CHANNELS.REAL_TRADING_BACKUP_SET_DAILY_TIME,
 			timeHHmm,
 		) as Promise<{
 			ok: boolean
@@ -33,11 +35,11 @@ export const realTradingBackupIPC = {
 		}>,
 	setRealTradingBackupEnabled: (enabled: boolean) =>
 		ipcRenderer.invoke(
-			"real-trading-backup:set-enabled",
+			IPC_CHANNELS.REAL_TRADING_BACKUP_SET_ENABLED,
 			enabled,
 		) as Promise<{ ok: true }>,
 	runRealTradingBackupNow: () =>
 		ipcRenderer.invoke(
-			"real-trading-backup:run-now",
+			IPC_CHANNELS.REAL_TRADING_BACKUP_RUN_NOW,
 		) as Promise<RealTradingBackupRunResult>,
 }

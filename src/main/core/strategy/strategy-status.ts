@@ -12,6 +12,8 @@ import { getJsonDataFromFile } from "@/main/core/dataList.js"
 import store, { rStore } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { ROCKET_STATS_PATH, SELECT_STATS_PATH } from "@/main/vars.js"
+import { LIBRARY_TYPE } from "@/shared/constants.js"
+import { getLocalCalendarYmd } from "@/shared/lib/trading-day.js"
 import type {
 	StrategyStatus,
 	StrategyStatusStat,
@@ -83,7 +85,7 @@ async function readStatsFromJson(
 		})
 
 		return stats
-	} catch (error) {
+	} catch {
 		return []
 	}
 }
@@ -114,10 +116,7 @@ function getPreviousDay(date: string): string {
 		base.getMonth(),
 		base.getDate() - 1,
 	)
-	const year = previous.getFullYear()
-	const month = String(previous.getMonth() + 1).padStart(2, "0")
-	const day = String(previous.getDate()).padStart(2, "0")
-	return `${year}-${month}-${day}`
+	return getLocalCalendarYmd(previous)
 }
 
 // 获取策略的 timing 和 override 最晚时间
@@ -717,10 +716,7 @@ export async function getStrategyStatusList(
 	date: string,
 ): Promise<StrategyStatus[][]> {
 	try {
-		const libraryType = (await store.getValue(
-			"settings.libraryType",
-			"select",
-		)) as string
+		const libraryType = (await store.getValue(LIBRARY_TYPE, "select")) as string
 
 		if (libraryType === "pos") {
 			return await getStrategyStatusListForPos(date)

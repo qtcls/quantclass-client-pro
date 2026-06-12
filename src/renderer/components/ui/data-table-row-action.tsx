@@ -32,6 +32,7 @@ import {
 import { Button } from "@renderer/components/ui/button"
 import { useMutation } from "@tanstack/react-query"
 import type { Row } from "@tanstack/react-table"
+import { useUnmount } from "etc-hooks"
 import { useAtom, useAtomValue } from "jotai"
 import {
 	AlertCircle,
@@ -42,7 +43,7 @@ import {
 	RefreshCcwDot,
 	Trash2,
 } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 import ButtonTooltip from "./button-tooltip"
 
@@ -51,13 +52,9 @@ const {
 	handleUpdateOneProduct,
 	handleUpdateFullProducts,
 	openUrl,
-	createTerminalWindow,
 	fetchFuelStatus,
 	loadProductStatus,
-	minimizeApp,
 	onDownloadProgress,
-	removeDownloadProgressListener,
-	offKernelLogChanged,
 } = window.electronAPI
 
 interface DataTableRowActionsProps<TData> {
@@ -88,6 +85,16 @@ export function DataTableRowActions<TData>({
 	const { removeDataSubscribed } = useDataSubscribed()
 	const [downloadProgress, setDownloadProgress] = useState("")
 	const [fuelOutput, setFuelOutput] = useAtom(fuelOutPutAtom)
+	const downloadProgressUnsubRef = useRef<(() => void) | null>(null)
+
+	// 退订本行当前的下载进度监听（scoped，不殃及其他行）
+	const clearDownloadProgressSub = () => {
+		downloadProgressUnsubRef.current?.()
+		downloadProgressUnsubRef.current = null
+	}
+
+	// 卸载时退订本行的下载进度监听
+	useUnmount(clearDownloadProgressSub)
 
 	// -- 获取下载链接
 	const { mutateAsync: fetchFullDataLink, isPending: stepOneLoading } =
@@ -132,12 +139,12 @@ export function DataTableRowActions<TData>({
 		refresh,
 	)
 
-	// 设置下载进度监听器的函数
+	// 设置下载进度监听器的函数（scoped 退订：只清理本行自己的订阅，不殃及其他行）
 	const setupDownloadProgressListener = () => {
-		removeDownloadProgressListener() // 先移除旧的，避免重复
+		clearDownloadProgressSub() // 先移除旧的，避免重复
 		setDownloadProgress("")
 
-		onDownloadProgress((progress) => {
+		const unsubscribe = onDownloadProgress((progress) => {
 			// 只处理当前任务产品的下载进度
 			if (progress.product_name !== task.name) {
 				return
@@ -163,10 +170,15 @@ export function DataTableRowActions<TData>({
 			// 下载完成后清除进度显示并移除监听器
 			if (percent >= 100) {
 				setTimeout(() => {
-					removeDownloadProgressListener()
+					unsubscribe()
+					// 只在 ref 仍指向本订阅时清空，避免误清后续新订阅
+					if (downloadProgressUnsubRef.current === unsubscribe) {
+						downloadProgressUnsubRef.current = null
+					}
 				}, 2000)
 			}
 		})
+		downloadProgressUnsubRef.current = unsubscribe
 	}
 
 	const isIncrementalUpdateDisabled = task.canAutoUpdate !== 1 || isUpdating
@@ -252,11 +264,9 @@ export function DataTableRowActions<TData>({
 											if (needResume) {
 												await handleTimeTask(false)
 											}
-											offKernelLogChanged()
 											// await minimizeApp("terminal")
 										},
 										onCancel: () => {
-											offKernelLogChanged()
 											close()
 										},
 									})
@@ -375,9 +385,7 @@ export function DataTableRowActions<TData>({
 										await execDownloadZip(task.name)
 									} finally {
 										// 下载完成后清理监听器（延迟清理以确保最后的进度回调完成）
-										setTimeout(() => {
-											removeDownloadProgressListener()
-										}, 3000)
+										setTimeout(clearDownloadProgressSub, 3000)
 									}
 									setStep(2)
 
@@ -398,7 +406,7 @@ export function DataTableRowActions<TData>({
 									if (needResumeRealTrading) {
 										await handleToggleAutoRocket(true)
 									}
-								} catch (e) {
+								} catch {
 									toast.error("全量更新失败，请提交日志给助教了解详细信息")
 								} finally {
 									// 无论成功还是失败，都关闭 loader
@@ -445,7 +453,7 @@ export function DataTableRowActions<TData>({
 									removeDataSubscribed(task)
 									toast.success("已取消订阅")
 									await refresh()
-								} catch (e) {
+								} catch {
 									toast.error("取消订阅失败")
 								}
 							},

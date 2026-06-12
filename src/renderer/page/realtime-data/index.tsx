@@ -46,12 +46,8 @@ import { CircleHelp, Play, RefreshCw, Settings } from "lucide-react"
 import { type FC, useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
-const {
-	execMinData,
-	execMinDataFuzzy,
-	onMinDataScheduleStatus,
-	removeMinDataScheduleStatusListener,
-} = window.electronAPI
+const { execMinData, execMinDataFuzzy, onMinDataScheduleStatus } =
+	window.electronAPI
 
 const REALTIME_DATA_UPDATE_NOTES = (
 	<div className="space-y-3 text-sm font-medium">
@@ -108,7 +104,7 @@ const RealtimeData: FC = () => {
 	>(null)
 
 	useEffect(() => {
-		onMinDataScheduleStatus((_event, status) => {
+		const unsubscribe = onMinDataScheduleStatus((_event, status) => {
 			if (status.type === "skipped") {
 				toast.info("自动更新：Fuel 内核正忙，跳过本轮")
 			} else if (status.type === "executing") {
@@ -128,7 +124,7 @@ const RealtimeData: FC = () => {
 				toast.success("自动更新：本轮数据获取完成")
 			}
 		})
-		return () => removeMinDataScheduleStatusListener()
+		return unsubscribe
 	}, [])
 
 	const isQmtConfigured =
@@ -161,7 +157,7 @@ const RealtimeData: FC = () => {
 			} else {
 				toast.error(result.message)
 			}
-		} catch (error) {
+		} catch {
 			toast.error("执行失败")
 		} finally {
 			setIsAccurateExecuting(false)
@@ -179,7 +175,7 @@ const RealtimeData: FC = () => {
 			} else {
 				toast.error(result.message)
 			}
-		} catch (error) {
+		} catch {
 			toast.error("执行失败")
 		} finally {
 			setIsFuzzyExecuting(false)

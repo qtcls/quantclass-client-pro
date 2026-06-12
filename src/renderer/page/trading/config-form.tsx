@@ -31,17 +31,17 @@ import {
 } from "@/renderer/components/ui/radio-group"
 // import { ScrollArea } from "@/renderer/components/ui/scroll-area"
 import { usePermissionCheck, useToggleAutoRealTrading } from "@/renderer/hooks"
-import { useRealMarketConfig } from "@/renderer/hooks/useRealMarketConfig"
+import { useSaveRealMarketConfig } from "@/renderer/hooks/useSaveRealMarketConfig"
 import { realConfigEditModalAtom } from "@/renderer/store"
 import { rocketStatusQueryAtom } from "@/renderer/store/query"
 import {
 	ciccBseNoticeDismissedAtom,
+	configHydratedAtom,
 	realMarketConfigSchemaAtom,
 } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { zodResolver } from "@hookform/resolvers/zod"
-import dayjs from "dayjs"
 import { useDebounceFn } from "etc-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { CircleHelp, Folder, PlayCircle, Save, Trash2 } from "lucide-react"
@@ -50,8 +50,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
-const { setStoreValue, rendererLog, openUrl, checkKernalRunning } =
-	window.electronAPI
+const { rendererLog, openUrl, checkKernalRunning } = window.electronAPI
 
 export const RealMarketConfigSchema = z.object({
 	qmt_path: z.string().min(1, { message: "QMT 安装路径未填写" }),
@@ -87,11 +86,9 @@ export function TradingConfigForm() {
 	const { data: rocketStatus = false } = useAtomValue(rocketStatusQueryAtom)
 	const { checkWithToast } = usePermissionCheck()
 	const [choosing, setChoosing] = useState(false)
-	const [realMarketConfig, setRealMarketConfig] = useAtom(
-		realMarketConfigSchemaAtom,
-	)
-
-	const { setPerformanceMode } = useRealMarketConfig()
+	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
+	const configHydrated = useAtomValue(configHydratedAtom)
+	const saveRealMarketConfig = useSaveRealMarketConfig()
 
 	const setRealConfigEditModal = useSetAtom(realConfigEditModalAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
@@ -108,7 +105,8 @@ export function TradingConfigForm() {
 				typeof realMarketConfig.date_start === "string"
 					? new Date(realMarketConfig.date_start)
 					: realMarketConfig.date_start,
-			qmt_port: "58610",
+			// -- S2a：用水合后的端口（单源），不再硬编码覆盖 config.json（隐藏字段，恒回写权威值）
+			qmt_port: realMarketConfig.qmt_port ?? "58610",
 			filter_kcb: realMarketConfig.filter_kcb,
 			filter_cyb: realMarketConfig.filter_cyb,
 			filter_bj: isCiccBroker ? "1" : realMarketConfig.filter_bj,
@@ -136,6 +134,11 @@ export function TradingConfigForm() {
 
 	const handleSave = async () => {
 		try {
+			// -- S2a：水合前禁止保存（fail-closed，避免用内存默认值覆盖 config.json 权威源）
+			if (!configHydrated) {
+				toast.warning("实盘配置加载中，请稍候重试")
+				return false
+			}
 			// -- 权限检查
 			if (
 				!checkWithToast({
@@ -166,26 +169,16 @@ export function TradingConfigForm() {
 
 			const values = form.getValues()
 
-			// -- 处理 start_date，确保保存的是字符串
-			const { date_start, ...restValues } = values
-			const formattedValues = {
-				...restValues,
-				filter_kcb: values.filter_kcb !== "0",
-				filter_cyb: values.filter_cyb !== "0",
-				filter_bj: values.filter_bj !== "0",
-				date_start: date_start
-					? dayjs(date_start).format("YYYY-MM-DD")
-					: undefined,
+			// -- S2a：经唯一权威写入 hook 落盘（main 侧 encode 冻结编码 + merge 不 clobber +
+			// -- 权威拒绝 rocket 运行中写；ack 失败已在 hook 内 toast 且不更新 atom）。
+			// -- fail-closed：失败不弹成功 toast、不返回 true（"保存并启动"链据此中止）。
+			if (!(await saveRealMarketConfig(values, "保存配置"))) {
+				return false
 			}
-
-			// -- 这里应该调用 setStoreValue 来保存配置
-			setPerformanceMode(values.performance_mode)
-			await setStoreValue("real_market_config", formattedValues)
-			setRealMarketConfig(values)
 
 			toast.success("实盘配置保存成功")
 			return true
-		} catch (error) {
+		} catch {
 			toast.error("实盘配置保存失败")
 			return false
 		}
@@ -209,15 +202,14 @@ export function TradingConfigForm() {
 		{ wait: 100 },
 	)
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies:
+	// -- S2a：水合完成后用 config.json 派生的默认值重置表单（覆盖挂载早于水合的窗口）。
+	// -- 仅依赖 configHydrated，避免后续 atom 变化误重置而 clobber 用户编辑。
+	// biome-ignore lint/correctness/useExhaustiveDependencies: 仅在水合完成时重置
 	useEffect(() => {
-		form.reset(defaultValues)
-	}, [])
+		if (configHydrated) form.reset(defaultValues)
+	}, [configHydrated])
 
 	return (
-		// <Card className="flex-1 overflow-hidden border bg-transparent shadow-none">
-		// 	<CardContent className="p-0">
-		// 		<ScrollArea className="h-full">
 		<>
 			<Form {...form}>
 				<form className="w-full space-y-4 flex flex-col gap-4">
@@ -878,14 +870,5 @@ export function TradingConfigForm() {
 				onConfirm={() => setCiccDismissed(true)}
 			/>
 		</>
-		// 		</ScrollArea>
-		// 	</CardContent>
-
-		// 	<CardFooter className="flex justify-end gap-2 p-4 pt-0">
-		// 		<Button size="sm" onClick={() => handleSave()}>
-		// 			保存实盘配置
-		// 		</Button>
-		// 	</CardFooter>
-		// </Card>
 	)
 }

@@ -10,10 +10,7 @@
 
 export { getStrategyStatusList } from "./strategy-status.js"
 export { updateStrategies } from "./update-strategy.js"
-export {
-	getStockTimingViewMatrix,
-	rowsToStockTimingMatrix,
-} from "./stock-timing-view.js"
+export { getStockTimingViewMatrix } from "./stock-timing-view.js"
 
 export type {
 	StrategyStatus,

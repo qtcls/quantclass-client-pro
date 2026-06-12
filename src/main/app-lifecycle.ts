@@ -18,7 +18,7 @@ import { cleanLockFiles } from "@/main/utils/tools.js"
 import dayjs from "dayjs"
 import { BrowserWindow, type Tray, app } from "electron"
 
-export function setupAppLifecycle(tray: Tray) {
+export function setupAppLifecycle(tray?: Tray) {
 	store.setValue("app.start_time", dayjs().format("YYYY-MM-DD HH:mm:ss"))
 
 	// 启动遥测定时检查

@@ -11,6 +11,7 @@
 import {
 	deleteRepoDownload,
 	downloadAndExtractRepo,
+	writeFrameworkClientEnv,
 } from "@/main/lib/repoManage.js"
 import { repoStore } from "@/main/lib/repoStore.js"
 import logger from "@/main/utils/wiston.js"
@@ -110,6 +111,18 @@ function deleteRecordHandler(): void {
 	})
 }
 
+function writeFrameworkClientEnvHandler(): void {
+	ipcMain.handle("repo:write-framework-client-env", async () => {
+		try {
+			return await writeFrameworkClientEnv()
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error)
+			logger.error(`[repo-ipc] write-framework-client-env 异常: ${message}`)
+			return { success: false, error: message }
+		}
+	})
+}
+
 export const regRepoIPC = () => {
 	listRecordsHandler()
 	appendRecordHandler()
@@ -117,5 +130,6 @@ export const regRepoIPC = () => {
 	hasSuccessBaseFolderByFidHandler()
 	downloadAndExtractHandler()
 	deleteRecordHandler()
+	writeFrameworkClientEnvHandler()
 	console.log("[reg] repo-ipc")
 }

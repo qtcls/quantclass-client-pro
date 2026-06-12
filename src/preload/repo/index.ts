@@ -13,6 +13,7 @@ import type {
 	RepoDeleteResult,
 	RepoDownloadRecord,
 	RepoDownloadResult,
+	WriteClientEnvResult,
 } from "@/shared/types/repo.js"
 import { ipcRenderer } from "electron"
 
@@ -51,4 +52,7 @@ export const repoIPC = {
 
 	deleteRepoDownload: (ticket: string): Promise<RepoDeleteResult> =>
 		ipcRenderer.invoke("repo:delete-record", ticket),
+
+	writeFrameworkClientEnv: (): Promise<WriteClientEnvResult> =>
+		ipcRenderer.invoke("repo:write-framework-client-env"),
 }

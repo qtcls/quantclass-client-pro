@@ -13,17 +13,21 @@ import { writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import path from "node:path"
 import { repoStore } from "@/main/lib/repoStore.js"
-import store from "@/main/store/index.js"
+import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { resolveVersionDirName } from "@/shared/lib/repo-folder.js"
 import type {
 	RepoApiType,
 	RepoDeleteResult,
 	RepoDownloadResult,
+	WriteClientEnvResult,
 } from "@/shared/types/repo.js"
+import { app } from "electron"
+import Store from "electron-store"
 
 const require = createRequire(import.meta.url)
 const AdmZip = require("adm-zip")
+const _store = new Store()
 
 const REPO_DIR_BY_API_TYPE: Record<RepoApiType, string> = {
 	strategies: "strategy_repo",
@@ -135,6 +139,47 @@ export async function downloadAndExtractRepo({
 				)
 			}
 		}
+	}
+}
+
+/** 在 framework_repo 根目录写入 client.env */
+export async function writeFrameworkClientEnv(): Promise<WriteClientEnvResult> {
+	try {
+		const rawDataPath = await store.getSetting("all_data_path", "")
+		if (!rawDataPath) {
+			return { success: false, error: "请先在设置中配置数据存储路径" }
+		}
+
+		const frameworkRepoDir = await store.getAllDataPath(
+			["framework_repo"],
+			true,
+		)
+		if (!fs.existsSync(frameworkRepoDir)) {
+			await fs.promises.mkdir(frameworkRepoDir, { recursive: true })
+		}
+
+		const fuelProTradingPath = await store.getAllDataPath(["real_trading"])
+		const fuelCodePath = app.getPath("userData")
+		const useFuzzy = _store.get("real_market_config.use_fuzzy", "1") as string
+
+		const content = [
+			`FUEL_CLIENT_CONFIG_PATH=${CONFIG_PATH}`,
+			`FUEL_PRO_TRADING_PATH=${fuelProTradingPath}`,
+			`ROCKET_STR_INFO_PATH=${ROCKET_STR_INFO_PATH}`,
+			`FUEL_CODE_PATH=${fuelCodePath}`,
+			`USE_FUZZY=${useFuzzy}`,
+			"",
+		].join("\n")
+
+		const filePath = path.join(frameworkRepoDir, "client.env")
+		await writeFile(filePath, content, "utf8")
+		logger.info(`[repo] 已写入 client.env 到 ${filePath}`)
+
+		return { success: true, filePath }
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error)
+		logger.error(`[repo] 写入 client.env 失败: ${message}`)
+		return { success: false, error: message }
 	}
 }
 

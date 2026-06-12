@@ -39,3 +39,9 @@ export interface RepoDeleteResult {
 	success: boolean
 	error?: string
 }
+
+export interface WriteClientEnvResult {
+	success: boolean
+	filePath?: string
+	error?: string
+}

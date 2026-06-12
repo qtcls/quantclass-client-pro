@@ -9,8 +9,13 @@
  */
 
 import { ResearchCenterPage } from "@/renderer/page/research"
+import { useEffect } from "react"
 
 export default function ResearchFrameworkSourcePage() {
+	useEffect(() => {
+		void window.electronAPI.writeFrameworkClientEnv()
+	}, [])
+
 	return (
 		<ResearchCenterPage
 			apiType="basic-code"

@@ -8,8 +8,8 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { GlowDot } from "@/renderer/components/ui/glow-dot"
 import { Badge } from "@/renderer/components/ui/badge"
+import { GlowDot } from "@/renderer/components/ui/glow-dot"
 import {
 	SidebarContent,
 	SidebarGroup,
@@ -20,18 +20,21 @@ import {
 } from "@/renderer/components/ui/sidebar"
 import {
 	BACKTEST_PAGE,
+	DATA_PAGE,
 	FUSION_STRATEGY_LIBRARY_PAGE,
 	POSITION_INFO_PAGE,
 	// CHANGE_LOGS_PAGE,
 	// FAQ_PAGE,
 	// POSITION_INFO_PAGE,
 	QUESTION_FEEDBACK_PAGE,
+	REALTIME_DATA_PAGE,
 	REAL_MARKET_CONFIG_PAGE,
 	REAL_TRADING_TAB_NAME,
 	RESEARCH_FRAMEWORK_SOURCE_PAGE,
 	RESEARCH_STRATEGY_LIBRARY_PAGE,
 	RESEARCH_TAB_NAME,
 	STRATEGY_LIBRARY_PAGE,
+	isWindows,
 	// TRADING_PLAN_PAGE,
 } from "@/renderer/constant"
 import { cn } from "@/renderer/lib/utils"
@@ -66,12 +69,12 @@ const data = {
 		navMain: [
 			{
 				title: "历史数据",
-				url: "/data",
+				url: DATA_PAGE,
 				icon: DatabaseBackup,
 			},
 			{
 				title: "实时数据",
-				url: "/realtime_data",
+				url: REALTIME_DATA_PAGE,
 				icon: Activity,
 			},
 			// {
@@ -135,6 +138,10 @@ const data = {
 
 const { openUrl } = window.electronAPI
 
+function isNavDisabled(url?: string) {
+	return !isWindows && url !== DATA_PAGE
+}
+
 export const _SidebarContent = () => {
 	const { pathname } = useLocation()
 	const navigate = useNavigate()
@@ -189,6 +196,7 @@ export const _SidebarContent = () => {
 							}
 						>
 							<SidebarMenuButton
+								disabled={isNavDisabled(item.url)}
 								onClick={() => {
 									navigate(item.url)
 									setActiveTab("data")
@@ -203,8 +211,8 @@ export const _SidebarContent = () => {
 									<item.icon />
 								)}
 								<span>{item.title}</span>
-								{(item.url === "/data" && isUpdating) ||
-								(item.url === "/realtime_data" && isMinDataUpdating) ? (
+								{(item.url === DATA_PAGE && isUpdating) ||
+								(item.url === REALTIME_DATA_PAGE && isMinDataUpdating) ? (
 									<GlowDot
 										size="sm"
 										color="green"
@@ -232,6 +240,7 @@ export const _SidebarContent = () => {
 							}
 						>
 							<SidebarMenuButton
+								disabled={isNavDisabled(item.url)}
 								onClick={() => {
 									setActiveTab("real_trading")
 									navigate(item.url)
@@ -274,6 +283,7 @@ export const _SidebarContent = () => {
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<SidebarMenuButton
+							disabled={isNavDisabled(RESEARCH_STRATEGY_LIBRARY_PAGE)}
 							onClick={() => {
 								setActiveTab(RESEARCH_TAB_NAME)
 								navigate(RESEARCH_STRATEGY_LIBRARY_PAGE)
@@ -289,6 +299,7 @@ export const _SidebarContent = () => {
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton
+							disabled={isNavDisabled(RESEARCH_FRAMEWORK_SOURCE_PAGE)}
 							onClick={() => {
 								setActiveTab(RESEARCH_TAB_NAME)
 								navigate(RESEARCH_FRAMEWORK_SOURCE_PAGE)
@@ -320,6 +331,7 @@ export const _SidebarContent = () => {
 							}
 						>
 							<SidebarMenuButton
+								disabled={isNavDisabled(item.url)}
 								onClick={() => {
 									if (item.url === QUESTION_FEEDBACK_PAGE) {
 										openUrl(item.url)

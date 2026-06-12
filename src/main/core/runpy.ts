@@ -8,10 +8,12 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { execFile } from "node:child_process"
 import fs from "node:fs"
 import { writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import path from "node:path"
+import { promisify } from "node:util"
 import { getKernelVersion } from "@/main/core/lib.js"
 import windowManager from "@/main/lib/WindowManager.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
@@ -31,6 +33,7 @@ import {
 
 const require = createRequire(import.meta.url)
 const AdmZip = require("adm-zip")
+const execFileAsync = promisify(execFile)
 
 const clientVersion = CLIENT_VERSION
 
@@ -194,8 +197,12 @@ export async function downloadKernal(
 		}
 
 		// 解压zip文件，从2025年5月27日开始，所有内核采用onedir的打包方式，所以需要解压zip文件
-		const zip = new AdmZip(kernalZipPath)
-		zip.extractAllTo(codeFolder, true)
+		if (platform.isMacOS) {
+			await execFileAsync("unzip", ["-o", kernalZipPath, "-d", codeFolder])
+		} else {
+			const zip = new AdmZip(kernalZipPath)
+			zip.extractAllTo(codeFolder, true)
+		}
 		await fs.promises.unlink(kernalZipPath) // 删除zip文件
 
 		logger.info(`[${kernal}] 内核文件已解压到 ${codeFolder}`)

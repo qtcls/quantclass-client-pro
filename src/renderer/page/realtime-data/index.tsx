@@ -9,6 +9,7 @@
  */
 
 import { AcceleratedDataSourceConfirmDialog } from "@/renderer/components/AcceleratedDataSourceConfirmDialog"
+import { DeleteMinDataTodayConfirmDialog } from "@/renderer/components/DeleteMinDataTodayConfirmDialog"
 import { MinDataExecConfirmDialog } from "@/renderer/components/MinDataExecConfirmDialog"
 import { MinDataTaskTable } from "@/renderer/components/MinDataTaskTable"
 import { SelectTabs } from "@/renderer/components/select-tabs"
@@ -32,12 +33,13 @@ import { useSettings } from "@/renderer/hooks/useSettings"
 import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
 import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { CircleHelp, Play, RefreshCw, Settings } from "lucide-react"
+import { CircleHelp, Play, RefreshCw, Settings, Trash2 } from "lucide-react"
 import { type FC, useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 const {
 	execMinData,
+	deleteMinDataToday,
 	onMinDataScheduleStatus,
 	removeMinDataScheduleStatusListener,
 } = window.electronAPI
@@ -87,6 +89,8 @@ const RealtimeData: FC = () => {
 	const [isExecuting, setIsExecuting] = useState(false)
 	const [execConfirmOpen, setExecConfirmOpen] = useState(false)
 	const [acceleratedConfirmOpen, setAcceleratedConfirmOpen] = useState(false)
+	const [deleteTodayConfirmOpen, setDeleteTodayConfirmOpen] = useState(false)
+	const [tableRefreshTrigger, setTableRefreshTrigger] = useState(0)
 
 	useEffect(() => {
 		onMinDataScheduleStatus((_event, status) => {
@@ -170,6 +174,17 @@ const RealtimeData: FC = () => {
 		updateSettings({ accelerated_data_source: true })
 		toast.success("加速数据源已启用")
 	}, [updateSettings])
+
+	const handleConfirmDeleteToday = useCallback(async () => {
+		const result = await deleteMinDataToday()
+		if (result.success) {
+			toast.success(result.message ?? "今日实时数据已删除")
+			setDeleteTodayConfirmOpen(false)
+			setTableRefreshTrigger((n) => n + 1)
+		} else {
+			toast.error(result.message ?? "删除今日实时数据失败")
+		}
+	}, [])
 
 	return (
 		<div className="h-full flex-1 flex-col space-y-4 md:flex pt-3">
@@ -267,6 +282,16 @@ const RealtimeData: FC = () => {
 						</Label>
 					</div>
 				</div>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					className="shrink-0 text-destructive hover:text-destructive"
+					onClick={() => setDeleteTodayConfirmOpen(true)}
+				>
+					<Trash2 className="mr-1.5 h-3.5 w-3.5" />
+					删除今日实时数据
+				</Button>
 			</div>
 
 			<MinDataTaskTable
@@ -275,6 +300,7 @@ const RealtimeData: FC = () => {
 				isExecuting={isExecuting}
 				onExecute={handleExecConfirmClick}
 				mode={mode}
+				refreshTrigger={tableRefreshTrigger}
 			>
 				<div className="flex items-center gap-2">
 					<span className="font-semibold whitespace-nowrap flex items-center gap-1">
@@ -345,6 +371,12 @@ const RealtimeData: FC = () => {
 				open={acceleratedConfirmOpen}
 				onOpenChange={setAcceleratedConfirmOpen}
 				onConfirm={handleConfirmAcceleratedDataSource}
+			/>
+
+			<DeleteMinDataTodayConfirmDialog
+				open={deleteTodayConfirmOpen}
+				onOpenChange={setDeleteTodayConfirmOpen}
+				onConfirm={handleConfirmDeleteToday}
 			/>
 		</div>
 	)

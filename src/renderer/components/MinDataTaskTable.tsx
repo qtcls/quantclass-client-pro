@@ -369,6 +369,7 @@ export interface MinDataTaskTableProps {
 	onExecute: () => void
 	mode?: "fast" | "stable"
 	children?: React.ReactNode
+	refreshTrigger?: number
 }
 
 export function MinDataTaskTable({
@@ -378,6 +379,7 @@ export function MinDataTaskTable({
 	onExecute,
 	mode,
 	children,
+	refreshTrigger,
 }: MinDataTaskTableProps) {
 	const [stats, setStats] = useState<TaskStatsResult>({
 		runDate: null,
@@ -429,7 +431,7 @@ export function MinDataTaskTable({
 	useEffect(() => {
 		fetchStats()
 		fetchPage()
-	}, [fetchStats, fetchPage])
+	}, [fetchStats, fetchPage, refreshTrigger])
 
 	useEffect(() => {
 		if (isExecuting) {

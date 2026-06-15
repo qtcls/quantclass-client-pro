@@ -96,6 +96,14 @@ export const dataIPC = {
 			total: number
 			error?: string
 		}>,
+	deleteMinDataToday: () =>
+		ipcRenderer.invoke("delete-min-data-today") as Promise<{
+			success: boolean
+			message?: string
+			minDataDeleted?: number
+			taskDeleted?: number
+			runDate?: string
+		}>,
 
 	// 监控
 	fetchMonitorProcesses: () => ipcRenderer.invoke("fetch-monitor-processes"),

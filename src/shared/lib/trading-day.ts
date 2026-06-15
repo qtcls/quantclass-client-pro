@@ -112,3 +112,8 @@ export function getLocalMidnightOfNthTradingDayBefore(
 	}
 	return new Date(y, m - 1, d, 0, 0, 0, 0)
 }
+
+export function getLocalDateYYYYMMDD(): string {
+	const d = new Date()
+	return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}

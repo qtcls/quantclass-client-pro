@@ -138,7 +138,10 @@ const data = {
 
 const { openUrl } = window.electronAPI
 
+const isDev = import.meta.env.VITE_XBX_ENV === "development"
+
 function isNavDisabled(url?: string) {
+	if (isDev) return false
 	return !isWindows && url !== DATA_PAGE
 }
 
@@ -283,7 +286,6 @@ export const _SidebarContent = () => {
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<SidebarMenuButton
-							disabled={isNavDisabled(RESEARCH_STRATEGY_LIBRARY_PAGE)}
 							onClick={() => {
 								setActiveTab(RESEARCH_TAB_NAME)
 								navigate(RESEARCH_STRATEGY_LIBRARY_PAGE)
@@ -299,7 +301,6 @@ export const _SidebarContent = () => {
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton
-							disabled={isNavDisabled(RESEARCH_FRAMEWORK_SOURCE_PAGE)}
 							onClick={() => {
 								setActiveTab(RESEARCH_TAB_NAME)
 								navigate(RESEARCH_FRAMEWORK_SOURCE_PAGE)

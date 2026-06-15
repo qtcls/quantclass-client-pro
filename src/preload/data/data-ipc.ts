@@ -26,6 +26,7 @@ import DBManager from "@/main/lib/db-manager.js"
 import { execBin } from "@/main/lib/process.js"
 import { isKernalRunning } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import { getLocalDateYYYYMMDD } from "@/shared/lib/trading-day.js"
 import { ipcMain } from "electron"
 
 async function handleLoadProductStatus() {
@@ -222,6 +223,59 @@ async function handleExecMinData() {
 	})
 }
 
+async function handleDeleteMinDataToday() {
+	ipcMain.handle("delete-min-data-today", async () => {
+		const dbManager = DBManager.getInstance()
+		const db = await dbManager.getConnection([
+			"min_data",
+			"min_data_update_task",
+		])
+		if (!db) {
+			return { success: false, message: "数据库不可用" }
+		}
+
+		const today = getLocalDateYYYYMMDD()
+
+		try {
+			const deleteMinData = db.prepare(
+				"DELETE FROM min_data WHERE trade_date = ?",
+			)
+			const deleteTask = db.prepare(
+				"DELETE FROM min_data_update_task WHERE run_date = ?",
+			)
+
+			const tx = db.transaction((date: string) => {
+				const minDataResult = deleteMinData.run(date)
+				const taskResult = deleteTask.run(date)
+				return {
+					minDataDeleted: minDataResult.changes,
+					taskDeleted: taskResult.changes,
+				}
+			})
+
+			const { minDataDeleted, taskDeleted } = tx(today)
+
+			logger.info(
+				`[min-data] 已删除今日数据（${today}）：min_data.trade_date ${minDataDeleted} 条，min_data_update_task.run_date ${taskDeleted} 条`,
+			)
+
+			return {
+				success: true,
+				message: `已删除今日实时数据：min_data ${minDataDeleted} 条，min_data_update_task ${taskDeleted} 条`,
+				minDataDeleted,
+				taskDeleted,
+				runDate: today,
+			}
+		} catch (error) {
+			logger.error(`[min-data] 删除今日实时数据失败: ${error}`)
+			return {
+				success: false,
+				message: error instanceof Error ? error.message : "删除失败",
+			}
+		}
+	})
+}
+
 async function handleGetMinDataTaskStats() {
 	ipcMain.handle(
 		"get-min-data-task-stats",
@@ -408,6 +462,7 @@ export const regDataIPC = () => {
 	handleUpdateFullProducts()
 	handleLoadAquaTradingInfo()
 	handleExecMinData()
+	handleDeleteMinDataToday()
 	handleGetMinDataTaskStats()
 	handleGetMinDataTaskStatus()
 	console.log("[reg] data-ipc")

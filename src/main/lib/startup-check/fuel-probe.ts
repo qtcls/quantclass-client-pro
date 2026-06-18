@@ -60,7 +60,6 @@ export async function runFuelProbe(
 
 	const fuelCodePath = await store.getAllDataPath(["code"])
 	const fuelProTradingPath = await store.getAllDataPath(["real_trading"])
-	const useFuzzy = _store.get("real_market_config.use_fuzzy", "1") as string
 	const useOpenSell = _store.get(
 		"real_market_config.use_open_sell",
 		"0",
@@ -76,7 +75,6 @@ export async function runFuelProbe(
 		PYTHON8: "1",
 		PYTHONUNBUFFERED: "1",
 		PYTHONIOENCODING: "utf8",
-		USE_FUZZY: useFuzzy,
 		USE_OPEN_SELL: useOpenSell,
 		FUEL_TEMP_FILE_PATH: "",
 	}

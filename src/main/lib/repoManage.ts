@@ -23,11 +23,9 @@ import type {
 	WriteClientEnvResult,
 } from "@/shared/types/repo.js"
 import { app } from "electron"
-import Store from "electron-store"
 
 const require = createRequire(import.meta.url)
 const AdmZip = require("adm-zip")
-const _store = new Store()
 
 const REPO_DIR_BY_API_TYPE: Record<RepoApiType, string> = {
 	strategies: "strategy_repo",
@@ -160,14 +158,11 @@ export async function writeFrameworkClientEnv(): Promise<WriteClientEnvResult> {
 
 		const fuelProTradingPath = await store.getAllDataPath(["real_trading"])
 		const fuelCodePath = app.getPath("userData")
-		const useFuzzy = _store.get("real_market_config.use_fuzzy", "1") as string
-
 		const content = [
 			`FUEL_CLIENT_CONFIG_PATH=${CONFIG_PATH}`,
 			`FUEL_PRO_TRADING_PATH=${fuelProTradingPath}`,
 			`ROCKET_STR_INFO_PATH=${ROCKET_STR_INFO_PATH}`,
 			`FUEL_CODE_PATH=${fuelCodePath}`,
-			`USE_FUZZY=${useFuzzy}`,
 			"",
 		].join("\n")
 

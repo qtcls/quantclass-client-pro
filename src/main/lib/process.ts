@@ -285,7 +285,6 @@ export const execBin = async (
 		logger.info(`export ROCKET_STR_INFO_PATH=${ROCKET_STR_INFO_PATH}`)
 		logger.info(`~% ${kernel} ${args.join(" ")}`)
 
-		const useFuzzy = _store.get("real_market_config.use_fuzzy", "1")
 		const useOpenSell = _store.get("real_market_config.use_open_sell", "0")
 
 		return new Promise((resolve, reject) => {
@@ -302,7 +301,6 @@ export const execBin = async (
 			process.env.PYTHON8 = "1"
 			process.env.PYTHONUNBUFFERED = "1"
 			process.env.PYTHONIOENCODING = "utf8"
-			process.env.USE_FUZZY = useFuzzy as string
 			process.env.USE_OPEN_SELL = useOpenSell as string
 			process.env.FUEL_TEMP_FILE_PATH = extraEnv ?? ""
 

@@ -50,7 +50,7 @@ import type {
 	ResearchVersion,
 	ResearchVersionFile,
 } from "@/renderer/types/research"
-import { isBaseFolderName, resolveVersionDirName } from "@/shared/lib/repo-folder"
+import { isBaseFolderName } from "@/shared/lib/repo-folder"
 import type { RepoApiType, RepoDownloadRecord } from "@/shared/types/repo"
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
 import dayjs from "dayjs"
@@ -130,10 +130,9 @@ function hasBaseFolderSuccess(
 	fid: string,
 	versionName: string,
 ): boolean {
-	if (!fid) return false
-	const baseFolderName = resolveVersionDirName(versionName)
+	if (!fid || !versionName) return false
 	return (records ?? []).some(
-		(r) => r.success && r.fid === fid && r.folderName === baseFolderName,
+		(r) => r.success && r.fid === fid && r.versionName === versionName,
 	)
 }
 
@@ -465,7 +464,7 @@ function LocalRecordTableRow({
 							{record.versionName}
 						</span>
 					</ButtonTooltip>
-					{!isBaseFolderName(record.folderName, record.versionName) ? (
+					{!isBaseFolderName(record.folderName, record.link) ? (
 						<ButtonTooltip content={record.folderName}>
 							<span className="block truncate font-mono text-xs text-muted-foreground/80">
 								{record.folderName}

@@ -15,7 +15,7 @@ import path from "node:path"
 import { repoStore } from "@/main/lib/repoStore.js"
 import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
-import { resolveVersionDirName } from "@/shared/lib/repo-folder.js"
+import { resolveRepoFolderNameFromLink } from "@/shared/lib/repo-folder.js"
 import type {
 	RepoApiType,
 	RepoDeleteResult,
@@ -55,12 +55,12 @@ export interface DownloadAndExtractArgs {
 }
 
 /**
- * 从下载链接拉取 zip，解压到 {repoDir}/{versionName}/ 或 {versionName} (n)/ 子目录，最后删除 zip。
+ * 从下载链接拉取 zip，解压到 {repoDir}/{zipBaseName}/ 或 {zipBaseName} (n)/ 子目录，最后删除 zip。
  */
 export async function downloadAndExtractRepo({
 	link,
 	apiType,
-	versionName,
+	versionName: _versionName,
 	overwrite = false,
 }: DownloadAndExtractArgs): Promise<RepoDownloadResult> {
 	if (!link) {
@@ -84,7 +84,10 @@ export async function downloadAndExtractRepo({
 			await fs.promises.mkdir(extractDir, { recursive: true })
 		}
 
-		const baseDirName = resolveVersionDirName(versionName)
+		const baseDirName = resolveRepoFolderNameFromLink(link)
+		if (!baseDirName) {
+			return { success: false, error: "无法从下载链接解析目录名" }
+		}
 		const versionDirName = overwrite
 			? baseDirName
 			: resolveAvailableVersionDirName(extractDir, baseDirName)

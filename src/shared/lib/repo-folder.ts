@@ -8,15 +8,29 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+function decodeZipSegment(raw: string): string {
+	try {
+		return decodeURIComponent(raw)
+	} catch {
+		return raw
+	}
+}
+
 // 从下载链接中的zip名解析目录名
 export function resolveRepoFolderNameFromLink(link: string): string | null {
 	try {
-		const zipName = new URL(link).pathname.split("/").pop()
-		if (!zipName?.endsWith(".zip")) return null
+		const rawSegment = new URL(link).pathname.split("/").pop()
+		if (!rawSegment) return null
+
+		const zipName = decodeZipSegment(rawSegment)
+		if (!zipName.toLowerCase().endsWith(".zip")) return null
+
 		let base = zipName.slice(0, -4)
 		const match = base.match(/^[a-f0-9]+_(.+)$/i)
 		if (match) base = match[1]
-		return base.replace(/[/\\:*?"<>|]/g, "_")
+
+		const sanitized = base.replace(/[/\\:*?"<>|]/g, "_")
+		return sanitized || null
 	} catch {
 		return null
 	}

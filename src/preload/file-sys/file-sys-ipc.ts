@@ -275,18 +275,13 @@ async function importSelectStockHandler(): Promise<void> {
 			// 	path.join(fuelProTradingPath, "config.py"),
 			// )
 
-			// -- 复制策略库文件
+			// -- 复制策略库文件（合并模式：保留已有文件，同名覆盖）
 			const copyFiles = (sourcePath: string, targetPath: string) => {
 				logger.info(`[import] 复制文件夹: ${sourcePath} -> ${targetPath}`)
-				if (fs.existsSync(targetPath)) {
-					// -- 如果目标路径已存在，删除目标路径
-					fs.rmSync(targetPath, {
-						recursive: true,
-						force: true,
-					})
+				if (!fs.existsSync(targetPath)) {
+					fs.mkdirSync(targetPath, { recursive: true })
 				}
-				fs.mkdirSync(targetPath, { recursive: true })
-				// -- 复制文件
+
 				const files = fs.readdirSync(sourcePath)
 				for (const file of files) {
 					const sourceFile = path.join(sourcePath, file)

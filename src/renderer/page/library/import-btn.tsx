@@ -34,6 +34,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useSetAtom } from "jotai"
 import { isArray } from "lodash-es"
 import {
+	BadgePlus,
 	Clock,
 	Eraser,
 	FolderDown,
@@ -60,7 +61,7 @@ export default function StgImportButton() {
 	const setBacktestConfig = useSetAtom(backtestConfigAtom)
 	const setReTiming = useSetAtom(reTimingAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
-	const { resetSelectStgList, updateSelectStgList } = useStrategyManager()
+	const { resetSelectStgList, addSelectStgList } = useStrategyManager()
 	const { mutateAsync: importLibraryDir, isPending } = useMutation({
 		mutationKey: ["import-library"],
 		mutationFn: async (configFilePath: string) =>
@@ -77,6 +78,7 @@ export default function StgImportButton() {
 				const strategyListWithCap0 = strategyList.map((item) => ({
 					...item,
 					cap_weight: 0,
+					remark_name: item.remark_name ?? "",
 				}))
 
 				// -- Set to config json store
@@ -90,7 +92,7 @@ export default function StgImportButton() {
 					...p,
 					backtest_name: backtestName,
 				}))
-				updateSelectStgList(strategyListWithCap0 as SelectStgType[])
+				addSelectStgList(strategyListWithCap0 as SelectStgType[])
 			}
 			setImportOpen(false)
 			toast.success("导入成功")
@@ -113,7 +115,7 @@ export default function StgImportButton() {
 					onClick={() => setImportOpen(true)}
 				>
 					<FolderDown className="size-4 mr-2" />
-					导入策略
+					添加策略
 				</Button>
 			</ButtonTooltip>
 
@@ -200,13 +202,13 @@ export default function StgImportButton() {
 						<span className="text-sm">ℹ️ 导入说明：</span>
 						<ul className="list-inside space-y-2">
 							<li className="flex items-center">
-								<Eraser size={18} className="mr-2" /> 导入会{" "}
-								<span className="text-danger">覆盖</span>
-								当前策略库中所有的策略
+								<BadgePlus size={18} className="mr-2" /> 选中策略会{" "}
+								<span className="text-success font-bold">增加</span>
+								到当前策略库中
 							</li>
 							<li className="flex items-center">
 								<ShieldCheck size={18} className="mr-2" />
-								导入成功后，为了资金安全，策略资金占比都
+								导入成功后，为了资金安全，新增策略资金占比会
 								<span className="text-blue-400">重置为 0</span>
 							</li>
 							<li className="flex items-center">

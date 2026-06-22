@@ -9,6 +9,7 @@
  */
 
 import EditableNumberCell from "@/renderer/components/EditableNumberCell"
+import { StrategyNameDisplay } from "@/renderer/components/strategy-name-display"
 import { Badge } from "@/renderer/components/ui/badge"
 import { DataTableColumnHeader } from "@/renderer/components/ui/data-table-column-heder"
 import {
@@ -19,7 +20,13 @@ import {
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { DeleteStrategy } from "@/renderer/page/strategy/delete"
 import StrategyEditDialog from "@/renderer/page/strategy/edit-dialog"
+import StrategyReplaceDialog from "@/renderer/page/strategy/replace-dialog"
 import type { SelectStgType } from "@/renderer/types/strategy"
+import {
+	getFusionGroupSubRealMarketStrategyName,
+	getFusionTopRealMarketStrategyName,
+	getSelectRealMarketStrategyName,
+} from "@/shared/lib/real-market-strategy-name"
 
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
@@ -37,9 +44,13 @@ export const useGenLibraryColumn = (
 	currentTableData?: SelectStgType[],
 	/** 为 true 时不渲染操作列（pos 类型下 strategy_pool）  */
 	hideOperationColumn = false,
+	/** 仓管 group 名称，用于子策略 real_market 默认标识 */
+	parentGroupName?: string,
+	/** 仓管顶层单策略表格使用 X 前缀默认标识 */
+	realMarketFallback?: "fusion-top",
 ): ColumnDef<SelectStgType>[] => {
 	const totalWeight = useAtomValue(totalWeightAtom)
-	const { updateFusionStgInRow } = useFusionManager()
+	const { updateFusionStgInRow, fusion, updateFusion } = useFusionManager()
 	const { isAutoRocket } = useToggleAutoRealTrading()
 	const { selectStgList, updateSelectStg } = useStrategyManager()
 
@@ -158,6 +169,41 @@ export const useGenLibraryColumn = (
 				<DataTableColumnHeader column={column} title="策略名称" />
 			),
 			cell: ({ row }) => {
+				const fallbackRemarkName = row.original.remark_name?.trim()
+					? undefined
+					: (() => {
+							if (fusionIndex >= 0) {
+								if (parentGroupName) {
+									return getFusionGroupSubRealMarketStrategyName(
+										fusionIndex,
+										parentGroupName,
+										row.index,
+										row.original.name,
+										currentTableData?.length ?? 1,
+									)
+								}
+								if (realMarketFallback === "fusion-top") {
+									return getFusionTopRealMarketStrategyName(
+										fusionIndex,
+										row.original.name,
+									)
+								}
+								return undefined
+							}
+							return getSelectRealMarketStrategyName(
+								row.index,
+								row.original.name,
+							)
+						})()
+
+				const nameBlock = (
+					<StrategyNameDisplay
+						name={row.original.name}
+						remarkName={row.original.remark_name}
+						fallbackRemarkName={fallbackRemarkName}
+					/>
+				)
+
 				if (row.original.cap_weight >= 0) {
 					return (
 						<div className="flex items-center gap-1">
@@ -167,12 +213,12 @@ export const useGenLibraryColumn = (
 									<span>实盘</span>
 								</Badge>
 							)}
-							<span className="text-nowrap">{row.original.name}</span>
+							<div className="shrink-0">{nameBlock}</div>
 						</div>
 					)
 				}
 
-				return <div>{row.original.name}</div>
+				return nameBlock
 			},
 		},
 		{
@@ -347,6 +393,41 @@ export const useGenLibraryColumn = (
 										strategy={row.original as SelectStgType}
 										rowIndex={row.index}
 										fusionIndex={fusionIndex}
+									/>
+									<StrategyReplaceDialog
+										strategy={row.original as SelectStgType}
+										strategyType={parentGroupName ? "group" : "select"}
+										onReplace={(newStg) => {
+											if (fusionIndex < 0) {
+												updateSelectStg(row.index, newStg)
+											} else {
+												const stgInFusion = fusion[fusionIndex]
+												if (!stgInFusion) return
+												let updated: any
+												if (stgInFusion.type === "group") {
+													updated = {
+														...stgInFusion,
+														strategy_list: stgInFusion.strategy_list.map(
+															(s, i) => (i === row.index ? newStg : s),
+														),
+													}
+												} else if (stgInFusion.type === "pos") {
+													updated = {
+														...stgInFusion,
+														strategy_pool: stgInFusion.strategy_pool.map(
+															(s, i) => (i === row.index ? newStg : s),
+														),
+													}
+												} else {
+													updated = newStg
+												}
+												updateFusion(
+													fusion.map((item, i) =>
+														i === fusionIndex ? updated : item,
+													),
+												)
+											}
+										}}
 									/>
 									{!isDisabled && (
 										<DeleteStrategy

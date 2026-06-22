@@ -24,6 +24,7 @@ import { Input as InputUI } from "@/renderer/components/ui/input"
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { rebTimeConfigAtom } from "@/renderer/store/storage"
 import type { PosStrategyType } from "@/renderer/types/strategy"
+import { collectFusionRemarkNames } from "@/renderer/utils/strategy"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useAtomValue } from "jotai"
 import { Biohazard, CircleHelp, Loader, Shuffle } from "lucide-react"
@@ -43,6 +44,7 @@ function formatRebTimeDisplay(
 }
 
 const schema = z.object({
+	remark_name: z.string().default(""),
 	split_order_amount: z.union([z.number(), z.string()]).refine(
 		(val) => {
 			const num = typeof val === "string" ? Number(val) : val
@@ -69,7 +71,7 @@ export function PosStrategyForm({
 }: PosStrategyFormProps) {
 	const [saving, setSaving] = useState(false)
 	const [rebTimeConfigModalOpen, setRebTimeConfigModalOpen] = useState(false)
-	const { updateFusionPosStrategy } = useFusionManager()
+	const { fusion, updateFusionPosStrategy } = useFusionManager()
 	const rebTimeConfig = useAtomValue(rebTimeConfigAtom)
 	const rebalanceTime = posStrategy.rebalance_time ?? "close-open"
 	const form = useForm<PosStrategyFormData>({
@@ -84,8 +86,21 @@ export function PosStrategyForm({
 			return
 		}
 		const data = form.getValues()
+		const trimmedRemark = data.remark_name?.trim()
+		if (trimmedRemark) {
+			const existing = collectFusionRemarkNames(fusion, {
+				fusionIndex,
+			})
+			if (existing.has(trimmedRemark)) {
+				toast.error("策略标识已存在，请使用其他标识")
+				return
+			}
+		}
 		const num = Number(data.split_order_amount)
-		updateFusionPosStrategy(fusionIndex, { split_order_amount: num })
+		updateFusionPosStrategy(fusionIndex, {
+			split_order_amount: num,
+			remark_name: data.remark_name,
+		})
 		toast.success(`已更新 ${posStrategy.name}（仓位策略）配置`)
 		onSuccess()
 	}
@@ -95,6 +110,23 @@ export function PosStrategyForm({
 			<form>
 				<CardContent className="p-0">
 					<div className="flex flex-col gap-4 p-4">
+						<FormField
+							control={form.control}
+							name="remark_name"
+							render={({ field }) => (
+								<FormItem className="flex flex-col">
+									<FormLabel>策略标识</FormLabel>
+									<FormControl>
+										<InputUI
+											{...field}
+											placeholder="输入策略唯一标识"
+											className="bg-background"
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<div className="flex flex-col gap-3 rounded-lg border bg-gray-100 p-2 dark:bg-black">
 							<h3 className="flex items-center gap-1 text-sm font-bold text-warning-600 dark:text-warning">
 								<Biohazard className="mr-1 size-4" />

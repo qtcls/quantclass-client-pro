@@ -233,6 +233,24 @@ export function SelectStgForm({
 					>
 						<FormField
 							control={form.control}
+							name="remark_name"
+							render={({ field }) => (
+								<FormItem>
+									<FormControl>
+										<Input
+											{...field}
+											value={field.value ?? ""}
+											label="策略标识"
+											variant="bordered"
+											placeholder="输入策略唯一标识"
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
 							name="select_num"
 							render={({ field, formState }) => (
 								<FormItem>

@@ -121,6 +121,7 @@ export const TimeValueSchema = z.custom<TimeValue>()
  */
 export const CoreStrategySchema = z.object({
 	name: NameSchema,
+	remark_name: z.string().optional().default(""),
 	cap_weight: z.number().default(0),
 	hold_period: HoldPeriodSchema,
 	select_num: SelectNumSchema,

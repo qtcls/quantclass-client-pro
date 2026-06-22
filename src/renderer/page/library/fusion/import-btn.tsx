@@ -118,15 +118,21 @@ export default function ImportStrategyButton() {
 						...selectStg,
 						...synConfig,
 						cap_weight: selectStg.cap_weight / all_cap_weight,
+						remark_name: selectStg.remark_name ?? "",
 					}
 				},
 			)
+			strategyCopy.remark_name = strategyCopy.remark_name ?? ""
 			strategyCopy.type = "group"
 			return strategyCopy as StgGroupType
 		} else {
 			// ** 单个策略 **
 			// 如果没有 strategy_list 且没有 strategy_pool，不处理
-			return { ...strategyCopy, ...synConfig } as SelectStgType
+			return {
+				...strategyCopy,
+				...synConfig,
+				remark_name: strategyCopy.remark_name ?? "",
+			} as SelectStgType
 		}
 	}
 	const processStrategies = (
@@ -136,8 +142,8 @@ export default function ImportStrategyButton() {
 			...item,
 			cap_weight: 0,
 			isFold: false,
+			remark_name: item.remark_name ?? "",
 		}))
-		// return initialReset
 		return initialReset.map((item) => processStrategy(item, {}))
 	}
 	const { mutateAsync: importPositionLibraryDir } = useMutation({

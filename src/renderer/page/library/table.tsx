@@ -12,7 +12,7 @@ import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
 import { Button } from "@/renderer/components/ui/button"
 import { DataTable } from "@/renderer/components/ui/data-table"
 import { DataTableToolbar } from "@/renderer/components/ui/data-table-toolbar"
-import { BACKTEST_PAGE, REAL_MARKET_CONFIG_PAGE } from "@/renderer/constant"
+import { TRADING_SECTION_ROUTE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import StgImportButton from "@/renderer/page/library/import-btn"
@@ -86,7 +86,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 						variant="outline"
 						disabled={isAutoRocket}
 						className="h-8 lg:flex"
-						onClick={() => navigate(BACKTEST_PAGE)}
+						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=backtest`)}
 					>
 						<PencilRuler className="size-4 mr-2" />
 						前往回测
@@ -96,7 +96,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 						size="sm"
 						variant="outline"
 						className="h-8 lg:flex"
-						onClick={() => navigate(REAL_MARKET_CONFIG_PAGE)}
+						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=real_trading`)}
 					>
 						<TvMinimalPlay className="size-4 mr-2" />
 						前往实盘

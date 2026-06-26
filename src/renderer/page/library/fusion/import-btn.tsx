@@ -26,7 +26,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/renderer/components/ui/dialog"
-import { BACKTEST_PAGE, REAL_MARKET_CONFIG_PAGE } from "@/renderer/constant"
+import { TRADING_SECTION_ROUTE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import type {
@@ -425,7 +425,7 @@ export default function ImportStrategyButton() {
 						variant="outline"
 						disabled={isAutoRocket}
 						className="h-8 lg:flex"
-						onClick={() => navigate(BACKTEST_PAGE)}
+						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=backtest`)}
 					>
 						<PencilRuler className="size-4 mr-2" />
 						前往回测
@@ -435,7 +435,7 @@ export default function ImportStrategyButton() {
 						size="sm"
 						variant="outline"
 						className="h-8 lg:flex"
-						onClick={() => navigate(REAL_MARKET_CONFIG_PAGE)}
+						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=real_trading`)}
 					>
 						<TvMinimalPlay className="size-4 mr-2" />
 						前往实盘

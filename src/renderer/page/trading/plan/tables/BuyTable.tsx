@@ -64,7 +64,7 @@ const BuyTable = forwardRef<BuyTableRef, BuyTableProps>(
 				columns={columns}
 				pagination={false}
 				loading={loadingBuy || loadingTiming}
-				maxWidth="calc(100vw - 12rem - 2em)"
+				maxWidth="calc(100vw - 4rem - 2em)"
 				placeholder="搜索买入计划..."
 				emptyText="暂无买入计划，会在当日自动进行实盘选股之后，展示相关结果"
 				actionOptions={(props) => <TradingPlanTableToolbar<BuyRoot> {...props} />}

@@ -29,11 +29,6 @@ import {
 	AlertDialogTitle,
 } from "@/renderer/components/ui/alert-dialog"
 import { Button } from "@/renderer/components/ui/button"
-import {
-	Drawer,
-	DrawerContent,
-	DrawerTrigger,
-} from "@/renderer/components/ui/drawer"
 import { Label } from "@/renderer/components/ui/label"
 import {
 	Popover,
@@ -41,11 +36,6 @@ import {
 	PopoverTrigger,
 } from "@/renderer/components/ui/popover"
 import { Skeleton } from "@/renderer/components/ui/skeleton"
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/renderer/components/ui/tooltip"
 import { UndoIcon } from "@/renderer/icons/UndoIcon"
 import {
 	type BaseColor,
@@ -86,113 +76,33 @@ function injectViewTransitionStyle() {
 }
 
 export function ThemeCustomizer() {
-	const [config, setConfig] = useConfig()
-	const { resolvedTheme: mode } = useTheme()
-	const [mounted, setMounted] = React.useState(false)
-	React.useEffect(() => {
-		setMounted(true)
-	}, [])
+	const [open, setOpen] = React.useState(false)
 
 	return (
-		<div className="flex items-center gap-2">
-			<Drawer>
-				<DrawerTrigger asChild>
-					<Button variant="ghost" size="icon" className="md:hidden">
-						<Palette />
-					</Button>
-				</DrawerTrigger>
-				<DrawerContent className="p-6 pt-0">
-					<Customizer />
-				</DrawerContent>
-			</Drawer>
-			<div className="hidden items-center md:flex">
-				<Popover>
-					<PopoverTrigger asChild>
-						<Button variant="ghost" size="icon">
-							<Palette className="h-4 w-4" />
-						</Button>
-					</PopoverTrigger>
-					<PopoverContent
-						align="start"
-						className="z-40 w-[340px] rounded-[12px] bg-white p-6 dark:bg-zinc-950"
-					>
-						<Customizer />
-					</PopoverContent>
-				</Popover>
-				<div className="ml-2 hidden items-center gap-0.5">
-					{mounted ? (
-						<>
-							{["zinc", "rose", "blue", "green", "orange"].map((color) => {
-								const baseColor = baseColors.find(
-									(baseColor) => baseColor.name === color,
-								)
-								const isActive = config.theme === color
-
-								if (!baseColor) {
-									return null
-								}
-
-								return (
-									<Tooltip key={baseColor.name}>
-										<TooltipTrigger asChild>
-											<button
-												type="button"
-												onClick={() =>
-													setConfig({
-														...config,
-														theme: baseColor.name,
-													})
-												}
-												className={cn(
-													"flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs",
-													isActive
-														? "border-[--theme-primary]"
-														: "border-transparent",
-												)}
-												style={
-													{
-														"--theme-primary": `hsl(${
-															baseColor?.activeColor[
-																mode === "dark" ? "dark" : "light"
-															]
-														})`,
-													} as React.CSSProperties
-												}
-											>
-												<span
-													className={cn(
-														"flex h-5 w-5 items-center justify-center rounded-full bg-[--theme-primary]",
-													)}
-												>
-													{isActive && (
-														<CheckIcon className="h-4 w-4 text-white" />
-													)}
-												</span>
-												<span className="sr-only">{baseColor.label}</span>
-											</button>
-										</TooltipTrigger>
-										<TooltipContent
-											align="center"
-											className="rounded-[0.5rem] bg-zinc-900 text-zinc-50"
-										>
-											{baseColor.label}
-										</TooltipContent>
-									</Tooltip>
-								)
-							})}
-						</>
-					) : (
-						<div className="mr-1 flex items-center gap-4">
-							<Skeleton className="h-5 w-5 rounded-full" />
-							<Skeleton className="h-5 w-5 rounded-full" />
-							<Skeleton className="h-5 w-5 rounded-full" />
-							<Skeleton className="h-5 w-5 rounded-full" />
-							<Skeleton className="h-5 w-5 rounded-full" />
-						</div>
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger asChild>
+				<button
+					type="button"
+					className={cn(
+						"relative w-12 border-0 bg-transparent rounded-[10px] cursor-pointer transition-colors",
+						"text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+						open && "text-foreground bg-accent/60",
+						"py-2.5 flex items-center justify-center",
 					)}
-				</div>
-			</div>
-		</div>
+					aria-label="主题设置"
+				>
+					<Palette className="size-[21px]" strokeWidth={1.7} />
+				</button>
+			</PopoverTrigger>
+			<PopoverContent
+				align="start"
+				side="right"
+				sideOffset={8}
+				className="z-40 w-[340px] rounded-[12px] bg-white p-6 dark:bg-zinc-950"
+			>
+				<Customizer />
+			</PopoverContent>
+		</Popover>
 	)
 }
 

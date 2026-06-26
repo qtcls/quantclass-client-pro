@@ -21,6 +21,7 @@ import { Badge } from "../components/ui/badge"
 import ButtonTooltip from "../components/ui/button-tooltip"
 import { GlowDot } from "../components/ui/glow-dot"
 import { isFullscreenAtom } from "../store"
+import { MonitorStrip } from "./MonitorStrip"
 
 const WindowsBar = ({ toggleFullscreen }: { toggleFullscreen: () => void }) => {
 	const isMaximized = useAtomValue(isFullscreenAtom)
@@ -89,6 +90,10 @@ const WindowsBar = ({ toggleFullscreen }: { toggleFullscreen: () => void }) => {
 							</div>
 						)}
 					</div>
+
+					<div className="flex-1 min-w-0" />
+
+					<MonitorStrip />
 
 					{isWindows && (
 						<div className="window-control-region flex items-center gap-4">

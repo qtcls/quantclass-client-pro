@@ -64,7 +64,7 @@ const SellTable = forwardRef<SellTableRef, SellTableProps>(
 				pagination={false}
 				refresh={refetch}
 				loading={loadingSell || loadingTiming}
-				maxWidth="calc(100vw - 12rem - 2em)"
+				maxWidth="calc(100vw - 4rem - 2em)"
 				emptyText="暂无卖出计划，会在当日自动进行实盘选股之后，展示相关结果"
 				placeholder="搜索卖出计划..."
 				actionOptions={(props) => (

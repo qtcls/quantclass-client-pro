@@ -24,6 +24,7 @@ import {
 import { updateStrategies } from "@/main/core/strategy/index.js"
 import DBManager from "@/main/lib/db-manager.js"
 import { execBin } from "@/main/lib/process.js"
+import { loadTradingDaysFromPeriodOffsetCsv } from "@/main/utils/common.js"
 import { isKernalRunning } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { getLocalDateYYYYMMDD } from "@/shared/lib/trading-day.js"
@@ -279,11 +280,7 @@ async function handleDeleteMinDataToday() {
 async function handleGetMinDataTaskStats() {
 	ipcMain.handle(
 		"get-min-data-task-stats",
-		async (
-			_event,
-			runDate?: string,
-			runIndex?: number,
-		) => {
+		async (_event, runDate?: string, runIndex?: number) => {
 			const tableName = "min_data_update_task"
 
 			const dbManager = DBManager.getInstance()
@@ -444,6 +441,12 @@ async function handleGetMinDataTaskStatus() {
 	)
 }
 
+function handleLoadTradingDays() {
+	ipcMain.handle("load-trading-days", async () => {
+		return loadTradingDaysFromPeriodOffsetCsv()
+	})
+}
+
 export const regDataIPC = () => {
 	handleFuelStatus()
 	handleLoadAccount()
@@ -465,5 +468,6 @@ export const regDataIPC = () => {
 	handleDeleteMinDataToday()
 	handleGetMinDataTaskStats()
 	handleGetMinDataTaskStatus()
+	handleLoadTradingDays()
 	console.log("[reg] data-ipc")
 }

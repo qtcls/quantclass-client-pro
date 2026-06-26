@@ -11,6 +11,7 @@
 import {
 	BACKTEST_PAGE,
 	DATA_PAGE,
+	DATA_SECTION_ROUTE,
 	FAQ_PAGE,
 	FUSION_STRATEGY_LIBRARY_PAGE,
 	HOME_PAGE,
@@ -18,23 +19,28 @@ import {
 	REALTIME_DATA_PAGE,
 	REAL_MARKET_CONFIG_PAGE,
 	RESEARCH_FRAMEWORK_SOURCE_PAGE,
+	RESEARCH_SECTION_ROUTE,
 	RESEARCH_STRATEGY_LIBRARY_PAGE,
 	SETTINGS_PAGE,
 	STRATEGY_LIBRARY_PAGE,
 	STRATEGY_PAGE,
 	TRADING_PLAN_PAGE,
+	TRADING_SECTION_ROUTE,
 } from "@/renderer/constant"
 import FAQ from "@/renderer/page/FAQ"
 import StrategyRun from "@/renderer/page/backtest"
 import Data from "@/renderer/page/data"
+import DataSectionPage from "@/renderer/page/data-section"
 import Home from "@/renderer/page/home"
 import StrategyLibrary from "@/renderer/page/library"
 import FusionStrategyLibrary from "@/renderer/page/library/fusion"
 import PositionInfo from "@/renderer/page/position"
 import RealtimeData from "@/renderer/page/realtime-data"
+import ResearchSectionPage from "@/renderer/page/research-section"
 import ResearchFrameworkSourcePage from "@/renderer/page/research/basic-code"
 import ResearchStrategyLibraryPage from "@/renderer/page/research/strategies"
 import StrategySubscription from "@/renderer/page/subscription"
+import TradingSectionPage from "@/renderer/page/trading-section"
 import TradingPlan from "@/renderer/page/trading/plan"
 import { ListBulletIcon } from "@radix-ui/react-icons"
 
@@ -60,6 +66,24 @@ export const ROUTES = [
 		icon: HomeIcon,
 		label: "首页",
 		element: Home,
+	},
+	{
+		key: DATA_SECTION_ROUTE,
+		icon: DatabaseIcon,
+		label: "数据",
+		element: DataSectionPage,
+	},
+	{
+		key: TRADING_SECTION_ROUTE,
+		icon: LayoutGrid,
+		label: "实盘",
+		element: TradingSectionPage,
+	},
+	{
+		key: RESEARCH_SECTION_ROUTE,
+		icon: Library,
+		label: "投研",
+		element: ResearchSectionPage,
 	},
 	{
 		key: DATA_PAGE,

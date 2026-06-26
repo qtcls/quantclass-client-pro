@@ -14,6 +14,9 @@ import { useHandleTimeTask } from "@/renderer/hooks/useHandleTimeTask"
 import { useInvokeUpdateKernal } from "@/renderer/hooks/useInvokeUpdateKernal"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 import { cn } from "@/renderer/lib/utils"
+import {
+	getKernelVersionUpdateLevel,
+} from "@/renderer/utils/kernel-version-status"
 import { versionsAtom } from "@/renderer/store/versions"
 import type { KernalVersionType } from "@/shared/types"
 import type { AppVersions } from "@/shared/types"
@@ -197,26 +200,18 @@ export const KernalVersion = ({
 		return appVersions?.[name] ?? []
 	}, [appVersions?.[name]])
 
-	const hasUpdate = useMemo(() => {
-		return currentVersion !== latestVersion
-	}, [currentVersion, latestVersion])
+	const updateLevel = useMemo(
+		() =>
+			getKernelVersionUpdateLevel(
+				currentVersion,
+				latestVersion,
+				versionList,
+			),
+		[currentVersion, latestVersion, versionList],
+	)
 
-	/**
-	 * 判断是否为过时内核
-	 * 1. 当前内核版本已下线
-	 * 2. 当前内核版本为暂无内核
-	 * 3. 当前内核版本不在版本列表中
-	 */
-	const isObsolete = useMemo(() => {
-		return (
-			versionList.some(
-				(v: KernalVersionType) =>
-					v.version === currentVersion && v.label === "pulled",
-			) ||
-			currentVersion === "暂无内核" ||
-			!versionList.some((v: KernalVersionType) => v.version === currentVersion)
-		)
-	}, [currentVersion, versionList])
+	const hasUpdate = updateLevel === "optional"
+	const isObsolete = updateLevel === "required"
 
 	const latestVersionDetail = useMemo(() => {
 		if (!latestVersion) return undefined

@@ -90,8 +90,7 @@ export const dataIPC = {
 		page: number
 		pageSize: number
 	}) =>
-		ipcRenderer.invoke("get-min-data-task-status", params,
-		) as Promise<{
+		ipcRenderer.invoke("get-min-data-task-status", params) as Promise<{
 			datalist: Record<string, unknown>[]
 			total: number
 			error?: string
@@ -107,6 +106,10 @@ export const dataIPC = {
 
 	// 监控
 	fetchMonitorProcesses: () => ipcRenderer.invoke("fetch-monitor-processes"),
+
+	// 交易日历（period_offset.csv）
+	getTradingDays: () =>
+		ipcRenderer.invoke("load-trading-days") as Promise<string[]>,
 
 	// 导入功能
 	parseCsvFile: (csvfileName = "最新选股结果", mode = "backtest") =>

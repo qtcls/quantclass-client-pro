@@ -99,7 +99,7 @@ function getCurrent15m(): string {
 const setupScheduler = async (): Promise<schedule.Job> => {
 	// -- 重置已存在的调度任务
 	cancelScheduler()
-	const libraryType = (await _store.get(LIBRARY_TYPE, "select")) as string
+	const libraryType = (await _store.get(LIBRARY_TYPE, "pos")) as string
 	const mw = windowManager.getWindow()
 	try {
 		mw?.webContents.send("send-schedule-status", "init")

@@ -719,7 +719,7 @@ export async function getStrategyStatusList(
 	try {
 		const libraryType = (await store.getValue(
 			"settings.libraryType",
-			"select",
+			"pos",
 		)) as string
 
 		if (libraryType === "pos") {

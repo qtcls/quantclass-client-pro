@@ -142,7 +142,7 @@ export const useLifeCycle = () => {
 		const [apiKey, uuid, libraryType, macAddress] = await Promise.all([
 			getStoreValue("settings.api_key", ""),
 			getStoreValue("settings.hid", ""),
-			getStoreValue("settings.libraryType", "select"),
+			getStoreValue("settings.libraryType", "pos"),
 			getMacAddress(),
 		])
 

@@ -9,6 +9,7 @@
  */
 
 import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
+import { useBacktestDialog } from "@/renderer/components/backtest-dialog"
 import { Button } from "@/renderer/components/ui/button"
 import { DataTable } from "@/renderer/components/ui/data-table"
 import { DataTableToolbar } from "@/renderer/components/ui/data-table-toolbar"
@@ -33,6 +34,7 @@ import { toast } from "sonner"
 export const LibraryTable = forwardRef((_, _ref) => {
 	const { selectStgList, updateSelectStgList } = useStrategyManager()
 	const { isAutoRocket } = useToggleAutoRealTrading()
+	const { openBacktest } = useBacktestDialog()
 	const reTiming = useAtomValue(reTimingAtom)
 	const navigate = useNavigate()
 
@@ -86,7 +88,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 						variant="outline"
 						disabled={isAutoRocket}
 						className="h-8 lg:flex"
-						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=backtest`)}
+						onClick={openBacktest}
 					>
 						<PencilRuler className="size-4 mr-2" />
 						前往回测

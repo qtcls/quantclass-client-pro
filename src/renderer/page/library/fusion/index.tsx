@@ -13,7 +13,6 @@ import RebTimeConfigModal from "@/renderer/components/RebTimeConfigModal"
  * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
-import { ChangeLibrary } from "@/renderer/components/change-library"
 import { StrategyNameDisplay } from "@/renderer/components/strategy-name-display"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
@@ -331,7 +330,6 @@ const FusionStrategyLibrary = () => {
 
 	return (
 		<div className="w-full h-full space-y-4 py-4">
-			<ChangeLibrary currentLibraryType="pos" />
 			<ImportStrategyButton />
 			{fusion.map((strategyGroup, strategyIndex) => {
 				// 使用 isFoldState 来获取和更新每个 strategyGroup 的 isFold 状态

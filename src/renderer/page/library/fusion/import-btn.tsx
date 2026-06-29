@@ -26,6 +26,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/renderer/components/ui/dialog"
+import { useBacktestDialog } from "@/renderer/components/backtest-dialog"
 import { TRADING_SECTION_ROUTE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
@@ -68,6 +69,7 @@ export default function ImportStrategyButton() {
 	const [deleteOpen, setDeleteOpen] = useState(false)
 	const [rebTimeConfigOpen, setRebTimeConfigOpen] = useState(false)
 	const navigate = useNavigate()
+	const { openBacktest } = useBacktestDialog()
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
 	const { fusion, addFusionStrategies, updateFusion, resetFusion } =
 		useFusionManager()
@@ -425,7 +427,7 @@ export default function ImportStrategyButton() {
 						variant="outline"
 						disabled={isAutoRocket}
 						className="h-8 lg:flex"
-						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=backtest`)}
+						onClick={openBacktest}
 					>
 						<PencilRuler className="size-4 mr-2" />
 						前往回测

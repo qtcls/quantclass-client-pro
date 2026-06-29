@@ -80,7 +80,14 @@ export function SectionPage<T extends string>({
 
 	const handleTabChange = useCallback(
 		(tab: T) => {
-			setSearchParams({ tab }, { replace: true })
+			setSearchParams(
+				(prev) => {
+					const next = new URLSearchParams(prev)
+					next.set("tab", tab)
+					return next
+				},
+				{ replace: true },
+			)
 		},
 		[setSearchParams],
 	)

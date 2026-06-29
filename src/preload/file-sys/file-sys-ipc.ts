@@ -467,7 +467,7 @@ async function parseCsvFileHandler(): Promise<void> {
 			}
 
 			try {
-				const libraryType = await store.getValue(LIBRARY_TYPE, "select")
+				const libraryType = await store.getValue(LIBRARY_TYPE, "pos")
 				const backtestName = await store.getValue(
 					`${libraryType === "pos" ? "pos_mgmt" : "select_stock"}.backtest_name`,
 					"策略库",

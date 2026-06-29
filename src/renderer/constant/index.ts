@@ -77,7 +77,7 @@ export const RESEARCH_SECTION_PAGE = [
 	RESEARCH_SECTION_ROUTE,
 ]
 
-export const TRADING_MAIN_PAGE = STRATEGY_LIBRARY_PAGE
+export const TRADING_MAIN_PAGE = TRADING_SECTION_ROUTE
 
 // -- 选股 config
 export const SELECT_STOCK_STRATEGY_CONFIG = "select_stock"

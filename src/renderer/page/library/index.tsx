@@ -8,7 +8,6 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { ChangeLibrary } from "@/renderer/components/change-library"
 import { Button } from "@/renderer/components/ui/button"
 import { Input } from "@/renderer/components/ui/input"
 import { H2 } from "@/renderer/components/ui/typography"
@@ -36,7 +35,6 @@ export default function StrategyLibrary() {
 
 	return (
 		<div className="h-full flex-1 flex-col space-y-4 md:flex pt-3">
-			<ChangeLibrary currentLibraryType="select" />
 			<div className="w-full">
 				<div className="flex items-center gap-2 w-auto">
 					{isEditing ? (

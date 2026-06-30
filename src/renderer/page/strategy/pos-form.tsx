@@ -46,9 +46,9 @@ const schema = z.object({
 	split_order_amount: z.union([z.number(), z.string()]).refine(
 		(val) => {
 			const num = typeof val === "string" ? Number(val) : val
-			return !Number.isNaN(num) && num >= 6000 && num <= 12000
+			return !Number.isNaN(num) && num >= 12000 && num <= 36000
 		},
-		{ message: "拆单金额须在 6000～12000 之间" },
+		{ message: "拆单金额须在 12000～36000 之间" },
 	),
 })
 
@@ -107,7 +107,7 @@ export function PosStrategyForm({
 									<FormItem className="flex flex-col">
 										<FormLabel className="flex items-center gap-1">
 											<span>🧬 拆单金额</span>
-											<ButtonTooltip content="拆单金额默认在 6000 到 12000 之间随机取值">
+											<ButtonTooltip content="拆单金额默认在 12000 到 36000 之间随机取值">
 												<CircleHelp className="h-4 w-4 text-muted-foreground hover:cursor-pointer" />
 											</ButtonTooltip>
 										</FormLabel>
@@ -115,8 +115,8 @@ export function PosStrategyForm({
 											<InputUI
 												{...field}
 												type="number"
-												min={6000}
-												max={12000}
+												min={12000}
+												max={36000}
 												className="bg-background"
 											/>
 										</FormControl>
@@ -133,7 +133,7 @@ export function PosStrategyForm({
 									e.preventDefault()
 									form.setValue(
 										"split_order_amount",
-										Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
+										Math.floor(Math.random() * (36000 - 12000 + 1)) + 12000,
 									)
 								}}
 							>

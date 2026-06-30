@@ -36,7 +36,7 @@ export default function PosStrategyEditDialog({
 	const defaultValues: PosStrategyFormData = {
 		split_order_amount:
 			posStrategy.split_order_amount ??
-			Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
+			Math.floor(Math.random() * (36000 - 12000 + 1)) + 12000,
 	}
 
 	return (

@@ -198,7 +198,7 @@ export function genSelectStrategyDict(
 			}`, // 买入时间，时分秒补零
 			Math.floor(Math.random() * (45 - 25 + 1)) + 25, // 随机买入时间间隔
 			stg.split_order_amount ??
-				Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000, // 随机拆单金额
+				Math.floor(Math.random() * (36000 - 12000 + 1)) + 12000, // 随机拆单金额
 			1.005, // 买入价格浮动比例
 		],
 		sell: [
@@ -240,7 +240,7 @@ export function genPosMgmtStrategyDict(
 			}`, // 买入时间，时分秒补零
 			Math.floor(Math.random() * (45 - 25 + 1)) + 25, // 随机买入时间间隔
 			stg.split_order_amount ??
-				Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000, // 随机拆单金额
+				Math.floor(Math.random() * (36000 - 12000 + 1)) + 12000, // 随机拆单金额
 			1.005, // 买入价格浮动比例
 		],
 		sell: [
@@ -270,10 +270,10 @@ export function generateNonStrategySelectStrategyConfig(
 			"t_wap",
 			`09:24:${Math.floor(Math.random() * 50) + 10}`,
 			Math.floor(Math.random() * (45 - 25 + 1)) + 25,
-			// -- 这是生成一个介于 6000 到 12000 之间的随机整数
-			// -- 6000 是最小值，12000 是最大值
+			// -- 这是生成一个介于 12000 到 36000 之间的随机整数
+			// -- 12000 是最小值，36000 是最大值
 			// -- 用于模拟交易量或其他金融相关的随机数值
-			Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
+			Math.floor(Math.random() * (36000 - 12000 + 1)) + 12000,
 			1.005,
 		],
 		sell: [

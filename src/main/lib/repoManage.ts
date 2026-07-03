@@ -8,15 +8,19 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { spawn } from "node:child_process"
 import fs from "node:fs"
 import { writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import path from "node:path"
 import { repoStore } from "@/main/lib/repoStore.js"
 import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
+import { getKernalPath } from "@/main/utils/common.js"
 import logger from "@/main/utils/wiston.js"
+import { LIBRARY_TYPE } from "@/shared/constants.js"
 import { resolveRepoFolderNameFromLink } from "@/shared/lib/repo-folder.js"
 import type {
+	LaunchConfigMasterResult,
 	RepoApiType,
 	RepoDeleteResult,
 	RepoDownloadResult,
@@ -30,6 +34,7 @@ const AdmZip = require("adm-zip")
 const REPO_DIR_BY_API_TYPE: Record<RepoApiType, string> = {
 	strategies: "strategy_repo",
 	"basic-code": "framework_repo",
+	"config-master": "config_master",
 }
 
 /** 按访达规则：基名不存在则用基名，否则依次尝试「基名 (1)」「基名 (2)」… */
@@ -206,6 +211,79 @@ export async function deleteRepoDownload(
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error)
 		logger.error(`[repo] 删除失败 ticket=${ticket}: ${message}`)
+		return { success: false, error: message }
+	}
+}
+
+export interface LaunchConfigMasterArgs {
+	configMasterRoot: string
+	backtestRoot: string
+}
+
+const CONFIG_MASTER_URL = "http://127.0.0.1:9999"
+
+export async function launchConfigMaster({
+	configMasterRoot,
+	backtestRoot,
+}: LaunchConfigMasterArgs): Promise<LaunchConfigMasterResult> {
+	try {
+		if (!configMasterRoot || !fs.existsSync(configMasterRoot)) {
+			return { success: false, error: "config 大师目录不存在，请先下载" }
+		}
+		if (!backtestRoot || !fs.existsSync(backtestRoot)) {
+			return { success: false, error: "框架源码目录不存在" }
+		}
+
+		const mainPath = path.join(configMasterRoot, "main.py")
+		if (!fs.existsSync(mainPath)) {
+			return {
+				success: false,
+				error: `未找到 config 大师入口文件: ${mainPath}`,
+			}
+		}
+
+		const libraryType = (await store.getValue(LIBRARY_TYPE, "pos")) as string
+		const kernel = libraryType === "pos" ? "zeus" : "aqua"
+		const kernelBin = await getKernalPath(kernel)
+		if (!fs.existsSync(kernelBin)) {
+			return {
+				success: false,
+				error: `${kernel} 内核不存在，请先下载选股内核`,
+			}
+		}
+
+		const child = spawn(kernelBin, ["config-master"], {
+			env: {
+				...process.env,
+				CONFIG_MASTER_PROJECT_ROOT: configMasterRoot,
+				CONFIG_MASTER_BACKTEST_ROOT: backtestRoot,
+				PYTHONIOENCODING: "utf-8",
+				PYTHONUNBUFFERED: "1",
+			},
+			windowsHide: true,
+		})
+
+		child.stdout?.on("data", (data: Buffer) => {
+			logger.info(`[config-master] ${data.toString("utf8")}`)
+		})
+		child.stderr?.on("data", (data: Buffer) => {
+			logger.error(`[config-master] ${data.toString("utf8")}`)
+		})
+		child.on("exit", (code, signal) => {
+			logger.info(
+				`[config-master] 进程退出 pid=${child.pid} code=${code} signal=${signal}`,
+			)
+		})
+
+		if (!child.pid) return { success: false, error: "启动 config 大师失败" }
+
+		logger.info(
+			`[config-master] 已启动 pid=${child.pid}, kernel=${kernel}, CONFIG_MASTER_PROJECT_ROOT=${configMasterRoot}, CONFIG_MASTER_BACKTEST_ROOT=${backtestRoot}`,
+		)
+		return { success: true, pid: child.pid, url: CONFIG_MASTER_URL }
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error)
+		logger.error(`[config-master] 启动失败: ${message}`)
 		return { success: false, error: message }
 	}
 }

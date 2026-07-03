@@ -43,6 +43,7 @@ import { H2 } from "@/renderer/components/ui/typography"
 import { useResearchDownload } from "@/renderer/hooks/useResearchDownload"
 import { useSettings } from "@/renderer/hooks/useSettings"
 import { cn } from "@/renderer/lib/utils"
+import { researchDownloadManager } from "@/renderer/page/research/research-download-manager"
 import { getResearchBasicCode, getResearchStrategies } from "@/renderer/request"
 import { userAtom } from "@/renderer/store/user"
 import type {
@@ -65,15 +66,39 @@ import {
 	RefreshCw,
 	Trash2,
 } from "lucide-react"
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import {
+	type ReactNode,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react"
 import ReactMarkdown from "react-markdown"
 import { toast } from "sonner"
 import { ResearchRedownloadConfirmDialog } from "./redownload-confirm-dialog"
+
+export interface ResearchCenterDirectDownloadConfig {
+	courseName: YearOption
+	itemId: string
+	overwrite?: boolean
+}
 
 export interface ResearchCenterPageProps {
 	apiType: RepoApiType
 	title: string
 	description?: string
+	downloadActionLabel?: string
+	directDownloadConfig?: ResearchCenterDirectDownloadConfig
+	className?: string
+	extraActions?: (context: {
+		repoRecords: RepoDownloadRecord[] | undefined
+		localRecords: RepoDownloadRecord[]
+	}) => ReactNode
+	recordActions?: (context: {
+		record: RepoDownloadRecord
+		repoRecords: RepoDownloadRecord[] | undefined
+	}) => ReactNode
 }
 
 const YEAR_OPTIONS = ["fen-2026", "fen-2025", "fen-2024", "fen-2023"] as const
@@ -86,19 +111,25 @@ const YEAR_LABEL_MAP: Record<YearOption, string> = {
 	"fen-2023": "2023 分享会",
 }
 
-const API_FN_MAP = {
+const API_FN_MAP: Record<
+	RepoApiType,
+	(courseName: string) => ReturnType<typeof getResearchBasicCode>
+> = {
 	strategies: getResearchStrategies,
 	"basic-code": getResearchBasicCode,
+	"config-master": getResearchBasicCode,
 }
 
 const DOWNLOAD_DIR_BY_API_TYPE: Record<RepoApiType, string> = {
 	strategies: "strategy_repo",
 	"basic-code": "framework_repo",
+	"config-master": "config_master",
 }
 
 const DOWNLOAD_ACTION_LABEL: Record<RepoApiType, string> = {
 	strategies: "下载策略",
 	"basic-code": "下载框架",
+	"config-master": "下载 config 大师",
 }
 
 const VERSION_DESCRIPTION_MARKDOWN_CLASS =
@@ -174,14 +205,12 @@ function buildRemoteUpdatedAtByFid(
 ): Map<string, string> {
 	const map = new Map<string, string>()
 	for (const res of results) {
-		const items =
-			res?.code === 200 && Array.isArray(res.data) ? res.data : []
+		const items = res?.code === 200 && Array.isArray(res.data) ? res.data : []
 		for (const item of items) {
 			for (const version of item.versions ?? []) {
 				const fid = version.file?.id
 				if (!fid) continue
-				const time =
-					version.time || version.file?.ut || version.file?.ct || ""
+				const time = version.time || version.file?.ut || version.file?.ct || ""
 				if (time) map.set(fid, time)
 			}
 		}
@@ -193,12 +222,20 @@ export function ResearchCenterPage({
 	apiType,
 	title,
 	description,
+	downloadActionLabel: customDownloadActionLabel,
+	directDownloadConfig,
+	className,
+	extraActions,
+	recordActions,
 }: ResearchCenterPageProps) {
 	const [downloadOpen, setDownloadOpen] = useState(false)
+	const [isDirectDownloadLoading, setIsDirectDownloadLoading] = useState(false)
+	const queryClient = useQueryClient()
 	const { permissions } = useAtomValue(userAtom)
 	const { dataLocation } = useSettings()
 	const downloadSubDir = DOWNLOAD_DIR_BY_API_TYPE[apiType]
-	const downloadActionLabel = DOWNLOAD_ACTION_LABEL[apiType]
+	const downloadActionLabel =
+		customDownloadActionLabel ?? DOWNLOAD_ACTION_LABEL[apiType]
 	const downloadPath = dataLocation
 		? `${dataLocation.replace(/\\/g, "/").replace(/\/$/, "")}/${downloadSubDir}`
 		: `存储路径/${downloadSubDir}`
@@ -211,6 +248,12 @@ export function ResearchCenterPage({
 		staleTime: 1000 * 30,
 		refetchOnWindowFocus: false,
 	})
+
+	useEffect(() => {
+		researchDownloadManager.setInvalidateRecords(() => {
+			queryClient.invalidateQueries({ queryKey: ["repo-records"] })
+		})
+	}, [queryClient])
 
 	const localRecords = useMemo(
 		() =>
@@ -236,8 +279,72 @@ export function ResearchCenterPage({
 		await handleOpenDownloadFolder()
 	}
 
+	const handleDownloadClick = async () => {
+		if (!directDownloadConfig) {
+			setDownloadOpen(true)
+			return
+		}
+
+		if (!dataLocation) {
+			toast.warning("请先在设置中配置数据存储路径")
+			return
+		}
+
+		setIsDirectDownloadLoading(true)
+		try {
+			const res = await API_FN_MAP[apiType](directDownloadConfig.courseName)
+			const items = res?.code === 200 && Array.isArray(res.data) ? res.data : []
+			const item = items.find((row) => row.id === directDownloadConfig.itemId)
+			if (!item) {
+				toast.error("未找到 config 大师")
+				return
+			}
+
+			const latestVersion = sortVersionsByTimeDesc(item.versions)[0]
+			const file = latestVersion?.file
+			const fid = file?.id ?? ""
+			if (!latestVersion || !fid) {
+				toast.error("暂无可下载版本")
+				return
+			}
+
+			if (latestVersion.hidden) {
+				toast.warning("该版本暂停下载")
+				return
+			}
+
+			const extraPermissions = getExtraPermissions(file)
+			if (!hasDownloadPermission(extraPermissions, permissions)) {
+				toast.warning("暂无权限下载")
+				return
+			}
+
+			await researchDownloadManager.start(
+				{
+					apiType,
+					fid,
+					itemId: item.id,
+					itemTitle: item.title,
+					versionName: file?.name ?? "",
+					courseName: directDownloadConfig.courseName,
+				},
+				{ overwrite: directDownloadConfig.overwrite ?? false },
+			)
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error)
+			toast.error("初始化下载失败", { description: message })
+		} finally {
+			setIsDirectDownloadLoading(false)
+		}
+	}
+
 	return (
-		<div className="h-full flex-1 flex-col space-y-4 md:flex pt-3">
+		<div
+			className={cn(
+				"flex-col space-y-4 pt-3 md:flex",
+				className ?? "h-full flex-1",
+			)}
+		>
 			<div className="w-full space-y-3">
 				<div className="min-w-0">
 					<H2>{title}</H2>
@@ -249,9 +356,14 @@ export function ResearchCenterPage({
 					<div className="flex items-center gap-2 shrink-0">
 						<Button
 							className="h-10 gap-1.5"
-							onClick={() => setDownloadOpen(true)}
+							disabled={isDirectDownloadLoading}
+							onClick={handleDownloadClick}
 						>
-							<Download className="h-4 w-4" />
+							{isDirectDownloadLoading ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								<Download className="h-4 w-4" />
+							)}
 							{downloadActionLabel}
 						</Button>
 						<Button
@@ -263,6 +375,7 @@ export function ResearchCenterPage({
 							<FolderOpen className="h-4 w-4" />
 							打开文件夹
 						</Button>
+						{extraActions?.({ repoRecords, localRecords })}
 					</div>
 					<Input
 						readOnly
@@ -291,19 +404,23 @@ export function ResearchCenterPage({
 					<LocalRecordsTable
 						apiType={apiType}
 						records={localRecords}
+						repoRecords={repoRecords}
 						onOpenFolder={handleOpenRecordFolder}
+						recordActions={recordActions}
 					/>
 				)}
 			</div>
 
-			<DownloadVersionsDialog
-				open={downloadOpen}
-				onOpenChange={setDownloadOpen}
-				apiType={apiType}
-				dialogTitle={downloadActionLabel}
-				repoRecords={repoRecords}
-				userPermissions={permissions}
-			/>
+			{directDownloadConfig ? null : (
+				<DownloadVersionsDialog
+					open={downloadOpen}
+					onOpenChange={setDownloadOpen}
+					apiType={apiType}
+					dialogTitle={downloadActionLabel}
+					repoRecords={repoRecords}
+					userPermissions={permissions}
+				/>
+			)}
 		</div>
 	)
 }
@@ -311,13 +428,20 @@ export function ResearchCenterPage({
 interface LocalRecordsTableProps {
 	apiType: RepoApiType
 	records: RepoDownloadRecord[]
+	repoRecords: RepoDownloadRecord[] | undefined
 	onOpenFolder: (record: RepoDownloadRecord) => void
+	recordActions?: (context: {
+		record: RepoDownloadRecord
+		repoRecords: RepoDownloadRecord[] | undefined
+	}) => ReactNode
 }
 
 function LocalRecordsTable({
 	apiType,
 	records,
+	repoRecords,
 	onOpenFolder,
+	recordActions,
 }: LocalRecordsTableProps) {
 	const queryClient = useQueryClient()
 	const [deleteRecord, setDeleteRecord] = useState<RepoDownloadRecord | null>(
@@ -395,6 +519,7 @@ function LocalRecordsTable({
 								remoteUpdatedAt={remoteUpdatedAtByFid.get(record.fid)}
 								onOpenFolder={() => onOpenFolder(record)}
 								onDelete={() => setDeleteRecord(record)}
+								extraActions={recordActions?.({ record, repoRecords })}
 							/>
 						))}
 					</TableBody>
@@ -447,6 +572,7 @@ interface LocalRecordTableRowProps {
 	remoteUpdatedAt?: string
 	onOpenFolder: () => void
 	onDelete: () => void
+	extraActions?: ReactNode
 }
 
 function LocalRecordTableRow({
@@ -454,6 +580,7 @@ function LocalRecordTableRow({
 	remoteUpdatedAt,
 	onOpenFolder,
 	onDelete,
+	extraActions,
 }: LocalRecordTableRowProps) {
 	return (
 		<TableRow className="group">
@@ -507,6 +634,7 @@ function LocalRecordTableRow({
 			</TableCell>
 			<TableCell className="py-3 align-middle">
 				<div className="flex items-center gap-1">
+					{extraActions}
 					<ButtonTooltip content="打开文件夹">
 						<Button
 							size="icon"

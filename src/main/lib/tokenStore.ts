@@ -171,6 +171,7 @@ class TokenStore {
 					exp: decodeJwtExp(data.access_token),
 				}
 				newAccess = data.access_token
+				logger.info("[tokenStore] 刷新 access_token 成功")
 
 				if (
 					typeof data.refresh_token === "string" &&

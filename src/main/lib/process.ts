@@ -42,7 +42,7 @@ export class ProcessManage {
 			action: string
 			createdAt: string
 			pid?: number
-			kernel: "fuel" | "rocket" | "aqua" | "zeus"
+			kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock"
 		}
 	>
 
@@ -55,7 +55,7 @@ export class ProcessManage {
 		args: string[],
 		options: SpawnOptionsWithoutStdio,
 		action: string,
-		kernel: "fuel" | "rocket" | "aqua" | "zeus" = "fuel",
+		kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock" = "fuel",
 	) {
 		const childProcess = spawn(command, args, options)
 		const createdAt = dayjs().format("YYYY-MM-DD HH:mm")
@@ -195,8 +195,8 @@ export const process_manager = new ProcessManage()
 export const execBin = async (
 	args: string[],
 	action: string,
-	kernel: "fuel" | "rocket" | "aqua" | "zeus" = "fuel",
-	extraEnv?: string,
+	kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock" = "fuel",
+	extraEnv?: string | Record<string, string>,
 ) => {
 	try {
 		const api_key = await store.getSetting("api_key", "")
@@ -302,7 +302,12 @@ export const execBin = async (
 			process.env.PYTHONUNBUFFERED = "1"
 			process.env.PYTHONIOENCODING = "utf8"
 			process.env.USE_OPEN_SELL = useOpenSell as string
-			process.env.FUEL_TEMP_FILE_PATH = extraEnv ?? ""
+			if (typeof extraEnv === "string") {
+				process.env.FUEL_TEMP_FILE_PATH = extraEnv
+			} else {
+				process.env.FUEL_TEMP_FILE_PATH = ""
+				if (extraEnv) Object.assign(process.env, extraEnv)
+			}
 
 			const pythonProcess = process_manager.spawnProcess(
 				binPath,
@@ -329,7 +334,7 @@ function handlePythonProcess<T = any>(
 	pythonProcess: ChildProcessWithoutNullStreams,
 	resolve: (value?: T) => void,
 	reject: (reason?: any) => void,
-	kernel: "fuel" | "rocket" | "aqua" | "zeus",
+	kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock",
 	action: string,
 ) {
 	const mainWindow = windowManager.getWindow()

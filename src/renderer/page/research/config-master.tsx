@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
 import {
 	Dialog,
@@ -23,9 +24,13 @@ import {
 	RadioGroupItem,
 } from "@/renderer/components/ui/radio-group"
 import { ScrollArea } from "@/renderer/components/ui/scroll-area"
-import { ResearchCenterPage } from "@/renderer/page/research"
+import { useInvokeUpdateKernal } from "@/renderer/hooks/useInvokeUpdateKernal"
+import { cn } from "@/renderer/lib/utils"
+import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
 import type { RepoDownloadRecord } from "@/shared/types/repo"
-import { Loader2, Play } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { useAtomValue } from "jotai"
+import { Download, Inbox, Loader2, PackageCheck, Play } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -33,24 +38,18 @@ interface ResearchConfigMasterPageProps {
 	className?: string
 }
 
-export const CONFIG_MASTER_ITEM_ID = "697711a6e639c91abdc76e92"
+const CONFIG_MASTER_KERNEL = "config-master-stock" as const
 
 export function useLaunchConfigMaster() {
 	const [isLaunching, setIsLaunching] = useState(false)
 
 	const launchConfigMaster = async ({
-		configMasterRoot,
 		backtestRoot,
 		onSuccess,
 	}: {
-		configMasterRoot?: string
 		backtestRoot?: string
 		onSuccess?: () => void
 	}) => {
-		if (!configMasterRoot) {
-			toast.error("请先下载 config 大师")
-			return
-		}
 		if (!backtestRoot) {
 			toast.warning("请选择一个框架源码版本")
 			return
@@ -59,7 +58,6 @@ export function useLaunchConfigMaster() {
 		setIsLaunching(true)
 		try {
 			const result = await window.electronAPI.launchConfigMaster({
-				configMasterRoot,
 				backtestRoot,
 			})
 			if (!result.success) {
@@ -85,20 +83,25 @@ export function useLaunchConfigMaster() {
 	return { isLaunching, launchConfigMaster }
 }
 
-interface ConfigMasterLaunchActionProps {
-	repoRecords: RepoDownloadRecord[] | undefined
-	localRecords: RepoDownloadRecord[]
+interface ConfigMasterLaunchDialogProps {
+	open: boolean
+	onOpenChange: (open: boolean) => void
 }
 
-function ConfigMasterLaunchAction({
-	repoRecords,
-	localRecords,
-}: ConfigMasterLaunchActionProps) {
-	const [dialogOpen, setDialogOpen] = useState(false)
+function ConfigMasterLaunchDialog({
+	open,
+	onOpenChange,
+}: ConfigMasterLaunchDialogProps) {
 	const [selectedTicket, setSelectedTicket] = useState<string | null>(null)
 	const { isLaunching, launchConfigMaster } = useLaunchConfigMaster()
 
-	const configMasterRecord = localRecords[0]
+	const { data: repoRecords } = useQuery<RepoDownloadRecord[]>({
+		queryKey: ["repo-records"],
+		queryFn: () => window.electronAPI.listRepoRecords(),
+		enabled: open,
+		staleTime: 1000 * 30,
+		refetchOnWindowFocus: false,
+	})
 
 	const frameworkRecords = useMemo(
 		() =>
@@ -116,54 +119,36 @@ function ConfigMasterLaunchAction({
 	const firstFrameworkTicket = frameworkRecords[0]?.ticket ?? null
 
 	useEffect(() => {
-		if (!dialogOpen) return
+		if (!open) return
 		setSelectedTicket(firstFrameworkTicket)
-	}, [dialogOpen, firstFrameworkTicket])
-
-	const handleOpenDialog = () => {
-		if (!configMasterRecord?.extractDir) {
-			toast.error("请先下载 config 大师")
-			return
-		}
-		if (frameworkRecords.length === 0) {
-			toast.error("请先在框架源码中下载一个版本")
-			return
-		}
-		setDialogOpen(true)
-	}
+	}, [open, firstFrameworkTicket])
 
 	const handleLaunch = async () => {
 		const frameworkRecord = frameworkRecords.find(
 			(record) => record.ticket === selectedTicket,
 		)
 		await launchConfigMaster({
-			configMasterRoot: configMasterRecord?.extractDir,
 			backtestRoot: frameworkRecord?.extractDir,
-			onSuccess: () => setDialogOpen(false),
+			onSuccess: () => onOpenChange(false),
 		})
 	}
 
 	return (
-		<>
-			<Button
-				type="button"
-				variant="outline"
-				className="h-10 gap-1.5"
-				onClick={handleOpenDialog}
-			>
-				<Play className="h-4 w-4" />
-				启动 config 大师
-			</Button>
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-lg">
+				<DialogHeader>
+					<DialogTitle>选择框架源码</DialogTitle>
+					<DialogDescription>
+						选择一个本地已下载的框架源码版本，作为 config 大师的回测根目录
+					</DialogDescription>
+				</DialogHeader>
 
-			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-				<DialogContent className="max-w-lg">
-					<DialogHeader>
-						<DialogTitle>选择框架源码</DialogTitle>
-						<DialogDescription>
-							选择一个本地已下载的框架源码版本，作为 config 大师的回测根目录
-						</DialogDescription>
-					</DialogHeader>
-
+				{frameworkRecords.length === 0 ? (
+					<div className="flex flex-col items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+						<Inbox className="h-8 w-8 opacity-50" />
+						<span>暂无已下载的框架源码，请先在下方下载框架源码</span>
+					</div>
+				) : (
 					<ScrollArea className="max-h-72 pr-3">
 						<RadioGroup
 							value={selectedTicket ?? undefined}
@@ -196,53 +181,136 @@ function ConfigMasterLaunchAction({
 							))}
 						</RadioGroup>
 					</ScrollArea>
+				)}
 
-					<DialogFooter>
-						<Button
-							variant="outline"
-							disabled={isLaunching}
-							onClick={() => setDialogOpen(false)}
-						>
-							取消
-						</Button>
-						<Button
-							disabled={!selectedTicket || isLaunching}
-							onClick={handleLaunch}
-						>
-							{isLaunching ? (
-								<Loader2 className="h-4 w-4 animate-spin" />
-							) : (
-								"启动"
-							)}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</>
+				<DialogFooter>
+					<Button
+						variant="outline"
+						disabled={isLaunching}
+						onClick={() => onOpenChange(false)}
+					>
+						取消
+					</Button>
+					<Button
+						disabled={!selectedTicket || isLaunching}
+						onClick={handleLaunch}
+					>
+						{isLaunching ? (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						) : (
+							"启动"
+						)}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	)
 }
 
 export default function ResearchConfigMasterPage({
 	className,
 }: ResearchConfigMasterPageProps) {
+	const versions = useAtomValue(versionsAtom)
+	const { refetchLocalVersions } = useLocalVersions()
+	const invokeUpdateKernal = useInvokeUpdateKernal()
+	const [isUpdating, setIsUpdating] = useState(false)
+	const [launchOpen, setLaunchOpen] = useState(false)
+
+	const { data: appVersions, refetch: refetchAppVersions } = useQuery({
+		queryKey: ["app-versions"],
+		queryFn: () => window.electronAPI.checkUpdate(true),
+		staleTime: 1000 * 60 * 5,
+		refetchOnWindowFocus: false,
+	})
+
+	const currentVersion = versions.configMasterStockVersion ?? "暂无内核"
+	const latestVersion = appVersions?.latest?.[CONFIG_MASTER_KERNEL]
+	// 仅用于展示下载状态与文案；启动入口不依赖这个状态，允许用户手动放入内核目录后直接启动。
+	const hasDownloadedKernel = currentVersion !== "暂无内核"
+	const hasUpdate = Boolean(latestVersion && latestVersion !== currentVersion)
+	const versionDetail = useMemo(
+		() =>
+			appVersions?.[CONFIG_MASTER_KERNEL]?.find(
+				(version) => version.version === latestVersion,
+			),
+		[appVersions, latestVersion],
+	)
+
+	const handleUpdate = async () => {
+		setIsUpdating(true)
+		try {
+			await refetchAppVersions()
+			await invokeUpdateKernal(CONFIG_MASTER_KERNEL)
+			await refetchLocalVersions()
+		} finally {
+			setIsUpdating(false)
+		}
+	}
+
 	return (
-		<ResearchCenterPage
-			apiType="config-master"
-			className={className}
-			title="config 大师"
-			description="管理本地已下载的 config 大师，或下载最新版本"
-			downloadActionLabel="下载 config 大师"
-			directDownloadConfig={{
-				courseName: "fen-2026",
-				itemId: CONFIG_MASTER_ITEM_ID,
-				overwrite: true,
-			}}
-			extraActions={({ repoRecords, localRecords }) => (
-				<ConfigMasterLaunchAction
-					repoRecords={repoRecords}
-					localRecords={localRecords}
-				/>
+		<section
+			className={cn(
+				"rounded-lg border bg-card p-4 shadow-sm space-y-4",
+				className,
 			)}
-		/>
+		>
+			<div className="flex items-start justify-between gap-4">
+				<div className="min-w-0 space-y-1">
+					<div className="flex items-center gap-2">
+						<PackageCheck className="h-5 w-5 text-muted-foreground" />
+						<h2 className="font-semibold text-xl">config 大师</h2>
+					</div>
+					<p className="text-sm text-muted-foreground">
+						下载并管理 config 大师内核；点击「启动」后选择本地框架源码版本即可运行。
+					</p>
+				</div>
+				<div className="flex items-center gap-2 shrink-0">
+					<Button
+						type="button"
+						className="h-10 gap-1.5"
+						onClick={() => setLaunchOpen(true)}
+					>
+						<Play className="h-4 w-4" />
+						启动 config 大师
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						className="h-10 gap-1.5"
+						disabled={isUpdating}
+						onClick={handleUpdate}
+					>
+						{isUpdating ? (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						) : (
+							<Download className="h-4 w-4" />
+						)}
+						{hasDownloadedKernel ? "更新 config 大师" : "下载 config 大师"}
+					</Button>
+				</div>
+			</div>
+
+			<div className="flex flex-wrap items-center gap-2 text-sm">
+				<Badge variant={hasDownloadedKernel ? "secondary" : "outline"}>
+					本地：{currentVersion}
+				</Badge>
+				{latestVersion ? (
+					<Badge variant={hasUpdate ? "outline" : "secondary"}>
+						最新：{latestVersion}
+					</Badge>
+				) : null}
+				{hasUpdate ? (
+					<span className="text-xs text-blue-500">有可用更新</span>
+				) : null}
+			</div>
+
+			{versionDetail?.description ? (
+				<p className="text-sm text-muted-foreground leading-relaxed">
+					{versionDetail.description}
+				</p>
+			) : null}
+
+			<ConfigMasterLaunchDialog open={launchOpen} onOpenChange={setLaunchOpen} />
+		</section>
 	)
 }

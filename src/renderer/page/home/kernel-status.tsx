@@ -20,7 +20,7 @@ import { monitorProcessesQueryAtom } from "@/renderer/store/query"
 import { libraryTypeAtom } from "@/renderer/store/storage"
 import { useAtom, useAtomValue } from "jotai"
 
-export type KernelKey = "fuel" | "aqua" | "zeus" | "rocket"
+export type KernelKey = "fuel" | "aqua" | "zeus" | "rocket" | "config-master-stock"
 
 export type KernelStatusLevel = "ok" | "warn" | "idle"
 

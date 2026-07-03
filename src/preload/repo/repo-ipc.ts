@@ -122,7 +122,6 @@ function launchConfigMasterHandler(): void {
 		async (
 			_event,
 			args: {
-				configMasterRoot: string
 				backtestRoot: string
 			},
 		) => {

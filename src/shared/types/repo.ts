@@ -8,7 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-export type RepoApiType = "strategies" | "basic-code" | "config-master"
+export type RepoApiType = "strategies" | "basic-code"
 
 export interface RepoDownloadRecord {
 	ticket: string

@@ -58,7 +58,6 @@ export const repoIPC = {
 		ipcRenderer.invoke("repo:write-framework-client-env"),
 
 	launchConfigMaster: (args: {
-		configMasterRoot: string
 		backtestRoot: string
 	}): Promise<LaunchConfigMasterResult> =>
 		ipcRenderer.invoke("repo:launch-config-master", args),

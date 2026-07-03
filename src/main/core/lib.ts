@@ -54,6 +54,7 @@ export async function getAppAndKernalVersions() {
 		const aquaVersion = await getKernelVersion("aqua")
 		const rocketVersion = await getKernelVersion("rocket")
 		const zeusVersion = await getKernelVersion("zeus")
+		const configMasterStockVersion = await getKernelVersion("config-master-stock")
 		const clientVersion = version
 
 		return {
@@ -62,6 +63,7 @@ export async function getAppAndKernalVersions() {
 			aquaVersion,
 			zeusVersion,
 			rocketVersion,
+			configMasterStockVersion,
 		}
 	} catch (error) {
 		const { version } = PACKAGE_INFO
@@ -72,6 +74,7 @@ export async function getAppAndKernalVersions() {
 			aquaVersion: defaultVersion,
 			zeusVersion: defaultVersion,
 			rocketVersion: defaultVersion,
+			configMasterStockVersion: defaultVersion,
 		}
 	}
 }

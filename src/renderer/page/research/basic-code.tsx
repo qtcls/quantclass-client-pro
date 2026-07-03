@@ -18,34 +18,17 @@ import type { RepoDownloadRecord } from "@/shared/types/repo"
 import { Loader2, Play } from "lucide-react"
 import { useEffect } from "react"
 
-function getLatestConfigMasterRecord(
-	repoRecords: RepoDownloadRecord[] | undefined,
-): RepoDownloadRecord | undefined {
-	return (repoRecords ?? [])
-		.filter(
-			(record) =>
-				record.success &&
-				record.apiType === "config-master" &&
-				record.extractDir,
-		)
-		.sort((a, b) => b.updatedAt - a.updatedAt)[0]
-}
-
 interface LaunchConfigMasterForFrameworkButtonProps {
 	record: RepoDownloadRecord
-	repoRecords: RepoDownloadRecord[] | undefined
 }
 
 function LaunchConfigMasterForFrameworkButton({
 	record,
-	repoRecords,
 }: LaunchConfigMasterForFrameworkButtonProps) {
 	const { isLaunching, launchConfigMaster } = useLaunchConfigMaster()
-	const configMasterRecord = getLatestConfigMasterRecord(repoRecords)
 
 	const handleLaunch = async () => {
 		await launchConfigMaster({
-			configMasterRoot: configMasterRecord?.extractDir,
 			backtestRoot: record.extractDir,
 		})
 	}
@@ -83,11 +66,8 @@ export default function ResearchFrameworkSourcePage() {
 				title="框架源码"
 				description="管理本地已下载的框架源码，或下载新版本到框架库"
 				className="min-h-0 flex-1"
-				recordActions={({ record, repoRecords }) => (
-					<LaunchConfigMasterForFrameworkButton
-						record={record}
-						repoRecords={repoRecords}
-					/>
+				recordActions={({ record }) => (
+					<LaunchConfigMasterForFrameworkButton record={record} />
 				)}
 			/>
 		</div>

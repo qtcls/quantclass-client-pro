@@ -162,6 +162,7 @@ const PID_LOCK_PATH = {
 	fuel: ["code", "data"],
 	aqua: ["real_trading", "data", "locker"],
 	rocket: ["real_trading", "rocket", "data"],
+	"config-master-stock": ["code", "config-master-stock", "data"],
 }
 
 export const isKernalRunning = async (
@@ -266,6 +267,10 @@ export async function isKernalBusy(kernal: KernalType): Promise<boolean> {
 			isRunning = await isKernalRunning("fuel")
 			isUpdating = await isKernalUpdating("fuel")
 			break
+		case "config-master-stock":
+			isRunning = await isKernalRunning("config-master-stock", true)
+			isUpdating = await isKernalUpdating("config-master-stock")
+			break
 	}
 
 	if (isUpdating) {
@@ -360,7 +365,7 @@ export const killKernalByForce = async (
 
 export const killAllKernalByForce = async (
 	strictMode = false,
-	kernals: KernalType[] = ["fuel", "aqua", "rocket", "zeus"],
+	kernals: KernalType[] = ["fuel", "aqua", "rocket", "zeus", "config-master-stock"],
 ) => {
 	logger.info(`[kill] ${kernals.join(", ")} ${strictMode}`)
 	for (const kernal of kernals) {
@@ -370,7 +375,7 @@ export const killAllKernalByForce = async (
 }
 
 export const killAllKernalByName = async (
-	kernals: KernalType[] = ["fuel", "aqua", "rocket", "zeus"],
+	kernals: KernalType[] = ["fuel", "aqua", "rocket", "zeus", "config-master-stock"],
 ) => {
 	logger.info(`[kill] ${kernals.join(", ")}`)
 	const uniqueKernals = Array.from(new Set(kernals))

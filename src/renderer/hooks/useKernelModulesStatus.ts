@@ -30,6 +30,7 @@ const MODULE_SHORT_LABELS: Record<KernelKey, string> = {
 	aqua: "选股",
 	zeus: "选股",
 	rocket: "下单",
+	"config-master-stock": "配置",
 }
 
 function getQueueChipStatus(

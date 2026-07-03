@@ -117,19 +117,16 @@ const API_FN_MAP: Record<
 > = {
 	strategies: getResearchStrategies,
 	"basic-code": getResearchBasicCode,
-	"config-master": getResearchBasicCode,
 }
 
 const DOWNLOAD_DIR_BY_API_TYPE: Record<RepoApiType, string> = {
 	strategies: "strategy_repo",
 	"basic-code": "framework_repo",
-	"config-master": "config_master",
 }
 
 const DOWNLOAD_ACTION_LABEL: Record<RepoApiType, string> = {
 	strategies: "下载策略",
 	"basic-code": "下载框架",
-	"config-master": "下载 config 大师",
 }
 
 const VERSION_DESCRIPTION_MARKDOWN_CLASS =

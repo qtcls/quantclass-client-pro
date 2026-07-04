@@ -26,11 +26,22 @@ import {
 import { ScrollArea } from "@/renderer/components/ui/scroll-area"
 import { useInvokeUpdateKernal } from "@/renderer/hooks/useInvokeUpdateKernal"
 import { cn } from "@/renderer/lib/utils"
+import { getKernelStatus } from "@/renderer/page/home/kernel-status"
+import { isUpdatingAtom } from "@/renderer/store"
+import { monitorProcessesQueryAtom } from "@/renderer/store/query"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
 import type { RepoDownloadRecord } from "@/shared/types/repo"
 import { useQuery } from "@tanstack/react-query"
-import { useAtomValue } from "jotai"
-import { Download, Inbox, Loader2, PackageCheck, Play } from "lucide-react"
+import { useAtom, useAtomValue } from "jotai"
+import {
+	Download,
+	ExternalLink,
+	Inbox,
+	Loader2,
+	PackageCheck,
+	Play,
+	Square,
+} from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -85,11 +96,13 @@ export function useLaunchConfigMaster() {
 interface ConfigMasterLaunchDialogProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
+	onLaunched?: () => void
 }
 
 function ConfigMasterLaunchDialog({
 	open,
 	onOpenChange,
+	onLaunched,
 }: ConfigMasterLaunchDialogProps) {
 	const [selectedTicket, setSelectedTicket] = useState<string | null>(null)
 	const { isLaunching, launchConfigMaster } = useLaunchConfigMaster()
@@ -128,7 +141,10 @@ function ConfigMasterLaunchDialog({
 		)
 		await launchConfigMaster({
 			backtestRoot: frameworkRecord?.extractDir,
-			onSuccess: () => onOpenChange(false),
+			onSuccess: () => {
+				onLaunched?.()
+				onOpenChange(false)
+			},
 		})
 	}
 
@@ -213,7 +229,19 @@ export default function ResearchConfigMasterPage({
 	const { refetchLocalVersions } = useLocalVersions()
 	const invokeUpdateKernal = useInvokeUpdateKernal()
 	const [isUpdating, setIsUpdating] = useState(false)
+	const [isStopping, setIsStopping] = useState(false)
 	const [launchOpen, setLaunchOpen] = useState(false)
+	const isGlobalUpdating = useAtomValue(isUpdatingAtom)
+	const [{ data: monitorProcesses, refetch: refetchMonitorProcesses }] =
+		useAtom(monitorProcessesQueryAtom)
+
+	const serviceStatus = getKernelStatus(
+		CONFIG_MASTER_KERNEL,
+		monitorProcesses,
+		isGlobalUpdating,
+		false,
+	)
+	const isServiceRunning = serviceStatus.level === "ok"
 
 	const { data: appVersions, refetch: refetchAppVersions } = useQuery({
 		queryKey: ["app-versions"],
@@ -246,6 +274,24 @@ export default function ResearchConfigMasterPage({
 		}
 	}
 
+	const handleOpenWebpage = () => {
+		void window.electronAPI.openUrl(CONFIG_MASTER_WEB_URL)
+	}
+
+	const handleStopService = async () => {
+		setIsStopping(true)
+		try {
+			await window.electronAPI.killKernal(CONFIG_MASTER_KERNEL, true)
+			await refetchMonitorProcesses()
+			toast.success("config 大师服务已停止")
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error)
+			toast.error("停止 config 大师失败", { description: message })
+		} finally {
+			setIsStopping(false)
+		}
+	}
+
 	return (
 		<section
 			className={cn(
@@ -263,7 +309,7 @@ export default function ResearchConfigMasterPage({
 						下载并管理 config 大师内核；点击「启动」后选择本地框架源码版本即可运行。
 					</p>
 				</div>
-				<div className="flex items-center gap-2 shrink-0">
+				<div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
 					<Button
 						type="button"
 						className="h-10 gap-1.5"
@@ -271,6 +317,29 @@ export default function ResearchConfigMasterPage({
 					>
 						<Play className="h-4 w-4" />
 						启动 config 大师
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						className="h-10 gap-1.5"
+						onClick={handleOpenWebpage}
+					>
+						<ExternalLink className="h-4 w-4" />
+						打开网页
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						className="h-10 gap-1.5"
+						disabled={!isServiceRunning || isStopping}
+						onClick={handleStopService}
+					>
+						{isStopping ? (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						) : (
+							<Square className="h-4 w-4" />
+						)}
+						停止服务
 					</Button>
 					<Button
 						type="button"
@@ -299,6 +368,9 @@ export default function ResearchConfigMasterPage({
 					</Badge>
 				) : null}
 				<Badge variant="outline">回测网页版启动后地址：{CONFIG_MASTER_WEB_URL}</Badge>
+				<Badge variant={isServiceRunning ? "secondary" : "outline"}>
+					服务：{serviceStatus.label}
+				</Badge>
 				{hasUpdate ? (
 					<span className="text-xs text-blue-500">有可用更新</span>
 				) : null}
@@ -310,7 +382,11 @@ export default function ResearchConfigMasterPage({
 				</p>
 			) : null}
 
-			<ConfigMasterLaunchDialog open={launchOpen} onOpenChange={setLaunchOpen} />
+			<ConfigMasterLaunchDialog
+				open={launchOpen}
+				onOpenChange={setLaunchOpen}
+				onLaunched={() => void refetchMonitorProcesses()}
+			/>
 		</section>
 	)
 }

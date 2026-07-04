@@ -39,6 +39,7 @@ interface ResearchConfigMasterPageProps {
 }
 
 const CONFIG_MASTER_KERNEL = "config-master-stock" as const
+const CONFIG_MASTER_WEB_URL = "http://127.0.0.1:9999"
 
 export function useLaunchConfigMaster() {
 	const [isLaunching, setIsLaunching] = useState(false)
@@ -68,10 +69,8 @@ export function useLaunchConfigMaster() {
 			toast.success("config 大师已启动")
 			onSuccess?.()
 
-			const url = result.url ?? "http://127.0.0.1:9999"
-			window.setTimeout(() => {
-				void window.electronAPI.openUrl(url)
-			}, 1500)
+			const url = result.url ?? CONFIG_MASTER_WEB_URL
+			void window.electronAPI.openUrl(url)
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error)
 			toast.error("启动 config 大师失败", { description: message })
@@ -299,6 +298,7 @@ export default function ResearchConfigMasterPage({
 						最新：{latestVersion}
 					</Badge>
 				) : null}
+				<Badge variant="outline">回测网页版启动后地址：{CONFIG_MASTER_WEB_URL}</Badge>
 				{hasUpdate ? (
 					<span className="text-xs text-blue-500">有可用更新</span>
 				) : null}

@@ -320,8 +320,12 @@ export const execBin = async (
 			)
 			if (pythonProcess) {
 				handlePythonProcess(pythonProcess, resolve, reject, kernel, action)
+				if (kernel === "config-master-stock") {
+					resolve?.(undefined)
+				}
 			} else {
 				logger.error(`[exec-${kernel}] 创建进程失败`)
+				reject?.(new Error(`[exec-${kernel}] 创建进程失败`))
 			}
 		})
 	} catch (error) {

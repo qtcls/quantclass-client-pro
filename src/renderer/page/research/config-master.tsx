@@ -52,6 +52,96 @@ interface ResearchConfigMasterPageProps {
 const CONFIG_MASTER_KERNEL = "config-master-stock" as const
 const CONFIG_MASTER_WEB_URL = "http://127.0.0.1:9999"
 
+interface ConfigMasterStatusBarProps {
+	currentVersion: string
+	latestVersion?: string
+	hasDownloadedKernel: boolean
+	hasUpdate: boolean
+	isServiceRunning: boolean
+	onOpenWebpage: () => void
+}
+
+function ConfigMasterStatusBar({
+	currentVersion,
+	latestVersion,
+	hasDownloadedKernel,
+	hasUpdate,
+	isServiceRunning,
+	onOpenWebpage,
+}: ConfigMasterStatusBarProps) {
+	return (
+		<div className="rounded-md border bg-muted/20 px-3 py-2.5">
+			<div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+				<div className="flex items-center gap-2 min-w-[7.5rem]">
+					<span className="relative flex h-2 w-2 shrink-0">
+						{isServiceRunning ? (
+							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+						) : null}
+						<span
+							className={cn(
+								"relative inline-flex h-2 w-2 rounded-full",
+								isServiceRunning
+									? "bg-green-500 shadow-[0_0_0_3px_rgba(22,163,74,0.2)]"
+									: "bg-muted-foreground/30",
+							)}
+						/>
+					</span>
+					<span
+						className={cn(
+							"font-medium",
+							isServiceRunning ? "text-green-600" : "text-muted-foreground",
+						)}
+					>
+						{isServiceRunning ? "服务运行中" : "服务未运行"}
+					</span>
+				</div>
+
+				<div className="hidden h-4 w-px bg-border sm:block" />
+
+				<div className="flex items-center gap-1.5 text-muted-foreground">
+					<span>本地内核</span>
+					<span
+						className={cn(
+							"font-mono text-xs",
+							hasDownloadedKernel ? "text-foreground" : "text-muted-foreground",
+						)}
+					>
+						{currentVersion}
+					</span>
+				</div>
+
+				{latestVersion ? (
+					<div className="flex items-center gap-1.5 text-muted-foreground">
+						<span>最新版本</span>
+						<span className="font-mono text-xs text-foreground">
+							{latestVersion}
+						</span>
+						{hasUpdate ? (
+							<Badge variant="outline-info" className="px-1.5 py-0 text-[10px]">
+								可更新
+							</Badge>
+						) : null}
+					</div>
+				) : null}
+
+				<div className="hidden h-4 w-px bg-border sm:block" />
+
+				<button
+					type="button"
+					className="group flex min-w-0 items-center gap-1.5 text-left text-muted-foreground transition-colors hover:text-foreground"
+					onClick={onOpenWebpage}
+				>
+					<span className="shrink-0">回测地址</span>
+					<code className="truncate rounded border bg-background px-1.5 py-0.5 font-mono text-xs text-blue-600 group-hover:border-blue-200 group-hover:bg-blue-50 dark:text-blue-400 dark:group-hover:border-blue-500/30 dark:group-hover:bg-blue-500/10">
+						{CONFIG_MASTER_WEB_URL}
+					</code>
+					<ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60 group-hover:opacity-100" />
+				</button>
+			</div>
+		</div>
+	)
+}
+
 export function useLaunchConfigMaster() {
 	const [isLaunching, setIsLaunching] = useState(false)
 
@@ -235,13 +325,13 @@ export default function ResearchConfigMasterPage({
 	const [{ data: monitorProcesses, refetch: refetchMonitorProcesses }] =
 		useAtom(monitorProcessesQueryAtom)
 
-	const serviceStatus = getKernelStatus(
-		CONFIG_MASTER_KERNEL,
-		monitorProcesses,
-		isGlobalUpdating,
-		false,
-	)
-	const isServiceRunning = serviceStatus.level === "ok"
+	const isServiceRunning =
+		getKernelStatus(
+			CONFIG_MASTER_KERNEL,
+			monitorProcesses,
+			isGlobalUpdating,
+			false,
+		).level === "ok"
 
 	const { data: appVersions, refetch: refetchAppVersions } = useQuery({
 		queryKey: ["app-versions"],
@@ -358,23 +448,14 @@ export default function ResearchConfigMasterPage({
 				</div>
 			</div>
 
-			<div className="flex flex-wrap items-center gap-2 text-sm">
-				<Badge variant={hasDownloadedKernel ? "secondary" : "outline"}>
-					本地：{currentVersion}
-				</Badge>
-				{latestVersion ? (
-					<Badge variant={hasUpdate ? "outline" : "secondary"}>
-						最新：{latestVersion}
-					</Badge>
-				) : null}
-				<Badge variant="outline">回测网页版启动后地址：{CONFIG_MASTER_WEB_URL}</Badge>
-				<Badge variant={isServiceRunning ? "secondary" : "outline"}>
-					服务：{serviceStatus.label}
-				</Badge>
-				{hasUpdate ? (
-					<span className="text-xs text-blue-500">有可用更新</span>
-				) : null}
-			</div>
+			<ConfigMasterStatusBar
+				currentVersion={currentVersion}
+				latestVersion={latestVersion}
+				hasDownloadedKernel={hasDownloadedKernel}
+				hasUpdate={hasUpdate}
+				isServiceRunning={isServiceRunning}
+				onOpenWebpage={handleOpenWebpage}
+			/>
 
 			{versionDetail?.description ? (
 				<p className="text-sm text-muted-foreground leading-relaxed">

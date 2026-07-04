@@ -322,6 +322,12 @@ export const killKernalByForce = async (
 	kernal: KernalType,
 	strictMode = false,
 ) => {
+	// config 大师是常驻 FastAPI 服务，不写 .py.lock，直接按进程名强杀
+	if (kernal === "config-master-stock") {
+		await killKernalByName(kernal)
+		return
+	}
+
 	const pidLockFilePath: string = await store.getAllDataPath(
 		PID_LOCK_PATH[kernal],
 		true, // -- 自动创建文件夹

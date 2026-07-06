@@ -58,7 +58,9 @@ interface ConfigMasterStatusBarProps {
 	hasDownloadedKernel: boolean
 	hasUpdate: boolean
 	isServiceRunning: boolean
+	isStopping: boolean
 	onOpenWebpage: () => void
+	onStopService: () => void
 }
 
 function ConfigMasterStatusBar({
@@ -67,12 +69,14 @@ function ConfigMasterStatusBar({
 	hasDownloadedKernel,
 	hasUpdate,
 	isServiceRunning,
+	isStopping,
 	onOpenWebpage,
+	onStopService,
 }: ConfigMasterStatusBarProps) {
 	return (
 		<div className="rounded-md border bg-muted/20 px-3 py-2.5">
 			<div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-				<div className="flex items-center gap-2 min-w-[7.5rem]">
+				<div className="flex items-center gap-2">
 					<span className="relative flex h-2 w-2 shrink-0">
 						{isServiceRunning ? (
 							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
@@ -94,6 +98,21 @@ function ConfigMasterStatusBar({
 					>
 						{isServiceRunning ? "服务运行中" : "服务未运行"}
 					</span>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="h-7 gap-1 px-2 text-xs"
+						disabled={!isServiceRunning || isStopping}
+						onClick={onStopService}
+					>
+						{isStopping ? (
+							<Loader2 className="h-3 w-3 animate-spin" />
+						) : (
+							<Square className="h-3 w-3" />
+						)}
+						停止服务
+					</Button>
 				</div>
 
 				<div className="hidden h-4 w-px bg-border sm:block" />
@@ -421,20 +440,6 @@ export default function ResearchConfigMasterPage({
 						type="button"
 						variant="outline"
 						className="h-10 gap-1.5"
-						disabled={!isServiceRunning || isStopping}
-						onClick={handleStopService}
-					>
-						{isStopping ? (
-							<Loader2 className="h-4 w-4 animate-spin" />
-						) : (
-							<Square className="h-4 w-4" />
-						)}
-						停止服务
-					</Button>
-					<Button
-						type="button"
-						variant="outline"
-						className="h-10 gap-1.5"
 						disabled={isUpdating}
 						onClick={handleUpdate}
 					>
@@ -454,7 +459,9 @@ export default function ResearchConfigMasterPage({
 				hasDownloadedKernel={hasDownloadedKernel}
 				hasUpdate={hasUpdate}
 				isServiceRunning={isServiceRunning}
+				isStopping={isStopping}
 				onOpenWebpage={handleOpenWebpage}
+				onStopService={handleStopService}
 			/>
 
 			{versionDetail?.description ? (

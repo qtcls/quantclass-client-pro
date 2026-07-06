@@ -58,6 +58,11 @@ export class ProcessManage {
 		kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock" = "fuel",
 	) {
 		const childProcess = spawn(command, args, options)
+
+		childProcess.on("error", (err) => {
+			logger.error(`[${kernel}] spawn 失败: ${err.message}`)
+		})
+
 		const createdAt = dayjs().format("YYYY-MM-DD HH:mm")
 		if (!childProcess.pid) {
 			logger.error(`[${kernel}] 创建进程失败: pid失败`)

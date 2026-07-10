@@ -7,14 +7,22 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/renderer/components/ui/select"
+import { useSettings } from "@/renderer/hooks/useSettings"
 import FusionStrategyLibrary from "@/renderer/page/library/fusion"
 import StrategyLibrary from "@/renderer/page/library"
 import { useState } from "react"
 
 type LibraryView = "fusion" | "select"
 
+function libraryTypeToView(libraryType: string): LibraryView {
+	return libraryType === "select" ? "select" : "fusion"
+}
+
 export default function StrategyLibraryHub() {
-	const [libraryView, setLibraryView] = useState<LibraryView>("fusion")
+	const { settings } = useSettings()
+	const [libraryView, setLibraryView] = useState<LibraryView>(() =>
+		libraryTypeToView(settings.libraryType),
+	)
 
 	return (
 		<div className="h-full flex flex-col space-y-3">

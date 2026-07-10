@@ -30,6 +30,7 @@ import {
 
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
+import { ManualStockSelectDialog } from "@/renderer/page/strategy/manual-stock-select-dialog"
 import { CheckCircledIcon, InfoCircledIcon } from "@radix-ui/react-icons"
 import type { ColumnDef } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
@@ -226,6 +227,13 @@ export const useGenLibraryColumn = (
 			header: "选股数量",
 			size: 60,
 			enableResizing: false,
+			cell: ({ row }) => {
+				const val = row.original.select_num
+				if (val === -1) {
+					return <Badge variant="secondary">手工</Badge>
+				}
+				return <span>{val}</span>
+			},
 		},
 		{
 			accessorKey: "hold_period",
@@ -384,63 +392,98 @@ export const useGenLibraryColumn = (
 						size: 50,
 						maxSize: 80,
 						header: "操作",
-						cell: ({ row }) => {
-							return isAutoRocket ? (
-								<Badge variant="secondary">实盘中</Badge>
-							) : (
-								<div className="flex items-center gap-1">
-									<StrategyEditDialog
+					cell: ({ row }) => {
+						const isManual = row.original.select_num === -1
+
+						const strategyDisplayName = (() => {
+							if (row.original.remark_name?.trim()) {
+								return row.original.remark_name.trim()
+							}
+							if (fusionIndex >= 0) {
+								if (parentGroupName) {
+									return getFusionGroupSubRealMarketStrategyName(
+										fusionIndex,
+										parentGroupName,
+										row.index,
+										row.original.name,
+										currentTableData?.length ?? 1,
+									)
+								}
+								if (realMarketFallback === "fusion-top") {
+									return getFusionTopRealMarketStrategyName(
+										fusionIndex,
+										row.original.name,
+									)
+								}
+								return row.original.name
+							}
+							return getSelectRealMarketStrategyName(
+								row.index,
+								row.original.name,
+							)
+						})()
+
+						return isAutoRocket ? (
+							<Badge variant="secondary">实盘中</Badge>
+						) : (
+							<div className="flex items-center gap-1">
+								{isManual && (
+									<ManualStockSelectDialog
+										strategyDisplayName={strategyDisplayName}
+									/>
+								)}
+								<StrategyEditDialog
+									strategy={row.original as SelectStgType}
+									rowIndex={row.index}
+									fusionIndex={fusionIndex}
+								/>
+								<StrategyReplaceDialog
+									strategy={row.original as SelectStgType}
+									strategyType={parentGroupName ? "group" : "select"}
+									onReplace={(newStg) => {
+										if (fusionIndex < 0) {
+											updateSelectStg(row.index, newStg)
+										} else {
+											const stgInFusion = fusion[fusionIndex]
+											if (!stgInFusion) return
+											let updated: any
+											if (stgInFusion.type === "group") {
+												updated = {
+													...stgInFusion,
+													strategy_list: stgInFusion.strategy_list.map(
+														(s, i) => (i === row.index ? newStg : s),
+													),
+												}
+											} else if (stgInFusion.type === "pos") {
+												updated = {
+													...stgInFusion,
+													strategy_pool: stgInFusion.strategy_pool.map(
+														(s, i) => (i === row.index ? newStg : s),
+													),
+												}
+											} else {
+												updated = newStg
+											}
+											updateFusion(
+												fusion.map((item, i) =>
+													i === fusionIndex ? updated : item,
+												),
+											)
+										}
+									}}
+								/>
+								{!isDisabled && (
+									<DeleteStrategy
 										strategy={row.original as SelectStgType}
 										rowIndex={row.index}
-										fusionIndex={fusionIndex}
+										strategyType="select"
+										onSuccess={refresh}
+										className="!relative !inset-auto"
 									/>
-									<StrategyReplaceDialog
-										strategy={row.original as SelectStgType}
-										strategyType={parentGroupName ? "group" : "select"}
-										onReplace={(newStg) => {
-											if (fusionIndex < 0) {
-												updateSelectStg(row.index, newStg)
-											} else {
-												const stgInFusion = fusion[fusionIndex]
-												if (!stgInFusion) return
-												let updated: any
-												if (stgInFusion.type === "group") {
-													updated = {
-														...stgInFusion,
-														strategy_list: stgInFusion.strategy_list.map(
-															(s, i) => (i === row.index ? newStg : s),
-														),
-													}
-												} else if (stgInFusion.type === "pos") {
-													updated = {
-														...stgInFusion,
-														strategy_pool: stgInFusion.strategy_pool.map(
-															(s, i) => (i === row.index ? newStg : s),
-														),
-													}
-												} else {
-													updated = newStg
-												}
-												updateFusion(
-													fusion.map((item, i) =>
-														i === fusionIndex ? updated : item,
-													),
-												)
-											}
-										}}
-									/>
-									{!isDisabled && (
-										<DeleteStrategy
-											strategy={row.original as SelectStgType}
-											rowIndex={row.index}
-											strategyType="select"
-											onSuccess={refresh}
-											className="!relative !inset-auto"
-										/>
-									)}
-								</div>
-							)
-						},
+								)}
+							</div>
+						)
+					},
 					},
 				]),
 	]

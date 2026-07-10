@@ -8,6 +8,10 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import type {
+	ManualStockSelectLoadResult,
+	ManualStockSelectResultItem,
+} from "@/shared/types/manual-stock-select.js"
 import { type OpenDialogOptions, ipcRenderer } from "electron"
 
 export const fileSysIPC = {
@@ -39,4 +43,18 @@ export const fileSysIPC = {
 		ipcRenderer.invoke("load-position-json", filename),
 	deletePeriodOffset: () => ipcRenderer.invoke("delete-period-offset"),
 	clearFactorCache: () => ipcRenderer.invoke("clear-factor-cache"),
+	loadManualStockResult: (filename: string) =>
+		ipcRenderer.invoke(
+			"load-manual-stock-result",
+			filename,
+		) as Promise<ManualStockSelectLoadResult>,
+	saveManualStockResult: (
+		filename: string,
+		data: ManualStockSelectResultItem[],
+	) =>
+		ipcRenderer.invoke("save-manual-stock-result", filename, data) as Promise<{
+			success: boolean
+			filePath?: string
+			message?: string
+		}>,
 }

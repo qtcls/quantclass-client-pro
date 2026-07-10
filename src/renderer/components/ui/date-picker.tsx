@@ -32,6 +32,8 @@ interface DatePickerProps {
 	name?: string
 	className?: string
 	disableFutureDates?: boolean // -- 新增属性，用于控制是否禁用未来日期
+	disabledDate?: (date: Date) => boolean // -- 自定义禁用日期函数，优先级高于 disableFutureDates
+	disabled?: boolean
 }
 
 const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
@@ -41,6 +43,8 @@ const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
 			onChange,
 			className,
 			disableFutureDates = false, // -- 默认为 false，不禁用未来日期
+			disabledDate,
+			disabled = false,
 		},
 		ref,
 	) => {
@@ -63,6 +67,7 @@ const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
 					<Button
 						ref={ref}
 						variant={"outline"}
+						disabled={disabled}
 						className={cn(
 							"w-[240px] justify-start text-left font-normal",
 							!dateValue && "text-muted-foreground",
@@ -88,8 +93,12 @@ const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
 						}}
 						autoFocus
 						locale={zhCN}
-						disabled={
-							disableFutureDates ? (date) => date > new Date() : undefined
+					disabled={
+							disabledDate
+								? disabledDate
+								: disableFutureDates
+									? (date) => date > new Date()
+									: undefined
 						}
 						defaultMonth={
 							new Date(

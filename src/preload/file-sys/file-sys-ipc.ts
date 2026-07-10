@@ -19,6 +19,7 @@ import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
+import type { ManualStockSelectResultItem } from "@/shared/types/manual-stock-select.js"
 import { parse } from "csv-parse/sync"
 import {
 	BrowserWindow,
@@ -567,7 +568,10 @@ async function importPositionHandler(): Promise<void> {
 async function clearFactorCacheHandler(): Promise<void> {
 	ipcMain.handle("clear-factor-cache", async () => {
 		try {
-			const allDataPath = (await store.getSetting("all_data_path", "")) as string
+			const allDataPath = (await store.getSetting(
+				"all_data_path",
+				"",
+			)) as string
 			if (!allDataPath?.trim()) {
 				return {
 					success: false,
@@ -608,6 +612,66 @@ async function clearFactorCacheHandler(): Promise<void> {
 			}
 		}
 	})
+}
+
+async function loadManualStockResultHandler(): Promise<void> {
+	ipcMain.handle("load-manual-stock-result", async (_, filename: string) => {
+		try {
+			const filePath = await store.getAllDataPath(
+				["real_trading", "data", "手工策略", `${filename}.json`],
+				false,
+			)
+
+			if (!fs.existsSync(filePath)) {
+				return { success: true, data: [] }
+			}
+
+			const raw = fs.readFileSync(filePath, "utf-8").trim()
+			if (!raw) {
+				return { success: true, data: [] }
+			}
+
+			const data = JSON.parse(raw) as unknown
+			if (!Array.isArray(data)) {
+				logger.warn("[手工选股] 结果文件格式无效")
+				return {
+					success: false,
+					data: [],
+					message: "选股结果文件格式无效",
+				}
+			}
+
+			logger.info(`[手工选股] 结果已读取: ${filePath}`)
+			return { success: true, data }
+		} catch (error) {
+			logger.error(`[手工选股] 读取失败: ${JSON.stringify(error, null, 2)}`)
+			return {
+				success: false,
+				data: [],
+				message: "读入选股结果失败",
+			}
+		}
+	})
+}
+
+async function saveManualStockResultHandler(): Promise<void> {
+	ipcMain.handle(
+		"save-manual-stock-result",
+		async (_, filename: string, data: ManualStockSelectResultItem[]) => {
+			try {
+				const filePath = await store.getAllDataPath(
+					["real_trading", "data", "手工策略", `${filename}.json`],
+					true,
+				)
+				fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8")
+				logger.info(`[手工选股] 结果已写入: ${filePath}`)
+				return { success: true, filePath }
+			} catch (error) {
+				logger.error(`[手工选股] 写入失败: ${JSON.stringify(error, null, 2)}`)
+				return { success: false, message: "写入选股结果失败" }
+			}
+		},
+	)
 }
 
 async function deletePeriodOffsetHandler(): Promise<void> {
@@ -700,5 +764,7 @@ export const regFileSysIPC = () => {
 	importPositionHandler()
 	deletePeriodOffsetHandler()
 	clearFactorCacheHandler()
+	loadManualStockResultHandler()
+	saveManualStockResultHandler()
 	console.log("[reg] file-sys-ipc")
 }

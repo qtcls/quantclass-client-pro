@@ -448,6 +448,12 @@ export function ManualStockSelectDialog({
 			return
 		}
 
+		if (!bulkText.trim()) {
+			applyItemsToEditor([])
+			setEditMode("visual")
+			return
+		}
+
 		const parsed = parseBulkText(bulkText, tradingDays)
 		if (!parsed.success) {
 			toast.error(parsed.message ?? "批量文本格式错误，无法切换到图形编辑")
@@ -731,7 +737,7 @@ export function ManualStockSelectDialog({
 									<p className="mt-3 text-foreground">样例：</p>
 									<pre className="mt-1 overflow-x-auto rounded-md bg-background/80 p-2 font-mono text-[11px] text-foreground">
 										{
-											"2026-07-10,sz00001\n2026-07-10,sz00002\n2026-07-13,sz00006"
+											"2026-07-10,sz000001\n2026-07-10,sz000002\n2026-07-13,sz000006"
 										}
 									</pre>
 								</div>
@@ -741,7 +747,7 @@ export function ManualStockSelectDialog({
 									<textarea
 										value={bulkText}
 										onChange={(e) => setBulkText(e.target.value)}
-										placeholder="每行一条：2026-07-10,sz00001"
+										placeholder="每行一条：2026-07-10,sz000001"
 										className={cn(
 											"min-h-[420px] w-full resize-y rounded-md border bg-background px-3 py-2",
 											"font-mono text-sm leading-6 shadow-sm",

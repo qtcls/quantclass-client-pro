@@ -89,12 +89,15 @@ export function OverviewMetrics({ showFinanceInfo }: OverviewMetricsProps) {
 		const strategyData = (strategyPerformance?.data ??
 			[]) as PositionStrategyInfoType[]
 		const metrics = sumStrategyDailyMetrics(strategyData)
+		const totalAssets = accountData?.总资产 ?? 0
+		const totalReturn =
+			totalAssets > 0 ? metrics.totalPnl / totalAssets : 0
 		return {
 			totalPnl: metrics.totalPnl,
-			totalReturn: metrics.totalReturn,
+			totalReturn,
 			strategyCount: metrics.count,
 		}
-	}, [strategyPerformance])
+	}, [strategyPerformance, accountData?.总资产])
 
 	const pnlColorClass = cn(
 		totalPnl > 0 && "text-red-600",

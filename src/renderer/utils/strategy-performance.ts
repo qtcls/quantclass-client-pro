@@ -34,9 +34,5 @@ export function filterVisibleStrategyPerformance(
 export function sumStrategyDailyMetrics(data: PositionStrategyInfoType[]) {
 	const visible = filterVisibleStrategyPerformance(data)
 	const totalPnl = visible.reduce((acc, item) => acc + (item.当日盈亏 ?? 0), 0)
-	const totalReturn = visible.reduce(
-		(acc, item) => acc + (item.当日收益率 ?? 0),
-		0,
-	)
-	return { totalPnl, totalReturn, count: visible.length }
+	return { totalPnl, count: visible.length }
 }

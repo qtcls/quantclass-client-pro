@@ -9,7 +9,7 @@
  */
 
 const { VITE_BASE_URL } = import.meta.env
-const { getAccessToken } = window.electronAPI
+const { getAccessToken, rendererLog } = window.electronAPI
 
 export const API_BASE = VITE_BASE_URL
 
@@ -141,8 +141,12 @@ const request = async <T = any>(
 
 	if (!res.ok) {
 		const errBody = await parseErrorBody(res)
-		if (res.status === 401 && sessionInvalidHandler) {
-			await sessionInvalidHandler()
+		if (res.status === 401) {
+			rendererLog(
+				"info",
+				`[request][debug][renderer] 401 path=${path} method=${method} tokenExists=${Boolean(token)}`,
+			)
+			if (sessionInvalidHandler) await sessionInvalidHandler()
 		}
 		throw new ApiError(
 			`Request failed: ${res.status} ${res.statusText}`,

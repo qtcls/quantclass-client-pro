@@ -12,6 +12,7 @@ import {
 	broadcastAuthSessionInvalid,
 	tokenStore,
 } from "@/main/lib/tokenStore.js"
+import logger from "@/main/utils/wiston.js"
 import { BASE_URL } from "@/main/vars.js"
 
 // -- 统一请求封装（非 2xx 抛 ApiError，含 status + data）
@@ -120,6 +121,9 @@ const request = async <T = any>(
 	if (!res.ok) {
 		const errBody = await parseErrorBody(res)
 		if (res.status === 401) {
+			logger.info(
+				`[request][debug][main] 401 path=${path} method=${method} tokenExists=${Boolean(token)}`,
+			)
 			broadcastAuthSessionInvalid()
 		}
 		throw new ApiError(

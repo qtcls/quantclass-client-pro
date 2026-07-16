@@ -138,7 +138,7 @@ class TokenStore {
 
 		if (expSec !== null && remainMs !== null && remainMs < NEAR_EXPIRE_MS) {
 			logger.info(`${baseDebug} branch=async_refresh_near_expire`)
-			void this.refreshAccessToken()
+			void this.refreshAccessToken(false)
 			return current.access_token
 		}
 
@@ -146,7 +146,9 @@ class TokenStore {
 		return current.access_token
 	}
 
-	async refreshAccessToken(): Promise<string | null> {
+	async refreshAccessToken(
+		invalidateSessionOnFailure = true,
+	): Promise<string | null> {
 		if (this.refreshPromise) {
 			logger.info(
 				`[tokenStore][debug] refreshAccessToken reuse_inflight hasRefresh=${Boolean(this.refreshToken)}`,
@@ -156,15 +158,24 @@ class TokenStore {
 
 		const promise = (async () => {
 			let newAccess: string | null = null
+			const invalidateSession = (): void => {
+				if (invalidateSessionOnFailure) {
+					broadcastAuthSessionInvalid()
+					return
+				}
+				logger.warn(
+					"[tokenStore] 刷新 access_token 失败，access 仍有效，跳过登出",
+				)
+			}
 			try {
 				const refreshToken = this.refreshToken
 				logger.info(
-					`[tokenStore][debug] refreshAccessToken start hasRefresh=${Boolean(refreshToken)} refreshTokenLen=${refreshToken?.length ?? 0} url=${BASE_URL}/user/auth/refresh`,
+					`[tokenStore][debug] refreshAccessToken start hasRefresh=${Boolean(refreshToken)} refreshTokenLen=${refreshToken?.length ?? 0} invalidateOnFail=${invalidateSessionOnFailure} url=${BASE_URL}/user/auth/refresh`,
 				)
 
 				if (!refreshToken) {
 					logger.error("[tokenStore] 无 refresh_token，无法刷新")
-					broadcastAuthSessionInvalid()
+					invalidateSession()
 					return null
 				}
 
@@ -180,7 +191,7 @@ class TokenStore {
 					logger.error(
 						`[tokenStore] 刷新 access_token 失败: HTTP ${res.status} ${res.statusText}`,
 					)
-					broadcastAuthSessionInvalid()
+					invalidateSession()
 					return null
 				}
 
@@ -191,7 +202,7 @@ class TokenStore {
 					!data.access_token
 				) {
 					logger.error("[tokenStore] 刷新 access_token 失败：响应无效")
-					broadcastAuthSessionInvalid()
+					invalidateSession()
 					return null
 				}
 
@@ -214,7 +225,7 @@ class TokenStore {
 				logger.error(
 					`[tokenStore] 刷新 access_token 异常: ${formatErrorWithCause(error)}`,
 				)
-				broadcastAuthSessionInvalid()
+				invalidateSession()
 			}
 			return newAccess
 		})()

@@ -75,6 +75,26 @@ export function isLocalYmdTradingDayInCalendar(
 	return i >= 0 && sortedUniqueYmd[i] === ymd
 }
 
+// -- 在已排序的交易日列表中，找到第一个 > ymd 的下标；若无则 -1
+export function findFirstTradingDayIndexAfter(
+	sortedYmd: string[],
+	ymd: string,
+): number {
+	let lo = 0
+	let hi = sortedYmd.length - 1
+	let ans = sortedYmd.length
+	while (lo <= hi) {
+		const mid = (lo + hi) >> 1
+		if (sortedYmd[mid] > ymd) {
+			ans = mid
+			hi = mid - 1
+		} else {
+			lo = mid + 1
+		}
+	}
+	return ans < sortedYmd.length ? ans : -1
+}
+
 /**
  * 以本地「今天」所在日历日为锚：取最后一个不晚于该日的交易日，再往前数 n 个交易日，
  * 返回那一交易日的本地当天 0 点 `Date`。日历不足 n 个交易日时返回 null。

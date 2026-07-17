@@ -26,8 +26,10 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "@/renderer/components/ui/tabs"
+import { useAlertDialog } from "@/renderer/context/alert-dialog"
 import { cn } from "@/renderer/lib/utils"
 import {
+	findFirstTradingDayIndexAfter,
 	getLocalCalendarYmd,
 	isLocalYmdTradingDayInCalendar,
 } from "@/shared/lib/trading-day"
@@ -41,8 +43,12 @@ import { toast } from "sonner"
 
 dayjs.extend(customParseFormat)
 
-const { getTradingDays, loadManualStockResult, saveManualStockResult } =
-	window.electronAPI
+const {
+	getTradingDays,
+	loadManualStockResult,
+	saveManualStockResult,
+	deleteManualStockReselectFlag,
+} = window.electronAPI
 
 interface ManualStockSelectDialogProps {
 	strategyDisplayName: string
@@ -196,10 +202,106 @@ function parseBulkText(
 	return { success: true, data }
 }
 
+function parseYmdToLocalDate(
+	ymd: string,
+	hour = 0,
+	minute = 0,
+	second = 0,
+): Date | null {
+	const parts = ymd.split("-").map(Number)
+	const [y, m, d] = parts
+	if (
+		parts.length !== 3 ||
+		Number.isNaN(y) ||
+		Number.isNaN(m) ||
+		Number.isNaN(d)
+	) {
+		return null
+	}
+	return new Date(y, m - 1, d, hour, minute, second, 0)
+}
+
+// -- 选股日期在「下一交易日 09:00（本地时间）」前仍可编辑；超过则不可编辑
+function isManualStockSelectYmdEditable(
+	sortedUniqueYmd: string[],
+	selectionYmd: string,
+	now: Date = new Date(),
+): boolean {
+	if (sortedUniqueYmd.length === 0) {
+		return true
+	}
+	if (!isLocalYmdTradingDayInCalendar(sortedUniqueYmd, selectionYmd)) {
+		return false
+	}
+
+	const nextIdx = findFirstTradingDayIndexAfter(sortedUniqueYmd, selectionYmd)
+	if (nextIdx < 0) {
+		return true
+	}
+
+	const deadline = parseYmdToLocalDate(sortedUniqueYmd[nextIdx], 9, 0, 0)
+	if (!deadline) {
+		return true
+	}
+
+	return now < deadline
+}
+
 function extractPersistedDateYmds(
 	items: ManualStockSelectResultItem[],
 ): Set<string> {
 	return new Set(items.map((item) => item.选股日期))
+}
+
+function getExpiredDateStockMap(
+	items: ManualStockSelectResultItem[],
+	tradingDays: string[],
+): Map<string, Set<string>> {
+	const map = new Map<string, Set<string>>()
+	for (const item of items) {
+		if (isManualStockSelectYmdEditable(tradingDays, item.选股日期)) continue
+		const codes = map.get(item.选股日期) ?? new Set<string>()
+		codes.add(item.股票代码)
+		map.set(item.选股日期, codes)
+	}
+	return map
+}
+
+function assertExpiredDatesUnchanged(
+	original: ManualStockSelectResultItem[],
+	updated: ManualStockSelectResultItem[],
+	tradingDays: string[],
+): string | null {
+	if (tradingDays.length === 0) return null
+
+	const originalExpired = getExpiredDateStockMap(original, tradingDays)
+	const updatedExpired = getExpiredDateStockMap(updated, tradingDays)
+
+	for (const [ymd, oldCodes] of originalExpired) {
+		const newCodes = updatedExpired.get(ymd)
+		if (!newCodes || oldCodes.size !== newCodes.size) {
+			return `选股日期 ${ymd} 已过编辑截止时间（下一交易日 09:00 后不可修改）`
+		}
+		for (const code of oldCodes) {
+			if (!newCodes.has(code)) {
+				return `选股日期 ${ymd} 已过编辑截止时间（下一交易日 09:00 后不可修改）`
+			}
+		}
+	}
+
+	for (const [ymd, newCodes] of updatedExpired) {
+		if (!originalExpired.has(ymd)) {
+			return `选股日期 ${ymd} 已过编辑截止时间（下一交易日 09:00 后不可修改）`
+		}
+		const oldCodes = originalExpired.get(ymd)!
+		for (const code of newCodes) {
+			if (!oldCodes.has(code)) {
+				return `选股日期 ${ymd} 已过编辑截止时间（下一交易日 09:00 后不可修改）`
+			}
+		}
+	}
+
+	return null
 }
 
 export function ManualStockSelectDialog({
@@ -215,8 +317,12 @@ export function ManualStockSelectDialog({
 	const [persistedDateYmds, setPersistedDateYmds] = useState<Set<string>>(
 		new Set(),
 	)
+	const [loadedItems, setLoadedItems] = useState<ManualStockSelectResultItem[]>(
+		[],
+	)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
+	const { open: openAlert } = useAlertDialog()
 
 	const applyItemsToEditor = useCallback(
 		(items: ManualStockSelectResultItem[]) => {
@@ -245,10 +351,12 @@ export function ManualStockSelectDialog({
 
 				const loadedItems = result.data ?? []
 				setPersistedDateYmds(extractPersistedDateYmds(loadedItems))
+				setLoadedItems(loadedItems)
 				applyItemsToEditor(loadedItems)
 			} catch {
 				if (cancelled) return
 				setPersistedDateYmds(new Set())
+				setLoadedItems([])
 				applyItemsToEditor([])
 			} finally {
 				if (!cancelled) setIsLoading(false)
@@ -279,12 +387,22 @@ export function ManualStockSelectDialog({
 		staleTime: 10 * 60 * 1000,
 	})
 
+	const isGroupEditExpired = useCallback(
+		(group: DateStockGroup) => {
+			if (!group.date || tradingDays.length === 0) return false
+			const ymd = getLocalCalendarYmd(group.date)
+			return !isManualStockSelectYmdEditable(tradingDays, ymd)
+		},
+		[tradingDays],
+	)
+
 	const isDateLocked = useCallback(
 		(group: DateStockGroup) => {
 			if (!group.date) return false
+			if (isGroupEditExpired(group)) return true
 			return persistedDateYmds.has(getLocalCalendarYmd(group.date))
 		},
-		[persistedDateYmds],
+		[persistedDateYmds, isGroupEditExpired],
 	)
 
 	const updateGroup = useCallback(
@@ -292,6 +410,12 @@ export function ManualStockSelectDialog({
 			setDateGroups((prev) =>
 				prev.map((group) => {
 					if (group.id !== id) return group
+					if (isGroupEditExpired(group)) {
+						toast.error(
+							"该选股日期已过编辑截止时间（下一交易日 09:00 后不可修改）",
+						)
+						return group
+					}
 					if (patch.date !== undefined && isDateLocked(group)) {
 						toast.error("该选股日期已保存至文件，不可修改，请删除后重新添加")
 						return group
@@ -300,13 +424,19 @@ export function ManualStockSelectDialog({
 				}),
 			)
 		},
-		[isDateLocked],
+		[isDateLocked, isGroupEditExpired],
 	)
 
 	const isNonTradingDay = useCallback(
 		(date: Date, groupId: string) => {
 			const ymd = getLocalCalendarYmd(date)
 			if (!isLocalYmdTradingDayInCalendar(tradingDays, ymd)) {
+				return true
+			}
+			if (
+				tradingDays.length > 0 &&
+				!isManualStockSelectYmdEditable(tradingDays, ymd)
+			) {
 				return true
 			}
 			return dateGroups.some(
@@ -320,6 +450,10 @@ export function ManualStockSelectDialog({
 	)
 
 	const addStockToGroup = (group: DateStockGroup) => {
+		if (isGroupEditExpired(group)) {
+			toast.error("该选股日期已过编辑截止时间（下一交易日 09:00 后不可修改）")
+			return
+		}
 		const code = group.draft.trim()
 		if (!code) {
 			toast.error("请输入股票代码")
@@ -336,6 +470,11 @@ export function ManualStockSelectDialog({
 	}
 
 	const removeStockFromGroup = (groupId: string, code: string) => {
+		const group = dateGroups.find((item) => item.id === groupId)
+		if (group && isGroupEditExpired(group)) {
+			toast.error("该选股日期已过编辑截止时间（下一交易日 09:00 后不可修改）")
+			return
+		}
 		setDateGroups((prev) =>
 			prev.map((group) =>
 				group.id === groupId
@@ -352,6 +491,11 @@ export function ManualStockSelectDialog({
 	}
 
 	const removeDateGroup = (groupId: string) => {
+		const group = dateGroups.find((item) => item.id === groupId)
+		if (group && isGroupEditExpired(group)) {
+			toast.error("该选股日期已过编辑截止时间（下一交易日 09:00 后不可修改）")
+			return
+		}
 		setDateGroups((prev) => {
 			if (prev.length <= 1) return prev
 			const index = prev.findIndex((group) => group.id === groupId)
@@ -365,44 +509,80 @@ export function ManualStockSelectDialog({
 	}
 
 	const buildResultData = (): ManualStockSelectResultItem[] | null => {
+		let result: ManualStockSelectResultItem[] | null = null
+
 		if (editMode === "bulk") {
 			const parsed = parseBulkText(bulkText, tradingDays)
 			if (!parsed.success) {
 				toast.error(parsed.message ?? "批量文本格式错误")
 				return null
 			}
-			return parsed.data ?? null
-		}
+			result = parsed.data ?? null
+		} else {
+			const visualResult: ManualStockSelectResultItem[] = []
 
-		const result: ManualStockSelectResultItem[] = []
+			for (const group of dateGroups) {
+				const hasDate = Boolean(group.date)
+				const hasStocks = group.stocks.length > 0
 
-		for (const group of dateGroups) {
-			const hasDate = Boolean(group.date)
-			const hasStocks = group.stocks.length > 0
+				if (!hasDate && !hasStocks) continue
 
-			if (!hasDate && !hasStocks) continue
+				if (!hasDate) {
+					toast.error("请为已添加股票的条目选择选股日期")
+					return null
+				}
+				if (!hasStocks) {
+					toast.error("每个选股日期至少添加一只股票")
+					return null
+				}
 
-			if (!hasDate) {
-				toast.error("请为已添加股票的条目选择选股日期")
+				const ymd = getLocalCalendarYmd(group.date!)
+				for (const code of group.stocks) {
+					visualResult.push({ 选股日期: ymd, 股票代码: code })
+				}
+			}
+
+			if (visualResult.length === 0) {
+				toast.error("请至少添加一个选股日期和股票")
 				return null
 			}
-			if (!hasStocks) {
-				toast.error("每个选股日期至少添加一只股票")
-				return null
-			}
 
-			const ymd = getLocalCalendarYmd(group.date!)
-			for (const code of group.stocks) {
-				result.push({ 选股日期: ymd, 股票代码: code })
-			}
+			result = visualResult
 		}
 
-		if (result.length === 0) {
-			toast.error("请至少添加一个选股日期和股票")
+		if (!result) return null
+
+		const expiredError = assertExpiredDatesUnchanged(
+			loadedItems,
+			result,
+			tradingDays,
+		)
+		if (expiredError) {
+			toast.error(expiredError)
 			return null
 		}
 
 		return result
+	}
+
+	const persistSavedResult = useCallback(
+		(data: ManualStockSelectResultItem[]) => {
+			applyItemsToEditor(data)
+			setPersistedDateYmds(extractPersistedDateYmds(data))
+			setLoadedItems(data)
+		},
+		[applyItemsToEditor],
+	)
+
+	const saveResultData = async (
+		data: ManualStockSelectResultItem[],
+	): Promise<boolean> => {
+		const result = await saveManualStockResult(strategyDisplayName, data)
+		if (!result.success) {
+			toast.error(result.message ?? "保存失败，请重试")
+			return false
+		}
+		return true
 	}
 
 	const handleConfirm = async () => {
@@ -413,16 +593,13 @@ export function ManualStockSelectDialog({
 
 		setIsSubmitting(true)
 		try {
-			const result = await saveManualStockResult(strategyDisplayName, data)
-			if (result.success) {
+			const saved = await saveResultData(data)
+			if (saved) {
 				toast.success(
 					`手工选股结果已保存，共 ${uniqueDates} 个日期、${data.length} 只股票`,
 				)
-				applyItemsToEditor(data)
-				setPersistedDateYmds(extractPersistedDateYmds(data))
+				persistSavedResult(data)
 				setOpen(false)
-			} else {
-				toast.error(result.message ?? "保存失败，请重试")
 			}
 		} catch {
 			toast.error("保存失败，请重试")
@@ -431,10 +608,51 @@ export function ManualStockSelectDialog({
 		}
 	}
 
+	const handleSaveAndReselect = () => {
+		const data = buildResultData()
+		if (!data) return
+
+		const uniqueDates = new Set(data.map((item) => item.选股日期)).size
+
+		openAlert({
+			title: "保存并立即重新选股",
+			description:
+				"说明：点击立即保存后，需手动启动【自动实盘】后才可触发【重新选股】，可能导致选股结果及后续交易计划发生变化。",
+			content: null,
+			okText: "确认保存",
+			cancelText: "取消",
+			onOk: async () => {
+				setIsSubmitting(true)
+				try {
+					const saved = await saveResultData(data)
+					if (!saved) return
+
+					const deleteResult = await deleteManualStockReselectFlag()
+					if (!deleteResult.success) {
+						toast.error(deleteResult.message ?? "立即重新选股失败")
+						persistSavedResult(data)
+						return
+					}
+
+					toast.success(
+						`手工选股结果已保存，共 ${uniqueDates} 个日期、${data.length} 只股票；已触发重新选股`,
+					)
+					persistSavedResult(data)
+					setOpen(false)
+				} catch {
+					toast.error("保存失败，请重试")
+				} finally {
+					setIsSubmitting(false)
+				}
+			},
+		})
+	}
+
 	const handleOpenChange = (value: boolean) => {
 		if (!value) {
 			setEditMode("visual")
 			setPersistedDateYmds(new Set())
+			setLoadedItems([])
 		}
 		setOpen(value)
 	}
@@ -457,6 +675,15 @@ export function ManualStockSelectDialog({
 		const parsed = parseBulkText(bulkText, tradingDays)
 		if (!parsed.success) {
 			toast.error(parsed.message ?? "批量文本格式错误，无法切换到图形编辑")
+			return
+		}
+		const expiredError = assertExpiredDatesUnchanged(
+			loadedItems,
+			parsed.data ?? [],
+			tradingDays,
+		)
+		if (expiredError) {
+			toast.error(expiredError)
 			return
 		}
 		applyItemsToEditor(parsed.data ?? [])
@@ -533,6 +760,7 @@ export function ManualStockSelectDialog({
 									<div className="flex min-w-min items-stretch gap-2">
 										{dateGroups.map((group) => {
 											const isActive = group.id === activeGroupId
+											const isExpired = isGroupEditExpired(group)
 											return (
 												<div
 													key={group.id}
@@ -573,7 +801,7 @@ export function ManualStockSelectDialog({
 														</Badge>
 													</button>
 
-													{dateGroups.length > 1 && (
+													{dateGroups.length > 1 && !isExpired && (
 														<button
 															type="button"
 															className="absolute right-1 top-1 rounded-sm p-0.5 text-muted-foreground hover:bg-background hover:text-destructive"
@@ -617,7 +845,9 @@ export function ManualStockSelectDialog({
 													当前编辑：{formatGroupDateFull(activeGroup.date)}
 												</p>
 												<p className="text-xs text-muted-foreground">
-													为该交易日添加股票代码
+													{isGroupEditExpired(activeGroup)
+														? "该日期已过编辑截止时间（下一交易日 09:00 后不可修改）"
+														: "为该交易日添加股票代码"}
 												</p>
 											</div>
 										</div>
@@ -659,16 +889,18 @@ export function ManualStockSelectDialog({
 																className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs font-mono"
 															>
 																{code}
-																<button
-																	type="button"
-																	className="rounded-sm text-muted-foreground hover:text-foreground"
-																	onClick={() =>
-																		removeStockFromGroup(activeGroup.id, code)
-																	}
-																	title="移除"
-																>
-																	<X className="h-3 w-3" />
-																</button>
+																{!isGroupEditExpired(activeGroup) && (
+																	<button
+																		type="button"
+																		className="rounded-sm text-muted-foreground hover:text-foreground"
+																		onClick={() =>
+																			removeStockFromGroup(activeGroup.id, code)
+																		}
+																		title="移除"
+																	>
+																		<X className="h-3 w-3" />
+																	</button>
+																)}
 															</span>
 														))}
 													</div>
@@ -695,6 +927,7 @@ export function ManualStockSelectDialog({
 													}}
 													placeholder="输入股票代码，如 sz000711"
 													className="font-mono"
+													disabled={isGroupEditExpired(activeGroup)}
 												/>
 												<Button
 													type="button"
@@ -703,6 +936,7 @@ export function ManualStockSelectDialog({
 													className="shrink-0"
 													onClick={() => addStockToGroup(activeGroup)}
 													title="添加股票"
+													disabled={isGroupEditExpired(activeGroup)}
 												>
 													<Plus className="h-4 w-4" />
 												</Button>
@@ -732,6 +966,7 @@ export function ManualStockSelectDialog({
 										<li>股票代码例如 sz000001、sh600000</li>
 										<li>一行对应 JSON 文件中的一条记录</li>
 										<li>空行会自动忽略</li>
+										<li>选股日期在下一交易日 09:00 后不可再修改</li>
 										<li>确认保存后将完全覆盖当前策略的手工选股结果</li>
 									</ul>
 									<p className="mt-3 text-foreground">样例：</p>
@@ -773,7 +1008,14 @@ export function ManualStockSelectDialog({
 							onClick={handleConfirm}
 							disabled={isSubmitting || isLoading}
 						>
-							{isSubmitting ? "保存中..." : "确认保存"}
+							{isSubmitting ? "保存中..." : "保存"}
+						</Button>
+						<Button
+							variant="destructive"
+							onClick={handleSaveAndReselect}
+							disabled={isSubmitting || isLoading}
+						>
+							{isSubmitting ? "保存中..." : "保存并立即重新选股"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

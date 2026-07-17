@@ -57,4 +57,9 @@ export const fileSysIPC = {
 			filePath?: string
 			message?: string
 		}>,
+	deleteManualStockReselectFlag: () =>
+		ipcRenderer.invoke("delete-manual-stock-reselect-flag") as Promise<{
+			success: boolean
+			message?: string
+		}>,
 }

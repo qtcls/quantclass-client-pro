@@ -674,6 +674,31 @@ async function saveManualStockResultHandler(): Promise<void> {
 	)
 }
 
+async function deleteManualStockReselectFlagHandler(): Promise<void> {
+	ipcMain.handle("delete-manual-stock-reselect-flag", async () => {
+		try {
+			const filePath = await store.getAllDataPath(
+				["real_trading", "data", "timestamp", "flag.json"],
+				false,
+			)
+
+			if (!fs.existsSync(filePath)) {
+				logger.warn(`[手工选股] 立即重新选股失败，文件不存在: ${filePath}`)
+				return { success: false, message: "立即重新选股失败" }
+			}
+
+			fs.unlinkSync(filePath)
+			logger.info(`[手工选股] 已删除重新选股标记: ${filePath}`)
+			return { success: true }
+		} catch (error) {
+			logger.error(
+				`[手工选股] 立即重新选股失败: ${JSON.stringify(error, null, 2)}`,
+			)
+			return { success: false, message: "立即重新选股失败" }
+		}
+	})
+}
+
 async function deletePeriodOffsetHandler(): Promise<void> {
 	ipcMain.handle("delete-period-offset", async () => {
 		try {
@@ -766,5 +791,6 @@ export const regFileSysIPC = () => {
 	clearFactorCacheHandler()
 	loadManualStockResultHandler()
 	saveManualStockResultHandler()
+	deleteManualStockReselectFlagHandler()
 	console.log("[reg] file-sys-ipc")
 }

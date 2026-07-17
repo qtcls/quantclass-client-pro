@@ -10,10 +10,12 @@
 
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
+import { Checkbox } from "@/renderer/components/ui/checkbox"
 import DatePicker from "@/renderer/components/ui/date-picker"
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
@@ -26,7 +28,6 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "@/renderer/components/ui/tabs"
-import { useAlertDialog } from "@/renderer/context/alert-dialog"
 import { cn } from "@/renderer/lib/utils"
 import {
 	findFirstTradingDayIndexAfter,
@@ -304,6 +305,8 @@ function assertExpiredDatesUnchanged(
 	return null
 }
 
+type SaveMode = "normal" | "reselect"
+
 export function ManualStockSelectDialog({
 	strategyDisplayName,
 }: ManualStockSelectDialogProps) {
@@ -322,7 +325,11 @@ export function ManualStockSelectDialog({
 	)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
-	const { open: openAlert } = useAlertDialog()
+	const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
+	const [saveMode, setSaveMode] = useState<SaveMode>("normal")
+	const [pendingSaveData, setPendingSaveData] = useState<
+		ManualStockSelectResultItem[] | null
+	>(null)
 
 	const applyItemsToEditor = useCallback(
 		(items: ManualStockSelectResultItem[]) => {
@@ -585,22 +592,56 @@ export function ManualStockSelectDialog({
 		return true
 	}
 
-	const handleConfirm = async () => {
+	const handleConfirm = () => {
 		const data = buildResultData()
 		if (!data) return
+		setPendingSaveData(data)
+		setSaveMode("normal")
+		setSaveConfirmOpen(true)
+	}
 
+	const handleSaveConfirmOpenChange = (value: boolean) => {
+		if (isSubmitting) return
+		setSaveConfirmOpen(value)
+		if (!value) {
+			setPendingSaveData(null)
+			setSaveMode("normal")
+		}
+	}
+
+	const handleSaveConfirm = async () => {
+		if (!pendingSaveData) return
+
+		const data = pendingSaveData
 		const uniqueDates = new Set(data.map((item) => item.选股日期)).size
+		const shouldReselect = saveMode === "reselect"
 
 		setIsSubmitting(true)
 		try {
 			const saved = await saveResultData(data)
-			if (saved) {
+			if (!saved) return
+
+			if (shouldReselect) {
+				const deleteResult = await deleteManualStockReselectFlag()
+				if (!deleteResult.success) {
+					toast.error(deleteResult.message ?? "立即重新选股失败")
+					persistSavedResult(data)
+					return
+				}
+				toast.success(
+					`手工选股结果已保存，共 ${uniqueDates} 个日期、${data.length} 只股票；已触发重新选股`,
+				)
+			} else {
 				toast.success(
 					`手工选股结果已保存，共 ${uniqueDates} 个日期、${data.length} 只股票`,
 				)
-				persistSavedResult(data)
-				setOpen(false)
 			}
+
+			persistSavedResult(data)
+			setSaveConfirmOpen(false)
+			setPendingSaveData(null)
+			setSaveMode("normal")
+			setOpen(false)
 		} catch {
 			toast.error("保存失败，请重试")
 		} finally {
@@ -608,51 +649,15 @@ export function ManualStockSelectDialog({
 		}
 	}
 
-	const handleSaveAndReselect = () => {
-		const data = buildResultData()
-		if (!data) return
-
-		const uniqueDates = new Set(data.map((item) => item.选股日期)).size
-
-		openAlert({
-			title: "保存并立即重新选股",
-			description:
-				"说明：点击立即保存后，需手动启动【自动实盘】后才可触发【重新选股】，可能导致选股结果及后续交易计划发生变化。",
-			content: null,
-			okText: "确认保存",
-			cancelText: "取消",
-			onOk: async () => {
-				setIsSubmitting(true)
-				try {
-					const saved = await saveResultData(data)
-					if (!saved) return
-
-					const deleteResult = await deleteManualStockReselectFlag()
-					if (!deleteResult.success) {
-						toast.error(deleteResult.message ?? "立即重新选股失败")
-						persistSavedResult(data)
-						return
-					}
-
-					toast.success(
-						`手工选股结果已保存，共 ${uniqueDates} 个日期、${data.length} 只股票；已触发重新选股`,
-					)
-					persistSavedResult(data)
-					setOpen(false)
-				} catch {
-					toast.error("保存失败，请重试")
-				} finally {
-					setIsSubmitting(false)
-				}
-			},
-		})
-	}
-
 	const handleOpenChange = (value: boolean) => {
 		if (!value) {
+			if (isSubmitting) return
 			setEditMode("visual")
 			setPersistedDateYmds(new Set())
 			setLoadedItems([])
+			setSaveConfirmOpen(false)
+			setPendingSaveData(null)
+			setSaveMode("normal")
 		}
 		setOpen(value)
 	}
@@ -1008,14 +1013,83 @@ export function ManualStockSelectDialog({
 							onClick={handleConfirm}
 							disabled={isSubmitting || isLoading}
 						>
-							{isSubmitting ? "保存中..." : "保存"}
+							保存
 						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={saveConfirmOpen} onOpenChange={handleSaveConfirmOpenChange}>
+				<DialogContent className="max-w-md">
+					<DialogHeader>
+						<DialogTitle>确认保存</DialogTitle>
+						<DialogDescription>
+							确认保存当前手工选股结果？保存后将完全覆盖当前策略的手工选股结果。
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="space-y-2">
+						<div className="flex items-start gap-3 rounded-md border p-3">
+							<Checkbox
+								id="manual-stock-save-normal"
+								checked={saveMode === "normal"}
+								onCheckedChange={(checked) => {
+									if (checked === true) setSaveMode("normal")
+								}}
+								disabled={isSubmitting}
+								className="mt-0.5"
+							/>
+							<label
+								htmlFor="manual-stock-save-normal"
+								className="cursor-pointer space-y-1"
+							>
+								<span className="block text-sm font-medium leading-none">
+									保存
+								</span>
+								<span className="block text-xs leading-relaxed text-muted-foreground">
+									保存当前手工选股结果，不会立即触发【重新选股】
+								</span>
+							</label>
+						</div>
+
+						<div className="flex items-start gap-3 rounded-md border p-3">
+							<Checkbox
+								id="manual-stock-save-reselect"
+								checked={saveMode === "reselect"}
+								onCheckedChange={(checked) => {
+									if (checked === true) setSaveMode("reselect")
+								}}
+								disabled={isSubmitting}
+								className="mt-0.5"
+							/>
+							<label
+								htmlFor="manual-stock-save-reselect"
+								className="cursor-pointer space-y-1"
+							>
+								<span className="block text-sm font-medium leading-none">
+									保存并立即重新选股
+								</span>
+								<span className="block text-xs leading-relaxed text-muted-foreground">
+									会立即触发【重新选股】，需手动启动【自动实盘】后才可触发【重新选股】，可能导致选股结果及后续交易计划发生变化。
+								</span>
+							</label>
+						</div>
+					</div>
+
+					<DialogFooter>
 						<Button
-							variant="destructive"
-							onClick={handleSaveAndReselect}
-							disabled={isSubmitting || isLoading}
+							variant="outline"
+							onClick={() => handleSaveConfirmOpenChange(false)}
+							disabled={isSubmitting}
 						>
-							{isSubmitting ? "保存中..." : "保存并立即重新选股"}
+							取消
+						</Button>
+						<Button onClick={handleSaveConfirm} disabled={isSubmitting}>
+							{isSubmitting
+								? "保存中..."
+								: saveMode === "reselect"
+									? "确认保存并重新选股"
+									: "确认保存"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

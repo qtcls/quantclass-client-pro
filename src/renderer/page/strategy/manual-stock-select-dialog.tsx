@@ -62,8 +62,12 @@ function dateGroupsToItems(
 ): ManualStockSelectResultItem[] {
 	const result: ManualStockSelectResultItem[] = []
 	for (const group of groups) {
-		if (!group.date || group.stocks.length === 0) continue
+		if (!group.date) continue
 		const ymd = getLocalCalendarYmd(group.date)
+		if (group.stocks.length === 0) {
+			result.push({ 选股日期: ymd, 股票代码: "" })
+			continue
+		}
 		for (const code of group.stocks) {
 			result.push({ 选股日期: ymd, 股票代码: code })
 		}
@@ -113,6 +117,12 @@ function resultItemsToDateGroups(
 	const groupMap = new Map<string, string[]>()
 	for (const item of items) {
 		const ymd = item.选股日期
+		if (!item.股票代码) {
+			if (!groupMap.has(ymd)) {
+				groupMap.set(ymd, [])
+			}
+			continue
+		}
 		const stocks = groupMap.get(ymd) ?? []
 		if (!stocks.includes(item.股票代码)) {
 			stocks.push(item.股票代码)
@@ -130,7 +140,7 @@ function resultItemsToDateGroups(
 		}))
 }
 
-const BULK_LINE_RE = /^(\d{4}-\d{2}-\d{2})\s*,\s*(.+)$/
+const BULK_LINE_RE = /^(\d{4}-\d{2}-\d{2})\s*,\s*(.*)$/
 
 function itemsToBulkText(items: ManualStockSelectResultItem[]): string {
 	return [...items]
@@ -161,7 +171,7 @@ function parseBulkText(
 		if (!match) {
 			return {
 				success: false,
-				message: `第 ${lineNo} 行格式错误，应为：YYYY-MM-DD,股票代码`,
+				message: `第 ${lineNo} 行格式错误，应为：YYYY-MM-DD,股票代码（股票代码可留空表示卖出全部）`,
 				line: lineNo,
 			}
 		}
@@ -172,13 +182,6 @@ function parseBulkText(
 			return {
 				success: false,
 				message: `第 ${lineNo} 行日期无效：${ymd}`,
-				line: lineNo,
-			}
-		}
-		if (!code) {
-			return {
-				success: false,
-				message: `第 ${lineNo} 行股票代码不能为空`,
 				line: lineNo,
 			}
 		}
@@ -538,19 +541,19 @@ export function ManualStockSelectDialog({
 					toast.error("请为已添加股票的条目选择选股日期")
 					return null
 				}
-				if (!hasStocks) {
-					toast.error("每个选股日期至少添加一只股票")
-					return null
-				}
 
 				const ymd = getLocalCalendarYmd(group.date!)
+				if (!hasStocks) {
+					visualResult.push({ 选股日期: ymd, 股票代码: "" })
+					continue
+				}
 				for (const code of group.stocks) {
 					visualResult.push({ 选股日期: ymd, 股票代码: code })
 				}
 			}
 
 			if (visualResult.length === 0) {
-				toast.error("请至少添加一个选股日期和股票")
+				toast.error("请至少添加一个选股日期")
 				return null
 			}
 
@@ -911,7 +914,8 @@ export function ManualStockSelectDialog({
 													</div>
 												) : (
 													<p className="py-4 text-center text-xs text-muted-foreground">
-														该日期暂无股票，在下方输入代码后点击 + 添加
+														该日期暂无股票，保存后将卖出全部持仓；也可在下方输入代码后点击
+														+ 添加
 													</p>
 												)}
 											</div>
@@ -969,6 +973,9 @@ export function ManualStockSelectDialog({
 										<li>每行一条记录，格式：选股日期,股票代码</li>
 										<li>选股日期使用 YYYY-MM-DD，例如 2026-07-10</li>
 										<li>股票代码例如 sz000001、sh600000</li>
+										<li>
+											股票代码留空（如 2026-07-21,）表示该日卖出全部持仓
+										</li>
 										<li>一行对应 JSON 文件中的一条记录</li>
 										<li>空行会自动忽略</li>
 										<li>选股日期在下一交易日 09:00 后不可再修改</li>
@@ -977,7 +984,7 @@ export function ManualStockSelectDialog({
 									<p className="mt-3 text-foreground">样例：</p>
 									<pre className="mt-1 overflow-x-auto rounded-md bg-background/80 p-2 font-mono text-[11px] text-foreground">
 										{
-											"2026-07-10,sz000001\n2026-07-10,sz000002\n2026-07-13,sz000006"
+											"2026-07-10,sz000001\n2026-07-10,sz000002\n2026-07-13,sz000006\n2026-07-21,"
 										}
 									</pre>
 								</div>

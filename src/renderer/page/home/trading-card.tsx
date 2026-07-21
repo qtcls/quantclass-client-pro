@@ -292,10 +292,8 @@ export function TradingCard() {
 			</Dialog>
 
 			<Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-				<DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0">
-					<ScrollArea className="max-h-[85vh] p-6">
-						<ScheduleControl />
-					</ScrollArea>
+				<DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-6">
+					<ScheduleControl />
 				</DialogContent>
 			</Dialog>
 		</>

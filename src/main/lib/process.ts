@@ -17,6 +17,7 @@ import {
 } from "node:child_process"
 import fs from "node:fs"
 import { updateKernal } from "@/main/core/runpy.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
 import { userStore } from "@/main/lib/userStore.js"
 import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
 import {
@@ -55,7 +56,12 @@ export class ProcessManage {
 		args: string[],
 		options: SpawnOptionsWithoutStdio,
 		action: string,
-		kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock" = "fuel",
+		kernel:
+			| "fuel"
+			| "rocket"
+			| "aqua"
+			| "zeus"
+			| "config-master-stock" = "fuel",
 	) {
 		const childProcess = spawn(command, args, options)
 
@@ -283,6 +289,7 @@ export const execBin = async (
 
 		const fuelCodePath = await store.getAllDataPath(["code"])
 		const fuelProTradingPath = await store.getAllDataPath(["real_trading"])
+		const accessToken = await tokenStore.getAccessToken()
 		logger.info(`export PYTHONPATH=${fuelCodePath}`)
 		logger.info(`export FUEL_CODE_PATH=${fuelCodePath}`)
 		logger.info(`export FUEL_CLIENT_CONFIG_PATH=${CONFIG_PATH}`)
@@ -314,11 +321,16 @@ export const execBin = async (
 				if (extraEnv) Object.assign(process.env, extraEnv)
 			}
 
+			const env: NodeJS.ProcessEnv = {
+				...process.env,
+				FUEL_ACCESS_TOKEN: accessToken ?? "",
+			}
+
 			const pythonProcess = process_manager.spawnProcess(
 				binPath,
 				args,
 				{
-					env: process.env,
+					env,
 				},
 				action,
 				kernel,

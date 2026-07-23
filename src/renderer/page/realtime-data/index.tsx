@@ -23,13 +23,13 @@ import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { Label } from "@/renderer/components/ui/label"
 import { Switch } from "@/renderer/components/ui/switch"
+import { useMinDataSchedule, useToggleAutoRealTrading } from "@/renderer/hooks"
+import { useSettings } from "@/renderer/hooks/useSettings"
 import {
 	isMinDataUpdatingAtom,
 	minDataModeAtom,
 	realConfigEditModalAtom,
 } from "@/renderer/store"
-import { useMinDataSchedule, useToggleAutoRealTrading } from "@/renderer/hooks"
-import { useSettings } from "@/renderer/hooks/useSettings"
 import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
 import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
@@ -92,20 +92,30 @@ const RealtimeData: FC = () => {
 	const [deleteTodayConfirmOpen, setDeleteTodayConfirmOpen] = useState(false)
 	const [tableRefreshTrigger, setTableRefreshTrigger] = useState(0)
 
+	const enableEtfMinData = settings.enable_etf_min_data ?? false
+
 	useEffect(() => {
 		onMinDataScheduleStatus((_event, status) => {
 			if (status.type === "skipped") {
 				toast.info("自动更新：Fuel 内核正忙，跳过本轮")
 			} else if (status.type === "executing") {
 				setIsExecuting(true)
-				toast.info("自动更新：正在获取准确数据...")
+				toast.info(
+					enableEtfMinData
+						? "自动更新：正在获取准确数据（含 ETF）..."
+						: "自动更新：正在获取准确数据...",
+				)
 			} else if (status.type === "done") {
 				setIsExecuting(false)
-				toast.success("自动更新：本轮数据获取完成")
+				toast.success(
+					enableEtfMinData
+						? "自动更新：本轮数据获取完成（含 ETF）"
+						: "自动更新：本轮数据获取完成",
+				)
 			}
 		})
 		return () => removeMinDataScheduleStatusListener()
-	}, [])
+	}, [enableEtfMinData])
 
 	const isQmtConfigured =
 		!!realMarketConfig?.account_id?.trim() &&
@@ -174,6 +184,14 @@ const RealtimeData: FC = () => {
 		updateSettings({ accelerated_data_source: true })
 		toast.success("加速数据源已启用")
 	}, [updateSettings])
+
+	const handleEtfMinDataChange = useCallback(
+		(checked: boolean) => {
+			updateSettings({ enable_etf_min_data: checked })
+			toast.success(checked ? "ETF 实时数据已启用" : "ETF 实时数据已关闭")
+		},
+		[updateSettings],
+	)
 
 	const handleConfirmDeleteToday = useCallback(async () => {
 		const result = await deleteMinDataToday()
@@ -281,6 +299,19 @@ const RealtimeData: FC = () => {
 							启用加速数据源
 						</Label>
 					</div>
+					<div className="flex items-center gap-2">
+						<Switch
+							id="enable-etf-min-data"
+							checked={enableEtfMinData}
+							onCheckedChange={handleEtfMinDataChange}
+						/>
+						<Label
+							htmlFor="enable-etf-min-data"
+							className="text-sm font-medium cursor-pointer"
+						>
+							启用 ETF 实时数据
+						</Label>
+					</div>
 				</div>
 				<Button
 					type="button"
@@ -296,7 +327,7 @@ const RealtimeData: FC = () => {
 
 			<MinDataTaskTable
 				title="准确 QMT 数据"
-				description="获取5分钟准确K线数据，可选极速模式或稳定模式"
+				description="获取 5 分钟准确 K 线数据，可选极速模式或稳定模式"
 				isExecuting={isExecuting}
 				onExecute={handleExecConfirmClick}
 				mode={mode}
@@ -324,9 +355,7 @@ const RealtimeData: FC = () => {
 						defaultValue={mode}
 						onValueChange={(value) => {
 							setMode(value as "fast" | "stable")
-							toast.success(
-								`已切换为${value === "fast" ? "极速" : "稳定"}模式`,
-							)
+							toast.success(`已切换为${value === "fast" ? "极速" : "稳定"}模式`)
 							if (isMinDataUpdating) {
 								void syncMinDataSchedule({
 									mode: value as "fast" | "stable",
@@ -365,6 +394,7 @@ const RealtimeData: FC = () => {
 				open={execConfirmOpen}
 				onOpenChange={setExecConfirmOpen}
 				onConfirm={handleConfirmExec}
+				enableEtfMinData={enableEtfMinData}
 			/>
 
 			<AcceleratedDataSourceConfirmDialog

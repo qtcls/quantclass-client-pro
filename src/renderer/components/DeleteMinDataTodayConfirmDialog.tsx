@@ -83,12 +83,12 @@ export function DeleteMinDataTodayConfirmDialog({
 								<ul className="mt-2 list-disc list-inside space-y-1.5 text-muted-foreground">
 									<li>
 										min_data 中的 QMT
-										分钟行情数据会被永久删除，盘中择时、override
+										分钟行情数据（含个股与 ETF）会被永久删除，盘中择时、override
 										调仓信号、个股小时择时将无法正常读取当日分钟行情。
 									</li>
 									<li>
 										min_data_update_task
-										中的分钟数据更新任务状态会被永久删除，系统将无法准确判断指定分钟数据是否已经采集完成。
+										中的分钟数据更新任务状态（含个股与 ETF）会被永久删除，系统将无法准确判断指定分钟数据是否已经采集完成。
 									</li>
 									<li>
 										依赖盘中分钟数据的信号计算可能被跳过、延迟，或退化为不完整的数据检查逻辑。

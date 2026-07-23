@@ -11,24 +11,46 @@
 import DBManager from "@/main/lib/db-manager.js"
 import logger from "@/main/utils/wiston.js"
 import { getLocalDateYYYYMMDD } from "@/shared/lib/trading-day.js"
+import type Database from "better-sqlite3"
+
+function resetRoundsTableRunningForToday(
+	db: Database.Database,
+	tableName: string,
+	today: string,
+): void {
+	const result = db
+		.prepare(`UPDATE ${tableName} SET is_running = 0 WHERE run_date = ?`)
+		.run(today)
+	if (result.changes > 0) {
+		logger.info(
+			`[min-data-rounds] 启动重置：已将 ${tableName} 中 ${result.changes} 条今日记录的 is_running 置为 0（run_date=${today}）`,
+		)
+	}
+}
 
 export async function resetMinDataRoundsRunningForToday(): Promise<void> {
 	const dbManager = DBManager.getInstance()
-	const db = await dbManager.getConnection(["min_data_rounds"])
-	if (!db) return
-
 	const today = getLocalDateYYYYMMDD()
 
-	try {
-		const result = db
-			.prepare("UPDATE min_data_rounds SET is_running = 0 WHERE run_date = ?")
-			.run(today)
-		if (result.changes > 0) {
-			logger.info(
-				`[min-data-rounds] 启动重置：已将 ${result.changes} 条今日记录的 is_running 置为 0（run_date=${today}）`,
+	const stockDb = await dbManager.getConnection(["min_data_rounds"])
+	if (stockDb) {
+		try {
+			resetRoundsTableRunningForToday(stockDb, "min_data_rounds", today)
+		} catch (error) {
+			logger.error(
+				`[min-data-rounds] 启动重置 min_data_rounds is_running 失败: ${error}`,
 			)
 		}
-	} catch (error) {
-		logger.error(`[min-data-rounds] 启动重置 is_running 失败: ${error}`)
+	}
+
+	const etfDb = await dbManager.getConnection(["min_data_etf_rounds"])
+	if (etfDb) {
+		try {
+			resetRoundsTableRunningForToday(etfDb, "min_data_etf_rounds", today)
+		} catch (error) {
+			logger.error(
+				`[min-data-rounds] 启动重置 min_data_etf_rounds is_running 失败: ${error}`,
+			)
+		}
 	}
 }

@@ -22,4 +22,5 @@ export type SettingsType = {
 	performance_mode: string
 	user_choice: boolean
 	accelerated_data_source: boolean
+	enable_etf_min_data: boolean
 }

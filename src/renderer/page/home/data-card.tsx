@@ -22,7 +22,6 @@ import { DATA_SECTION_ROUTE } from "@/renderer/constant"
 import {
 	useAuthUpdate,
 	useHandleTimeTask,
-	useScheduleTimes,
 } from "@/renderer/hooks"
 import { useProductList } from "@/renderer/hooks/useProductList"
 import ScheduleControl from "@/renderer/page/home/schedule"
@@ -48,7 +47,6 @@ export function DataCard() {
 	const [scheduleOpen, setScheduleOpen] = useState(false)
 	const { apiKey, uuid } = useAtomValue(accountKeyAtom)
 	const isUpdating = useAtomValue(isUpdatingAtom)
-	const { dataScheduleTimes } = useScheduleTimes()
 	const handleTimeTask = useHandleTimeTask()
 	const { productList } = useProductList()
 
@@ -72,6 +70,28 @@ export function DataCard() {
 							全局底座 · 流水线
 						</span>
 					</span>
+					{isUpdating ? (
+						<ButtonTooltip content="停止自动更新数据">
+							<button
+								type="button"
+								disabled={disabled}
+								onClick={() => handleTimeTask(true)}
+								className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 text-green-600 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+							>
+								<RefreshCw className="size-5 animate-spin" />
+							</button>
+						</ButtonTooltip>
+					) : (
+						<ButtonTooltip content="启动自动更新数据">
+							<button
+								type="button"
+								onClick={() => setConfirmStartAutoUpdate(true)}
+								className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 text-foreground hover:bg-muted transition-colors"
+							>
+								<Play className="size-5 fill-current" />
+							</button>
+						</ButtonTooltip>
+					)}
 				</div>
 				<div className="px-4 py-3.5 flex-1 flex flex-col gap-3">
 					<div>
@@ -128,32 +148,6 @@ export function DataCard() {
 					<CalendarSync className="size-3.5" strokeWidth={1.9} />
 					运行计划设置
 				</button>
-				{isUpdating ? (
-					<ButtonTooltip content="停止自动更新数据">
-						<button
-							type="button"
-							disabled={disabled}
-							onClick={() => handleTimeTask(true)}
-							className="flex items-center justify-center gap-2 w-full px-4 py-2.5 border-t border-border text-sm font-medium text-green-600 bg-green-500/5 hover:bg-green-500/10 transition-colors disabled:opacity-50"
-						>
-							<RefreshCw className="size-3.5 animate-spin" />
-							{dataScheduleTimes.length > 0
-								? "定时更新中 · 点击暂停"
-								: "更新中 · 点击暂停"}
-						</button>
-					</ButtonTooltip>
-				) : (
-					<ButtonTooltip content="启动自动更新数据">
-						<button
-							type="button"
-							onClick={() => setConfirmStartAutoUpdate(true)}
-							className="flex items-center justify-center gap-2 w-full px-4 py-2.5 border-t border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-						>
-							<Play className="size-3.5" />
-							启动自动更新
-						</button>
-					</ButtonTooltip>
-				)}
 				<button
 					type="button"
 					onClick={() => navigate(DATA_SECTION_ROUTE)}

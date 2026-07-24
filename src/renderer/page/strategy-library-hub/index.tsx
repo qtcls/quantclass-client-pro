@@ -36,8 +36,8 @@ export default function StrategyLibraryHub() {
 							<SelectValue placeholder="请选择策略库" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="fusion">综合策略库</SelectItem>
-							<SelectItem value="select">选股策略</SelectItem>
+							<SelectItem value="fusion">策略库</SelectItem>
+							<SelectItem value="select">策略库（选股）</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>

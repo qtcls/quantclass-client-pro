@@ -19,10 +19,9 @@ export const versionsAtom = atomWithStorage<
 	Partial<{
 		clientVersion: string // 客户端
 		fuelVersion: string // 数据内核
-		aquaVersion: string // 选股内核
-		zeusVersion: string // 高级选股内核
+		fusionVersion: string // 选股内核
 		rocketVersion: string // 下单内核
-		configMasterStockVersion: string // config 大师内核
+		scmVersion: string // config 大师内核
 	}>
 >("versions", { clientVersion: "1.1.5" }, undefined, {
 	getOnInit: true,

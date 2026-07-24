@@ -266,7 +266,7 @@ export default function ImportStrategyButton() {
 					<DialogContent className="p-4">
 						<DialogHeader>
 							<DialogTitle className="flex items-center">
-								添加策略到综合策略库
+								添加策略到策略库
 							</DialogTitle>
 						</DialogHeader>
 						<div className="space-y-1">

@@ -16,7 +16,6 @@ import {
 } from "@/renderer/constant"
 import { useAppVersions } from "@/renderer/hooks/useAppVersion"
 import { useProductList } from "@/renderer/hooks/useProductList"
-import { useSettings } from "@/renderer/hooks/useSettings"
 import { useTradingSession } from "@/renderer/hooks/useTradingSession"
 import { useVersionCheck } from "@/renderer/hooks/useVersionCheck"
 import { KernelModuleQueueChip } from "@/renderer/layout/KernelModuleQueueChip"
@@ -68,12 +67,10 @@ function getSystemKernelVersionUpdateLevel(
 	localVersions:
 		| {
 				fuelVersion?: string
-				aquaVersion?: string
-				zeusVersion?: string
+				fusionVersion?: string
 				rocketVersion?: string
 		  }
 		| undefined,
-	isFusionMode: boolean,
 ): KernelVersionUpdateLevel {
 	const levels: KernelVersionUpdateLevel[] = [
 		getKernelVersionUpdateLevel(
@@ -81,25 +78,12 @@ function getSystemKernelVersionUpdateLevel(
 			appVersions?.latest?.fuel,
 			appVersions?.fuel ?? [],
 		),
+		getKernelVersionUpdateLevel(
+			localVersions?.fusionVersion,
+			appVersions?.latest?.fusion,
+			appVersions?.fusion ?? [],
+		),
 	]
-
-	if (isFusionMode) {
-		levels.push(
-			getKernelVersionUpdateLevel(
-				localVersions?.zeusVersion,
-				appVersions?.latest?.zeus,
-				appVersions?.zeus ?? [],
-			),
-		)
-	} else {
-		levels.push(
-			getKernelVersionUpdateLevel(
-				localVersions?.aquaVersion,
-				appVersions?.latest?.aqua,
-				appVersions?.aqua ?? [],
-			),
-		)
-	}
 
 	levels.push(
 		getKernelVersionUpdateLevel(
@@ -162,7 +146,6 @@ export function MonitorStrip() {
 	const navigate = useNavigate()
 	const setActiveTab = useSetAtom(activeTabAtom)
 	const { appVersions } = useAppVersions()
-	const { isFusionMode } = useSettings()
 	const { hasClientUpdate } = useVersionCheck()
 	const localVersions = useAtomValue(versionsAtom)
 	const [clock, setClock] = useState(() => dayjs().format("HH:mm:ss"))
@@ -170,13 +153,8 @@ export function MonitorStrip() {
 	const tradingSession = useTradingSession()
 
 	const systemKernelLevel = useMemo(
-		() =>
-			getSystemKernelVersionUpdateLevel(
-				appVersions,
-				localVersions,
-				isFusionMode,
-			),
-		[appVersions, localVersions, isFusionMode],
+		() => getSystemKernelVersionUpdateLevel(appVersions, localVersions),
+		[appVersions, localVersions],
 	)
 
 	const systemLevel = useMemo(() => {

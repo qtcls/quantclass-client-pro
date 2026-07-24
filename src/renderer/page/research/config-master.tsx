@@ -49,7 +49,7 @@ interface ResearchConfigMasterPageProps {
 	className?: string
 }
 
-const CONFIG_MASTER_KERNEL = "config-master-stock" as const
+const CONFIG_MASTER_KERNEL = "scm" as const
 const CONFIG_MASTER_WEB_URL = "http://127.0.0.1:9999"
 
 interface ConfigMasterStatusBarProps {
@@ -359,7 +359,7 @@ export default function ResearchConfigMasterPage({
 		refetchOnWindowFocus: false,
 	})
 
-	const currentVersion = versions.configMasterStockVersion ?? "暂无内核"
+	const currentVersion = versions.scmVersion ?? "暂无内核"
 	const latestVersion = appVersions?.latest?.[CONFIG_MASTER_KERNEL]
 	// 仅用于展示下载状态与文案；启动入口不依赖这个状态，允许用户手动放入内核目录后直接启动。
 	const hasDownloadedKernel = currentVersion !== "暂无内核"

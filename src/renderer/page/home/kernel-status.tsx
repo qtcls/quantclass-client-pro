@@ -17,10 +17,9 @@ import { cn } from "@/renderer/lib/utils"
 import { ProcessCard } from "@/renderer/page/home/ProcessKanban"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
-import { libraryTypeAtom } from "@/renderer/store/storage"
 import { useAtom, useAtomValue } from "jotai"
 
-export type KernelKey = "fuel" | "aqua" | "zeus" | "rocket" | "config-master-stock"
+export type KernelKey = "fuel" | "fusion" | "rocket" | "scm"
 
 export type KernelStatusLevel = "ok" | "warn" | "idle"
 
@@ -41,10 +40,7 @@ export function getKernelStatus(
 	if (isUpdating && kernel === "fuel") {
 		return { level: "warn", label: "更新中" }
 	}
-	if (
-		isAutoRocket &&
-		(kernel === "aqua" || kernel === "zeus" || kernel === "rocket")
-	) {
+	if (isAutoRocket && (kernel === "fusion" || kernel === "rocket")) {
 		return { level: "warn", label: "启动中" }
 	}
 	return { level: "idle", label: "未运行" }
@@ -66,8 +62,7 @@ const LEVEL_STYLES: Record<KernelStatusLevel, { text: string; dot: string }> = {
 }
 
 export function useResearchKernel(): KernelKey {
-	const libraryType = useAtomValue(libraryTypeAtom)
-	return libraryType === "pos" ? "zeus" : "aqua"
+	return "fusion"
 }
 
 export function ModuleKernelBadge({ kernel }: { kernel: KernelKey }) {

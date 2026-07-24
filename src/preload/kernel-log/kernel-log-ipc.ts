@@ -12,7 +12,6 @@ import fs from "node:fs"
 import path from "node:path"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
-import { LIBRARY_TYPE } from "@/shared/constants.js"
 import { BrowserWindow, ipcMain } from "electron"
 
 const POLL_INTERVAL_MS = 1000
@@ -37,8 +36,7 @@ type KernelType = "fuel" | "select" | "rocket"
 
 async function getLogFileName(kernelType: KernelType): Promise<string> {
 	if (kernelType === "select") {
-		const libraryType = (await store.getValue(LIBRARY_TYPE, "pos")) as string
-		return libraryType === "pos" ? "zeus.log" : "aqua.log"
+		return "fusion.log"
 	}
 	const today = new Date()
 	const yyyy = today.getFullYear()

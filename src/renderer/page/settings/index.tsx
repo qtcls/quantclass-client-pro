@@ -78,7 +78,7 @@ export default function SettingsPage() {
 	const handleTimeTask = useHandleTimeTask() // 数据任务控制
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading() // 自动交易控制
 
-	const { settings, updateSettings, isFusionMode } = useSettings()
+	const { settings, updateSettings } = useSettings()
 	const { realMarketConfig, setPerformanceMode } = useRealMarketConfig()
 	const isAutoLaunchRealTrading = useMemo(() => {
 		return settings.is_auto_launch_real_trading
@@ -190,11 +190,7 @@ export default function SettingsPage() {
 				await killAllKernals(true)
 
 				// -- 更新内核
-				for (const kernal of [
-					"fuel",
-					isFusionMode ? "zeus" : "aqua",
-					"rocket",
-				]) {
+				for (const kernal of ["fuel", "fusion", "rocket"]) {
 					await invokeUpdateKernal(kernal as KernalType)
 				}
 				await refetchLocalVersions()
@@ -264,23 +260,13 @@ export default function SettingsPage() {
 					/>
 
 					<>
-						{isFusionMode ? (
-							<KernalVersion
-								name="zeus"
-								title="高级选股内核"
-								Icon={SquareFunction}
-								versionKey="zeusVersion"
-								appVersions={appVersions}
-							/>
-						) : (
-							<KernalVersion
-								name="aqua"
-								title="选股内核"
-								Icon={SquareFunction}
-								versionKey="aquaVersion"
-								appVersions={appVersions}
-							/>
-						)}
+						<KernalVersion
+							name="fusion"
+							title="选股内核"
+							Icon={SquareFunction}
+							versionKey="fusionVersion"
+							appVersions={appVersions}
+						/>
 
 						<KernalVersion
 							name="rocket"

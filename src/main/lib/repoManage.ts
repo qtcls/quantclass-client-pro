@@ -12,8 +12,8 @@ import fs from "node:fs"
 import { writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import path from "node:path"
-import { repoStore } from "@/main/lib/repoStore.js"
 import { execBin } from "@/main/lib/process.js"
+import { repoStore } from "@/main/lib/repoStore.js"
 import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { resolveRepoFolderNameFromLink } from "@/shared/lib/repo-folder.js"
@@ -231,7 +231,7 @@ export async function launchConfigMaster({
 			return { success: false, error: "请先在设置中配置数据存储路径" }
 		}
 
-		await execBin([], "启动 config 大师", "config-master-stock", {
+		await execBin([], "启动 config 大师", "scm", {
 			CONFIG_MASTER_BACKTEST_ROOT: backtestRoot,
 			FUEL_DATA_CENTER_PATH: dataCenterPath,
 		})

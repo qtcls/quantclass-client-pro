@@ -27,10 +27,9 @@ export interface KernelModuleItem {
 
 const MODULE_SHORT_LABELS: Record<KernelKey, string> = {
 	fuel: "数据",
-	aqua: "选股",
-	zeus: "选股",
+	fusion: "选股",
 	rocket: "下单",
-	"config-master-stock": "配置",
+	scm: "配置",
 }
 
 function getQueueChipStatus(

@@ -41,8 +41,7 @@ export const postUserMainAction = async (data: {
 export interface ClientTelemetryData {
 	clientVersion: string
 	fuelVersion: string
-	aquaVersion: string
-	zeusVersion: string
+	fusionVersion: string
 	rocketVersion: string
 	lastLoginTime: string
 	loginDuration: string

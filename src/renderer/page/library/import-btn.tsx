@@ -171,7 +171,7 @@ export default function StgImportButton() {
 				<DialogContent className="p-4">
 					<DialogHeader>
 						<DialogTitle className="flex items-center">
-							导入策略到选股策略库
+							导入策略到策略库（选股）
 						</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-1">

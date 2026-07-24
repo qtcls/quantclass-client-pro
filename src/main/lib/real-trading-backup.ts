@@ -305,9 +305,8 @@ async function addFilteredRealTradingToArchive(
 	}
 
 	for (const rel of [
-		`data/ui_status/aqua-stats-${ymd}.json`,
-		`data/ui_status/zeus-stats-${ymd}.json`,
-		`data/ui_views/aqua-views-${ymd}.json`,
+		`data/ui_status/fusion-stats-${ymd}.json`,
+		`data/ui_views/fusion-views-${ymd}.json`,
 	]) {
 		addFile(rel)
 	}

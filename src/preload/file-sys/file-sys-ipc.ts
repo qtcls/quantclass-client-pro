@@ -704,7 +704,7 @@ async function deletePeriodOffsetHandler(): Promise<void> {
 		try {
 			// 检查 rocket 和选股内核是否正在运行
 			const { isAnyKernalBusy } = await import("@/main/utils/tools.js")
-			const kernalsBusy = await isAnyKernalBusy(["rocket", "aqua", "zeus"])
+			const kernalsBusy = await isAnyKernalBusy(["rocket", "fusion"])
 
 			if (kernalsBusy) {
 				logger.warn(

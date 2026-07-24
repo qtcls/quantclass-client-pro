@@ -43,7 +43,7 @@ export class ProcessManage {
 			action: string
 			createdAt: string
 			pid?: number
-			kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock"
+			kernel: "fuel" | "rocket" | "fusion" | "scm"
 		}
 	>
 
@@ -56,12 +56,7 @@ export class ProcessManage {
 		args: string[],
 		options: SpawnOptionsWithoutStdio,
 		action: string,
-		kernel:
-			| "fuel"
-			| "rocket"
-			| "aqua"
-			| "zeus"
-			| "config-master-stock" = "fuel",
+		kernel: "fuel" | "rocket" | "fusion" | "scm" = "fuel",
 	) {
 		const childProcess = spawn(command, args, options)
 
@@ -156,11 +151,8 @@ export class ProcessManage {
 			if (action.action === "自动更新所有数据") {
 				await killKernalByForce("fuel")
 			}
-			if (action.kernel === "aqua") {
-				await killKernalByForce("aqua")
-			}
-			if (action.kernel === "zeus") {
-				await killKernalByForce("zeus")
+			if (action.kernel === "fusion") {
+				await killKernalByForce("fusion")
 			}
 			if (action.action === "启动 rocket") {
 				await killKernalByForce("rocket")
@@ -206,7 +198,7 @@ export const process_manager = new ProcessManage()
 export const execBin = async (
 	args: string[],
 	action: string,
-	kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock" = "fuel",
+	kernel: "fuel" | "rocket" | "fusion" | "scm" = "fuel",
 	extraEnv?: string | Record<string, string>,
 ) => {
 	try {
@@ -243,14 +235,13 @@ export const execBin = async (
 		}
 
 		const fuelRunning = await isKernalRunning("fuel")
-		const aquaRunning = await isKernalRunning("aqua")
-		const zeusRunning = await isKernalRunning("zeus")
+		const fusionRunning = await isKernalRunning("fusion")
 		const rocketRunning = await isKernalRunning("rocket", true)
 		if (platform.isMacOS) exec(`chmod +x ${binPath}`)
 
 		logger.info(`[exec-${kernel}] 内核路径: ${binPath}`)
 		logger.info(
-			`[exec-${kernel}] fuel(${fuelRunning})、rocket(${rocketRunning})、aqua(${aquaRunning})、zeus(${zeusRunning})`,
+			`[exec-${kernel}] fuel(${fuelRunning})、rocket(${rocketRunning})、fusion(${fusionRunning})`,
 		)
 
 		// 仅阻止重复启动「自动更新所有数据」，允许历史数据与实时数据更新（min_data）同时执行
@@ -263,11 +254,7 @@ export const execBin = async (
 			logger.warn(`[exec-${kernel}] 自动更新所有数据仍在运行中，退出 execBin`)
 			return
 		}
-		if (aquaRunning && kernel === "aqua") {
-			logger.warn(`[exec-${kernel}] 仍在运行中，退出 execBin`)
-			return
-		}
-		if (zeusRunning && kernel === "zeus") {
+		if (fusionRunning && kernel === "fusion") {
 			logger.warn(`[exec-${kernel}] 仍在运行中，退出 execBin`)
 			return
 		}
@@ -277,7 +264,7 @@ export const execBin = async (
 		}
 
 		if (
-			(kernel === "aqua" || kernel === "zeus") &&
+			kernel === "fusion" &&
 			action === "选股" &&
 			process_manager.hasProcessWithAction("选股")
 		) {
@@ -337,7 +324,7 @@ export const execBin = async (
 			)
 			if (pythonProcess) {
 				handlePythonProcess(pythonProcess, resolve, reject, kernel, action)
-				if (kernel === "config-master-stock") {
+				if (kernel === "scm") {
 					resolve?.(undefined)
 				}
 			} else {
@@ -355,7 +342,7 @@ function handlePythonProcess<T = any>(
 	pythonProcess: ChildProcessWithoutNullStreams,
 	resolve: (value?: T) => void,
 	reject: (reason?: any) => void,
-	kernel: "fuel" | "rocket" | "aqua" | "zeus" | "config-master-stock",
+	kernel: "fuel" | "rocket" | "fusion" | "scm",
 	action: string,
 ) {
 	const mainWindow = windowManager.getWindow()

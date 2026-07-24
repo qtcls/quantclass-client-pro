@@ -33,15 +33,13 @@ let telemetryIntervalId: ReturnType<typeof setInterval> | null = null
 function computeTelemetryVersionKey(input: {
 	clientVersion: string
 	fuelVersion: string
-	aquaVersion: string
-	zeusVersion: string
+	fusionVersion: string
 	rocketVersion: string
 }): string {
 	const canonical = JSON.stringify([
 		input.clientVersion,
 		input.fuelVersion,
-		input.aquaVersion,
-		input.zeusVersion,
+		input.fusionVersion,
 		input.rocketVersion,
 	])
 	return createHash("sha256").update(canonical, "utf8").digest("hex")
@@ -80,8 +78,7 @@ async function buildTelemetryReportBody(): Promise<ClientTelemetryReportBody> {
 	const data = {
 		clientVersion,
 		fuelVersion: versions.fuelVersion,
-		aquaVersion: versions.aquaVersion,
-		zeusVersion: versions.zeusVersion,
+		fusionVersion: versions.fusionVersion,
 		rocketVersion: versions.rocketVersion,
 		lastLoginTime: lastLoginStr,
 		loginDuration,
@@ -92,8 +89,7 @@ async function buildTelemetryReportBody(): Promise<ClientTelemetryReportBody> {
 		key: computeTelemetryVersionKey({
 			clientVersion: data.clientVersion,
 			fuelVersion: data.fuelVersion,
-			aquaVersion: data.aquaVersion,
-			zeusVersion: data.zeusVersion,
+			fusionVersion: data.fusionVersion,
 			rocketVersion: data.rocketVersion,
 		}),
 		data,

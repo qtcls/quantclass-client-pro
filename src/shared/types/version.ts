@@ -31,4 +31,5 @@ export interface AppVersions {
 	aqua: KernalVersionType[]
 	zeus: KernalVersionType[]
 	rocket: KernalVersionType[]
+	"config-master-stock": KernalVersionType[]
 }

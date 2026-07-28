@@ -9,10 +9,11 @@
  */
 
 import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
+import { useBacktestDialog } from "@/renderer/components/backtest-dialog"
 import { Button } from "@/renderer/components/ui/button"
 import { DataTable } from "@/renderer/components/ui/data-table"
 import { DataTableToolbar } from "@/renderer/components/ui/data-table-toolbar"
-import { BACKTEST_PAGE, REAL_MARKET_CONFIG_PAGE } from "@/renderer/constant"
+import { TRADING_SECTION_ROUTE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import StgImportButton from "@/renderer/page/library/import-btn"
@@ -33,6 +34,7 @@ import { toast } from "sonner"
 export const LibraryTable = forwardRef((_, _ref) => {
 	const { selectStgList, updateSelectStgList } = useStrategyManager()
 	const { isAutoRocket } = useToggleAutoRealTrading()
+	const { openBacktest } = useBacktestDialog()
 	const reTiming = useAtomValue(reTimingAtom)
 	const navigate = useNavigate()
 
@@ -86,7 +88,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 						variant="outline"
 						disabled={isAutoRocket}
 						className="h-8 lg:flex"
-						onClick={() => navigate(BACKTEST_PAGE)}
+						onClick={openBacktest}
 					>
 						<PencilRuler className="size-4 mr-2" />
 						前往回测
@@ -96,7 +98,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 						size="sm"
 						variant="outline"
 						className="h-8 lg:flex"
-						onClick={() => navigate(REAL_MARKET_CONFIG_PAGE)}
+						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=real_trading`)}
 					>
 						<TvMinimalPlay className="size-4 mr-2" />
 						前往实盘

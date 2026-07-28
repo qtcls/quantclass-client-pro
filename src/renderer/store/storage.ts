@@ -106,7 +106,7 @@ export const rebTimeConfigAtom = atomWithStorage<Record<string, RebTimeConfig>>(
 
 export const libraryTypeAtom = atomWithStorage<string>(
 	"libraryType",
-	"select",
+	"pos",
 	undefined,
 	{ getOnInit: true },
 )

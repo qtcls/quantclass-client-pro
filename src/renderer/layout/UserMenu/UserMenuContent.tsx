@@ -27,16 +27,22 @@ import { LogOut, Sparkles } from "lucide-react"
 
 interface UserMenuContentProps {
 	user: UserAccountInfo | null
+	side?: "top" | "right" | "bottom" | "left"
+	align?: "start" | "center" | "end"
 }
 
-export const UserMenuContent = ({ user }: UserMenuContentProps) => {
+export const UserMenuContent = ({
+	user,
+	side = "bottom",
+	align = "end",
+}: UserMenuContentProps) => {
 	const { handleLogout } = useLogout()
 	const { openUrl } = window.electronAPI
 	return (
 		<DropdownMenuContent
 			className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-			side="bottom"
-			align="end"
+			side={side}
+			align={align}
 			sideOffset={4}
 		>
 			<DropdownMenuLabel className="p-0 font-normal">

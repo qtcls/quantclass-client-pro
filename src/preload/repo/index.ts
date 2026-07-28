@@ -9,6 +9,7 @@
  */
 
 import type {
+	LaunchConfigMasterResult,
 	RepoApiType,
 	RepoDeleteResult,
 	RepoDownloadRecord,
@@ -55,4 +56,9 @@ export const repoIPC = {
 
 	writeFrameworkClientEnv: (): Promise<WriteClientEnvResult> =>
 		ipcRenderer.invoke("repo:write-framework-client-env"),
+
+	launchConfigMaster: (args: {
+		backtestRoot: string
+	}): Promise<LaunchConfigMasterResult> =>
+		ipcRenderer.invoke("repo:launch-config-master", args),
 }

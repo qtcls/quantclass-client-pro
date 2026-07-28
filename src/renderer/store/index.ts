@@ -68,6 +68,8 @@ export const hasNetworkAtom = atom<boolean>(true)
 
 export const isShowMonitorPanelAtom = atom<boolean>(false)
 
+export const isLogModalOpenAtom = atom<boolean>(false)
+
 export const actionDialogAtom = atom<boolean>(false)
 
 export const activeTabAtom = atom<string>(DATA_TAB_NAME)

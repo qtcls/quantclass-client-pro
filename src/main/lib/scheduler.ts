@@ -11,6 +11,7 @@
 import windowManager from "@/main/lib/WindowManager.js"
 import { execBin } from "@/main/lib/process.js"
 import { userStore } from "@/main/lib/userStore.js"
+import { loadTradingDaysFromPeriodOffsetCsv } from "@/main/utils/common.js"
 import {
 	isAnyKernalBusy,
 	isKernalBusy,
@@ -19,6 +20,10 @@ import {
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
+import {
+	getLocalCalendarYmd,
+	isLocalYmdTradingDayInCalendar,
+} from "@/shared/lib/trading-day.js"
 import type { UserAccount } from "@/shared/types/user.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
@@ -99,7 +104,7 @@ function getCurrent15m(): string {
 const setupScheduler = async (): Promise<schedule.Job> => {
 	// -- 重置已存在的调度任务
 	cancelScheduler()
-	const libraryType = (await _store.get(LIBRARY_TYPE, "select")) as string
+	const libraryType = (await _store.get(LIBRARY_TYPE, "pos")) as string
 	const mw = windowManager.getWindow()
 	try {
 		mw?.webContents.send("send-schedule-status", "init")
@@ -367,17 +372,40 @@ const setAutoTrading = (isOn: boolean) => {
 // 实时数据（min data）定时任务
 // ============================================================================
 
-function isMinDataScheduleTime(): boolean {
-	const now = dayjs()
-	const day = now.day()
-	if (day === 0 || day === 6) return false
-
+function isMinDataIntradayWindow(now = dayjs()): boolean {
 	const timeInMinutes = now.hour() * 60 + now.minute()
 	const isMorning =
 		timeInMinutes >= 9 * 60 + 16 && timeInMinutes <= 11 * 60 + 26
 	const isAfternoon =
 		timeInMinutes >= 13 * 60 + 1 && timeInMinutes <= 15 * 60 + 1
 	return isMorning || isAfternoon
+}
+
+async function shouldRunMinDataSchedule(): Promise<
+	{ run: true } | { run: false; message: string }
+> {
+	if (!isMinDataIntradayWindow()) {
+		return { run: false, message: "[min-data] 非交易时段，跳过本轮" }
+	}
+
+	const calendar = await loadTradingDaysFromPeriodOffsetCsv()
+	if (calendar.length === 0) {
+		return {
+			run: false,
+			message:
+				"[min-data] 未读到 period_offset.csv 交易日历，跳过本轮",
+		}
+	}
+
+	const ymd = getLocalCalendarYmd(new Date())
+	if (!isLocalYmdTradingDayInCalendar(calendar, ymd)) {
+		return {
+			run: false,
+			message: `[min-data] 今日 ${ymd} 非交易日，跳过本轮`,
+		}
+	}
+
+	return { run: true }
 }
 
 const cancelMinDataScheduler = () => {
@@ -389,6 +417,13 @@ const cancelMinDataScheduler = () => {
 
 async function wakeUpMinData() {
 	const mw = windowManager.getWindow()
+
+	const scheduleCheck = await shouldRunMinDataSchedule()
+	if (!scheduleCheck.run) {
+		logger.info(scheduleCheck.message)
+		return
+	}
+
 	const userAccount = await userStore.getUserAccount()
 	const allowConcurrentFuelTasks = isTradingTime()
 
@@ -407,11 +442,6 @@ async function wakeUpMinData() {
 			type: "skipped",
 			reason: "unauthorized",
 		})
-		return
-	}
-
-	if (!isMinDataScheduleTime()) {
-		logger.info("[min-data] 非交易时间，跳过本轮")
 		return
 	}
 
@@ -446,7 +476,8 @@ async function wakeUpMinData() {
 
 const setupMinDataScheduler = () => {
 	cancelMinDataScheduler()
-	systemState.minDataJob = schedule.scheduleJob("1/5 * * * 1-5", wakeUpMinData)
+	// 每日触发，具体是否执行由 period_offset.csv 交易日历判断
+	systemState.minDataJob = schedule.scheduleJob("1/5 * * * *", wakeUpMinData)
 	logger.info(`[min-data] 定时任务已启动，模式: ${systemState.minDataMode}`)
 }
 

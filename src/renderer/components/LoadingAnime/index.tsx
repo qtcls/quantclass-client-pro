@@ -8,9 +8,8 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { useSidebar } from "@/renderer/components/ui/sidebar"
 import { RefreshCw } from "lucide-react"
-import { type FC, type ReactNode, useEffect } from "react"
+import type { FC, ReactNode } from "react"
 import { Button } from "../ui/button"
 
 const { createTerminalWindow } = window.electronAPI
@@ -26,17 +25,6 @@ const LoadingAnime: FC<ILoadingAnimeProps> = ({
 	type,
 	content = "更新中...",
 }) => {
-	const { open, setOpen } = useSidebar()
-
-	useEffect(() => {
-		if (loading && open) {
-			setOpen(false)
-		}
-		if (!loading && !open) {
-			setOpen(true)
-		}
-	}, [loading])
-
 	return (
 		<>
 			{loading && (

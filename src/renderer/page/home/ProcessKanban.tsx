@@ -75,11 +75,11 @@ export const ProcessCard = ({
 	data,
 	kernel,
 }: {
-	kernel: "fuel" | "aqua" | "rocket" | "zeus"
+	kernel: "fuel" | "aqua" | "rocket" | "zeus" | "config-master-stock"
 	data?: {
 		pid: number
 		action: string
-		kernel: "fuel" | "aqua" | "rocket" | "zeus"
+		kernel: "fuel" | "aqua" | "rocket" | "zeus" | "config-master-stock"
 		createdAt: string
 	}[]
 }) => {
@@ -93,16 +93,19 @@ export const ProcessCard = ({
 		aqua: "选股模块",
 		zeus: "高级选股模块",
 		rocket: "下单模块",
+		"config-master-stock": "config 大师",
 	}
 	const actionMap = {
 		fuel: "运行中...",
 		aqua: "计算中...",
 		rocket: "运行中...",
+		"config-master-stock": "运行中...",
 	}
 	const timeMap = {
 		fuel: "上次更新时间",
 		aqua: "上次选股时间",
 		rocket: "上次运行时间",
+		"config-master-stock": "上次启动时间",
 	}
 
 	// 获取是否正在运行

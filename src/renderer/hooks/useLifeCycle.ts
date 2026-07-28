@@ -142,7 +142,7 @@ export const useLifeCycle = () => {
 		const [apiKey, uuid, libraryType, macAddress] = await Promise.all([
 			getStoreValue("settings.api_key", ""),
 			getStoreValue("settings.hid", ""),
-			getStoreValue("settings.libraryType", "select"),
+			getStoreValue("settings.libraryType", "pos"),
 			getMacAddress(),
 		])
 
@@ -270,9 +270,11 @@ export const useLifeCycle = () => {
 
 		// -- 清理实时市场数据，这个虽然useMarket的过程中会清理，但是这里是为了保险起见，初始化时再清理一次
 		// await cleanMarketData()
+		const syncActiveStrategyLibrary =
+			libraryType === "pos" ? syncFusion : syncSelectStgList
+
 		await Promise.all([
-			syncSelectStgList(),
-			syncFusion(),
+			syncActiveStrategyLibrary(),
 			initAutoLauncher(apiKey, uuid),
 		])
 	})

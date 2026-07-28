@@ -34,6 +34,7 @@ export default function PosStrategyEditDialog({
 	const [isHovered, setIsHovered] = useState(false)
 
 	const defaultValues: PosStrategyFormData = {
+		remark_name: posStrategy.remark_name ?? "",
 		split_order_amount:
 			posStrategy.split_order_amount ??
 			Math.floor(Math.random() * (36000 - 12000 + 1)) + 12000,

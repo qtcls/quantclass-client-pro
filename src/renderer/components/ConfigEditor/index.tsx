@@ -22,7 +22,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "../ui/select"
-import { useSidebar } from "../ui/sidebar"
 import { defaultConfig, editorOptions } from "./config"
 import { schema } from "./schema"
 import { createSuggestions } from "./suggestions"
@@ -47,7 +46,6 @@ function detectStgList(code: string): string | null {
 
 export function ConfigEditor() {
 	const { theme } = useTheme()
-	const { open } = useSidebar()
 	const [value, setValue] = useState<string>()
 	const [language, setLanguage] = React.useState<string>("python")
 	const editorRef = React.useRef<editor.IStandaloneCodeEditor | null>(null)
@@ -185,7 +183,7 @@ export function ConfigEditor() {
 
 			<Editor
 				height="calc(100% - 2.625rem)"
-				width={open ? "calc(100vw - 20.125rem)" : "100%"}
+				width="100%"
 				theme={theme === "dark" ? "vs-dark" : "vs"}
 				defaultLanguage={language}
 				language={language}

@@ -47,6 +47,6 @@ export const systemIPC = {
 	getMachineId: () => ipcRenderer.invoke("get-machine-id") as Promise<string>,
 	// 检查内核是否运行
 	checkKernalRunning: (
-		kernals: ("rocket" | "aqua" | "zeus" | "fuel")[] = ["rocket"],
+		kernals: KernalType[] = ["rocket"],
 	) => ipcRenderer.invoke("check-kernal-running", kernals) as Promise<boolean>,
 }

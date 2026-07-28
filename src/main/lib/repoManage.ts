@@ -13,10 +13,12 @@ import { writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import path from "node:path"
 import { repoStore } from "@/main/lib/repoStore.js"
+import { execBin } from "@/main/lib/process.js"
 import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { resolveRepoFolderNameFromLink } from "@/shared/lib/repo-folder.js"
 import type {
+	LaunchConfigMasterResult,
 	RepoApiType,
 	RepoDeleteResult,
 	RepoDownloadResult,
@@ -206,6 +208,41 @@ export async function deleteRepoDownload(
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error)
 		logger.error(`[repo] 删除失败 ticket=${ticket}: ${message}`)
+		return { success: false, error: message }
+	}
+}
+
+export interface LaunchConfigMasterArgs {
+	backtestRoot: string
+}
+
+const CONFIG_MASTER_URL = "http://127.0.0.1:9999"
+
+export async function launchConfigMaster({
+	backtestRoot,
+}: LaunchConfigMasterArgs): Promise<LaunchConfigMasterResult> {
+	try {
+		if (!backtestRoot || !fs.existsSync(backtestRoot)) {
+			return { success: false, error: "框架源码目录不存在" }
+		}
+
+		const dataCenterPath = await store.getSetting("all_data_path", "")
+		if (!dataCenterPath) {
+			return { success: false, error: "请先在设置中配置数据存储路径" }
+		}
+
+		await execBin([], "启动 config 大师", "config-master-stock", {
+			CONFIG_MASTER_BACKTEST_ROOT: backtestRoot,
+			FUEL_DATA_CENTER_PATH: dataCenterPath,
+		})
+
+		logger.info(
+			`[config-master] 已启动 CONFIG_MASTER_BACKTEST_ROOT=${backtestRoot}, FUEL_DATA_CENTER_PATH=${dataCenterPath}`,
+		)
+		return { success: true, url: CONFIG_MASTER_URL }
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error)
+		logger.error(`[config-master] 启动失败: ${message}`)
 		return { success: false, error: message }
 	}
 }

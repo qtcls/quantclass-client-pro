@@ -11,14 +11,12 @@
 import {
 	deleteRepoDownload,
 	downloadAndExtractRepo,
+	launchConfigMaster,
 	writeFrameworkClientEnv,
 } from "@/main/lib/repoManage.js"
 import { repoStore } from "@/main/lib/repoStore.js"
 import logger from "@/main/utils/wiston.js"
-import type {
-	RepoApiType,
-	RepoDownloadRecord,
-} from "@/shared/types/repo.js"
+import type { RepoApiType, RepoDownloadRecord } from "@/shared/types/repo.js"
 import { ipcMain } from "electron"
 
 function listRecordsHandler(): void {
@@ -33,17 +31,14 @@ function listRecordsHandler(): void {
 }
 
 function appendRecordHandler(): void {
-	ipcMain.handle(
-		"repo:append-record",
-		(_event, record: RepoDownloadRecord) => {
-			try {
-				return repoStore.appendRecord(record)
-			} catch (error) {
-				logger.error(`[repo-ipc] append-record 异常: ${error}`)
-				return null
-			}
-		},
-	)
+	ipcMain.handle("repo:append-record", (_event, record: RepoDownloadRecord) => {
+		try {
+			return repoStore.appendRecord(record)
+		} catch (error) {
+			logger.error(`[repo-ipc] append-record 异常: ${error}`)
+			return null
+		}
+	})
 }
 
 function updateRecordHandler(): void {
@@ -67,9 +62,7 @@ function hasSuccessBaseFolderByFidHandler(): void {
 			try {
 				return repoStore.hasSuccessBaseFolderByFid(fid, baseFolderName)
 			} catch (error) {
-				logger.error(
-					`[repo-ipc] has-success-base-folder-by-fid 异常: ${error}`,
-				)
+				logger.error(`[repo-ipc] has-success-base-folder-by-fid 异常: ${error}`)
 				return false
 			}
 		},
@@ -123,6 +116,26 @@ function writeFrameworkClientEnvHandler(): void {
 	})
 }
 
+function launchConfigMasterHandler(): void {
+	ipcMain.handle(
+		"repo:launch-config-master",
+		async (
+			_event,
+			args: {
+				backtestRoot: string
+			},
+		) => {
+			try {
+				return await launchConfigMaster(args)
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error)
+				logger.error(`[repo-ipc] launch-config-master 异常: ${message}`)
+				return { success: false, error: message }
+			}
+		},
+	)
+}
+
 export const regRepoIPC = () => {
 	listRecordsHandler()
 	appendRecordHandler()
@@ -131,5 +144,6 @@ export const regRepoIPC = () => {
 	downloadAndExtractHandler()
 	deleteRecordHandler()
 	writeFrameworkClientEnvHandler()
+	launchConfigMasterHandler()
 	console.log("[reg] repo-ipc")
 }

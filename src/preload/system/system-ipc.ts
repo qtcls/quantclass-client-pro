@@ -84,7 +84,7 @@ function handleCheckKernalRunning() {
 		"check-kernal-running",
 		async (
 			_event,
-			kernals: ("rocket" | "aqua" | "zeus" | "fuel")[] = ["rocket"],
+			kernals: KernalType[] = ["rocket"],
 		) => {
 			const { isAnyKernalBusy } = await import("@/main/utils/tools.js")
 			return await isAnyKernalBusy(kernals)

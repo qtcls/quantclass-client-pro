@@ -8,350 +8,141 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { Badge } from "@/renderer/components/ui/badge"
-import { GlowDot } from "@/renderer/components/ui/glow-dot"
 import {
-	SidebarContent,
-	SidebarGroup,
-	SidebarGroupLabel,
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
-} from "@/renderer/components/ui/sidebar"
-import {
-	BACKTEST_PAGE,
-	DATA_PAGE,
-	FUSION_STRATEGY_LIBRARY_PAGE,
-	POSITION_INFO_PAGE,
-	// CHANGE_LOGS_PAGE,
-	// FAQ_PAGE,
-	// POSITION_INFO_PAGE,
-	QUESTION_FEEDBACK_PAGE,
-	REALTIME_DATA_PAGE,
-	REAL_MARKET_CONFIG_PAGE,
-	REAL_TRADING_TAB_NAME,
-	RESEARCH_FRAMEWORK_SOURCE_PAGE,
-	RESEARCH_STRATEGY_LIBRARY_PAGE,
-	RESEARCH_TAB_NAME,
-	STRATEGY_LIBRARY_PAGE,
-	isWindows,
-	// TRADING_PLAN_PAGE,
+	DATA_SECTION_ROUTE,
+	HOME_PAGE,
+	RESEARCH_SECTION_ROUTE,
+	SETTINGS_PAGE,
+	TRADING_SECTION_ROUTE,
 } from "@/renderer/constant"
+import { ThemeCustomizer } from "@/renderer/components/theme-customizer"
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@/renderer/components/ui/avatar"
+import { UserMenu } from "@/renderer/layout/UserMenu"
 import { cn } from "@/renderer/lib/utils"
+import { activeTabAtom } from "@/renderer/store"
+import { useSetAtom } from "jotai"
 import {
-	activeTabAtom,
-	isAutoRocketAtom,
-	isMinDataUpdatingAtom,
-	isUpdatingAtom,
-} from "@/renderer/store"
-import { libraryTypeAtom } from "@/renderer/store/storage"
-import { useAtomValue, useSetAtom } from "jotai"
-import {
-	Activity,
-	Briefcase,
-	Check,
-	Code,
-	DatabaseBackup,
-	Gamepad2,
-	House,
-	Library,
-	LibraryBig,
-	MessageSquareWarning,
-	PencilRuler,
-	SquareLibrary,
-	TvMinimalPlay,
+	BookOpen,
+	Database,
+	LayoutGrid,
+	Settings,
+	TrendingUp,
 } from "lucide-react"
-import { useState } from "react"
+import type { LucideIcon } from "lucide-react"
+import type { FC } from "react"
 import { useLocation, useNavigate } from "react-router"
+import Img from "../../../build/icon.ico"
 
-const data = {
-	data: {
-		navMain: [
-			{
-				title: "历史数据",
-				url: DATA_PAGE,
-				icon: DatabaseBackup,
-			},
-			{
-				title: "实时数据",
-				url: REALTIME_DATA_PAGE,
-				icon: Activity,
-			},
-			// {
-			// 	title: "策略订阅",
-			// 	url: "/strategy",
-			// 	icon: ArrowRight,
-			// },
-		],
-	},
-	[REAL_TRADING_TAB_NAME]: {
-		navMain: [
-			{
-				title: "选股策略",
-				url: STRATEGY_LIBRARY_PAGE,
-				icon: LibraryBig,
-				libraryType: "select",
-			},
-			{
-				title: "综合策略库",
-				url: FUSION_STRATEGY_LIBRARY_PAGE,
-				icon: SquareLibrary,
-				libraryType: "pos",
-			},
-			{
-				title: "回测",
-				url: BACKTEST_PAGE,
-				icon: PencilRuler,
-			},
-			{
-				title: "实盘",
-				url: REAL_MARKET_CONFIG_PAGE,
-				icon: TvMinimalPlay,
-			},
-			{
-				title: "持仓信息",
-				url: POSITION_INFO_PAGE,
-				icon: Briefcase,
-			},
-		],
-	},
-	feedback: {
-		navMain: [
-			{
-				title: "问题反馈",
-				url: QUESTION_FEEDBACK_PAGE,
-				icon: MessageSquareWarning,
-			},
-			// {
-			// 	title: "常见问题解答",
-			// 	url: FAQ_PAGE,
-			// 	icon: CircleHelp,
-			// },
-			// {
-			// 	title: "更新日志",
-			// 	url: CHANGE_LOGS_PAGE,
-			// 	icon: FileClock,
-			// },
-		],
-	},
+interface NavButtonProps {
+	icon: LucideIcon
+	label: string
+	to: string
+	active: boolean
+	onClick: () => void
 }
 
-const { openUrl } = window.electronAPI
-
-const isDev = import.meta.env.VITE_XBX_ENV === "development"
-
-function isNavDisabled(url?: string) {
-	if (isDev) return false
-	return !isWindows && url !== DATA_PAGE
+const NavButton: FC<NavButtonProps> = ({
+	icon: Icon,
+	label,
+	active,
+	onClick,
+}) => {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className={cn(
+				"relative w-12 border-0 bg-transparent rounded-[10px] cursor-pointer transition-colors",
+				"text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				active && "text-foreground bg-accent/60",
+				"py-2 flex flex-col items-center gap-[5px] text-[11px]",
+			)}
+		>
+			{active && (
+				<span className="absolute left-[-12px] top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-sm bg-foreground" />
+			)}
+			<Icon className="size-[21px]" strokeWidth={1.7} />
+			<span className="leading-none">{label}</span>
+		</button>
+	)
 }
 
-export const _SidebarContent = () => {
+const NAV_ITEMS = [
+	{ icon: LayoutGrid, label: "总览", to: HOME_PAGE, tab: HOME_PAGE },
+	{ icon: Database, label: "数据", to: DATA_SECTION_ROUTE, tab: "data" },
+	{
+		icon: TrendingUp,
+		label: "实盘",
+		to: TRADING_SECTION_ROUTE,
+		tab: "real_trading",
+	},
+	{
+		icon: BookOpen,
+		label: "投研",
+		to: RESEARCH_SECTION_ROUTE,
+		tab: "research",
+	},
+]
+
+export const NavRail: FC = () => {
 	const { pathname } = useLocation()
 	const navigate = useNavigate()
-	const [_, setHoveredItems] = useState<Record<string, boolean>>({})
 	const setActiveTab = useSetAtom(activeTabAtom)
-	const libraryType = useAtomValue(libraryTypeAtom)
-	const isUpdating = useAtomValue(isUpdatingAtom)
-	const isMinDataUpdating = useAtomValue(isMinDataUpdatingAtom)
-	const isAutoRocket = useAtomValue(isAutoRocketAtom)
+
+	const isActive = (to: string) => {
+		if (to === HOME_PAGE) return pathname === HOME_PAGE
+		return pathname.startsWith(to)
+	}
+
 	return (
-		<SidebarContent className="min-w-48">
-			<SidebarGroup>
-				<SidebarMenu>
-					<SidebarMenuItem
-						onMouseEnter={() =>
-							setHoveredItems((prev) => ({ ...prev, "/": true }))
-						}
-						onMouseLeave={() =>
-							setHoveredItems((prev) => ({ ...prev, "/": false }))
-						}
-					>
-						<SidebarMenuButton
-							onClick={() => {
-								navigate("/")
-								setActiveTab("/")
-							}}
-							className={cn(
-								pathname === "/" &&
-									"bg-accent text-accent-foreground font-semibold",
-							)}
-						>
-							{/* <ArrowRight forceAnimate={hoveredItems["/"]} /> */}
-							<House />
-							<span>首页</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-				</SidebarMenu>
-			</SidebarGroup>
+		<nav className="w-16 border-r bg-background flex flex-col items-center py-3 gap-1.5">
+			<div className="mb-2.5" aria-hidden>
+				<Avatar className="size-9 rounded-[9px] border bg-white dark:border-white">
+					<AvatarImage src={Img} alt="quantclass" />
+					<AvatarFallback className="rounded-[9px]">Q</AvatarFallback>
+				</Avatar>
+			</div>
 
-			<SidebarGroup>
-				<SidebarGroupLabel>数据中心</SidebarGroupLabel>
+			{NAV_ITEMS.map((item) => (
+				<NavButton
+					key={item.to}
+					icon={item.icon}
+					label={item.label}
+					to={item.to}
+					active={isActive(item.to)}
+					onClick={() => {
+						setActiveTab(item.tab)
+						navigate(item.to)
+					}}
+				/>
+			))}
 
-				<SidebarMenu>
-					{data.data.navMain.map((item) => (
-						<SidebarMenuItem
-							key={item.url}
-							onMouseEnter={() =>
-								setHoveredItems((prev) => ({ ...prev, [item.url]: true }))
-							}
-							onMouseLeave={() =>
-								setHoveredItems((prev) => ({ ...prev, [item.url]: false }))
-							}
-						>
-							<SidebarMenuButton
-								disabled={isNavDisabled(item.url)}
-								onClick={() => {
-									navigate(item.url)
-									setActiveTab("data")
-								}}
-								className={cn(
-									item.url.replace("#", "/") === pathname &&
-										"bg-accent text-accent-foreground font-semibold",
-								)}
-							>
-								{item.icon && (
-									// <item.icon forceAnimate={hoveredItems[item.url]} />
-									<item.icon />
-								)}
-								<span>{item.title}</span>
-								{(item.url === DATA_PAGE && isUpdating) ||
-								(item.url === REALTIME_DATA_PAGE && isMinDataUpdating) ? (
-									<GlowDot
-										size="sm"
-										color="green"
-										className="ml-auto shrink-0"
-									/>
-								) : null}
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					))}
-				</SidebarMenu>
-			</SidebarGroup>
+			<div className="flex-1" />
 
-			<SidebarGroup>
-				<SidebarGroupLabel>策略中心</SidebarGroupLabel>
-
-				<SidebarMenu>
-					{data[REAL_TRADING_TAB_NAME].navMain.map((item) => (
-						<SidebarMenuItem
-							key={item.url}
-							onMouseEnter={() =>
-								setHoveredItems((prev) => ({ ...prev, [item.url]: true }))
-							}
-							onMouseLeave={() =>
-								setHoveredItems((prev) => ({ ...prev, [item.url]: false }))
-							}
-						>
-							<SidebarMenuButton
-								disabled={isNavDisabled(item.url)}
-								onClick={() => {
-									setActiveTab("real_trading")
-									navigate(item.url)
-								}}
-								className={cn(
-									item.url.replace("#", "/") === pathname &&
-										"bg-accent text-accent-foreground font-semibold",
-								)}
-							>
-								{item.icon && <item.icon />}
-								<span>{item.title}</span>
-								{libraryType === item.libraryType && (
-									<Badge variant="default" className="py-0.5 px-1 ml-auto">
-										{/* <span className="text-[10px] dark:text-white">已启用</span> */}
-										<Check size={12} />
-									</Badge>
-								)}
-								{item.url === REAL_MARKET_CONFIG_PAGE && isAutoRocket && (
-									<GlowDot
-										size="sm"
-										color="green"
-										className="ml-auto shrink-0"
-									/>
-								)}
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					))}
-
-					<SidebarMenuItem>
-						<SidebarMenuButton disabled>
-							<Gamepad2 />
-							<span>模拟盘（开发中）</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-				</SidebarMenu>
-			</SidebarGroup>
-
-			<SidebarGroup>
-				<SidebarGroupLabel>研究中心</SidebarGroupLabel>
-				<SidebarMenu>
-					<SidebarMenuItem>
-						<SidebarMenuButton
-							onClick={() => {
-								setActiveTab(RESEARCH_TAB_NAME)
-								navigate(RESEARCH_STRATEGY_LIBRARY_PAGE)
-							}}
-							className={cn(
-								pathname === RESEARCH_STRATEGY_LIBRARY_PAGE &&
-									"bg-accent text-accent-foreground font-semibold",
-							)}
-						>
-							<Library />
-							<span>精心随机策略库</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-					<SidebarMenuItem>
-						<SidebarMenuButton
-							onClick={() => {
-								setActiveTab(RESEARCH_TAB_NAME)
-								navigate(RESEARCH_FRAMEWORK_SOURCE_PAGE)
-							}}
-							className={cn(
-								pathname === RESEARCH_FRAMEWORK_SOURCE_PAGE &&
-									"bg-accent text-accent-foreground font-semibold",
-							)}
-						>
-							<Code />
-							<span>框架源码</span>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-				</SidebarMenu>
-			</SidebarGroup>
-
-			<SidebarGroup>
-				<SidebarGroupLabel>帮助中心</SidebarGroupLabel>
-
-				<SidebarMenu>
-					{data.feedback.navMain.map((item) => (
-						<SidebarMenuItem
-							key={item.url}
-							onMouseEnter={() =>
-								setHoveredItems((prev) => ({ ...prev, [item.url]: true }))
-							}
-							onMouseLeave={() =>
-								setHoveredItems((prev) => ({ ...prev, [item.url]: false }))
-							}
-						>
-							<SidebarMenuButton
-								disabled={isNavDisabled(item.url)}
-								onClick={() => {
-									if (item.url === QUESTION_FEEDBACK_PAGE) {
-										openUrl(item.url)
-									} else {
-										navigate(item.url)
-									}
-								}}
-								className={cn(
-									item.url.replace("#", "/") === pathname &&
-										"bg-accent text-accent-foreground font-semibold",
-								)}
-							>
-								{item.icon && <item.icon />}
-								<span>{item.title}</span>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					))}
-				</SidebarMenu>
-			</SidebarGroup>
-		</SidebarContent>
+			<div className="flex flex-col items-center gap-1.5 pb-1">
+				<UserMenu variant="logo" />
+				<ThemeCustomizer />
+				<button
+					type="button"
+					className={cn(
+						"relative w-12 border-0 bg-transparent rounded-[10px] cursor-pointer transition-colors",
+						"text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+						pathname === SETTINGS_PAGE && "text-foreground bg-accent/60",
+						"py-2.5 flex items-center justify-center",
+					)}
+					aria-label="设置"
+					onClick={() => navigate(SETTINGS_PAGE)}
+				>
+					{pathname === SETTINGS_PAGE && (
+						<span className="absolute left-[-12px] top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-sm bg-foreground" />
+					)}
+					<Settings className="size-[21px]" strokeWidth={1.7} />
+				</button>
+			</div>
+		</nav>
 	)
 }

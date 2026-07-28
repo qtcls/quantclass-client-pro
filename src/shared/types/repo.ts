@@ -45,3 +45,10 @@ export interface WriteClientEnvResult {
 	filePath?: string
 	error?: string
 }
+
+export interface LaunchConfigMasterResult {
+	success: boolean
+	pid?: number
+	url?: string
+	error?: string
+}

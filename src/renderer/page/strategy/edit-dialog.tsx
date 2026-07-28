@@ -21,6 +21,10 @@ import {
 } from "@/renderer/components/ui/dialog"
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
+import {
+	collectFusionRemarkNames,
+	collectSelectRemarkNames,
+} from "@/renderer/utils/strategy"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -36,9 +40,32 @@ export default function StrategyEditDialog({
 	const [open, setOpen] = useState(false)
 	const [isHovered, setIsHovered] = useState(false)
 
-	const { updateSelectStg } = useStrategyManager()
+	const { selectStgList, updateSelectStg } = useStrategyManager()
 
-	const { updateFusionStgInRow } = useFusionManager()
+	const { fusion, updateFusionStgInRow } = useFusionManager()
+
+	const checkRemarkNameUnique = (remarkName: string): boolean => {
+		const trimmed = remarkName?.trim()
+		if (!trimmed) return true
+
+		if (fusionIndex < 0) {
+			const existing = collectSelectRemarkNames(selectStgList, rowIndex)
+			if (existing.has(trimmed)) {
+				toast.error("策略标识已存在，请使用其他标识")
+				return false
+			}
+		} else {
+			const existing = collectFusionRemarkNames(fusion, {
+				fusionIndex,
+				rowIndex,
+			})
+			if (existing.has(trimmed)) {
+				toast.error("策略标识已存在，请使用其他标识")
+				return false
+			}
+		}
+		return true
+	}
 
 	const handleSave = async (values: any) => {
 		// -- 处理选股数量，确保是有效数字
@@ -47,6 +74,8 @@ export default function StrategyEditDialog({
 			toast.error("选股数量必须是大于 0 的数字")
 			return
 		}
+
+		if (!checkRemarkNameUnique(values.remark_name)) return
 
 		const updatedStg = {
 			...strategy,
@@ -66,6 +95,8 @@ export default function StrategyEditDialog({
 	 * @param values
 	 */
 	const handleSavePos = async (values: any) => {
+		if (!checkRemarkNameUnique(values.remark_name)) return
+
 		const newStg = updateFusionStgInRow(fusionIndex, values, strategy, rowIndex)
 		console.log("fusion-row-save", newStg)
 	}
@@ -105,7 +136,7 @@ export default function StrategyEditDialog({
 							name={strategy.name}
 							submitText="保存设置"
 							defaultValues={{
-								name: strategy.name,
+								remark_name: strategy.remark_name ?? "",
 								hold_period: strategy.hold_period,
 								offset_list: (strategy.offset_list ?? ["0"]).join(","),
 								filter_list: strategy.filter_list || [],

@@ -15,6 +15,11 @@ import type {
 	StgGroupType,
 } from "@/renderer/types/strategy"
 import { genPosMgmtStrategyDict, genSelectStrategyDict } from "@/renderer/utils"
+import {
+	getFusionGroupSubRealMarketStrategyName,
+	getFusionTopRealMarketStrategyName,
+	getSelectRealMarketStrategyName,
+} from "@/shared/lib/real-market-strategy-name"
 import { autoTradeTimeByRebTime } from "./trade"
 
 const { setStoreValue } = window.electronAPI
@@ -81,6 +86,7 @@ export const processOffsetList = (offsetListStr: string): number[] => {
 const genSelectStgInfo = (strategy: SelectStgType, includeInfo = true) => {
 	return {
 		name: strategy.name,
+		remark_name: strategy.remark_name ?? "",
 		cap_weight: strategy.cap_weight,
 		hold_period: strategy.hold_period,
 		offset_list: strategy.offset_list,
@@ -136,7 +142,9 @@ export const saveStrategyList = async (
 	for (let index = 0; index < strategiesWithAdjustedWeight.length; index++) {
 		const strategy = strategiesWithAdjustedWeight[index]
 		const rebTime = strategy.rebalance_time ?? "close-open"
-		const strategyName = `#${index}.${strategy.name}`
+		const strategyName =
+			strategy.remark_name?.trim() ||
+			getSelectRealMarketStrategyName(index, strategy.name)
 
 		addStrategyToRebTimeConfig(rebTimeConfig, rebTime, strategy)
 
@@ -198,6 +206,7 @@ export const saveStrategyListFusion = async (
 				case "pos":
 					return {
 						name: stg.name,
+						remark_name: stg.remark_name ?? "",
 						hold_period: stg.hold_period,
 						offset_list: stg.offset_list,
 						max_select_num: stg.max_select_num ?? 0, // -- 最大选股数量
@@ -208,6 +217,7 @@ export const saveStrategyListFusion = async (
 							grp_or_stg.type === "group"
 								? {
 										name: grp_or_stg.name,
+										remark_name: grp_or_stg.remark_name ?? "",
 										cap_weight: grp_or_stg.cap_weight,
 										strategy_list: grp_or_stg.strategy_list.map((_stg) =>
 											genSelectStgInfo(_stg as SelectStgType),
@@ -220,6 +230,7 @@ export const saveStrategyListFusion = async (
 				case "group":
 					return {
 						name: stg.name,
+						remark_name: stg.remark_name ?? "",
 						cap_weight: stg.cap_weight,
 						strategy_list: stg.strategy_list.map((_stg) =>
 							genSelectStgInfo(_stg as SelectStgType),
@@ -249,7 +260,9 @@ export const saveStrategyListFusion = async (
 	const strategyDict: Record<string, any> = {}
 	for (let index = 0; index < strategiesWithAdjustedWeight.length; index++) {
 		const strategy = strategiesWithAdjustedWeight[index]
-		const strategyName = `X${index + 1}-${strategy.name}`
+		const strategyName =
+			strategy.remark_name?.trim() ||
+			getFusionTopRealMarketStrategyName(index, strategy.name)
 		if (strategy.type === "pos") {
 			const rebTime = strategy.rebalance_time ?? "close-open"
 
@@ -269,9 +282,14 @@ export const saveStrategyListFusion = async (
 				const rebTime = subStrategy.rebalance_time ?? "close-open"
 
 				const dictKey =
-					strategy.strategy_list.length > 1
-						? `${strategyName}#${index0}.${subStrategy.name}`
-						: strategyName
+					subStrategy.remark_name?.trim() ||
+					getFusionGroupSubRealMarketStrategyName(
+						index,
+						strategy.name,
+						index0,
+						subStrategy.name,
+						strategy.strategy_list.length,
+					)
 
 				addStrategyToRebTimeConfig(rebTimeConfig, rebTime, subStrategy)
 
@@ -348,4 +366,74 @@ export const saveStrategyListFusion = async (
 	// 	{},
 	// )
 	return { strategyDict, rebTimeConfig }
+}
+
+// 收集选股策略的 remark_name
+export function collectSelectRemarkNames(
+	list: SelectStgType[],
+	excludeIndex?: number,
+): Set<string> {
+	const names = new Set<string>()
+	for (let i = 0; i < list.length; i++) {
+		if (i === excludeIndex) continue
+		const rn = list[i].remark_name?.trim()
+		if (rn) names.add(rn)
+	}
+	return names
+}
+
+// 收集仓管模式下的remark_name
+export function collectFusionRemarkNames(
+	fusion: (SelectStgType | StgGroupType | PosStrategyType)[],
+	excludeIdentity?: { fusionIndex: number; rowIndex?: number },
+): Set<string> {
+	const names = new Set<string>()
+
+	for (let i = 0; i < fusion.length; i++) {
+		const item = fusion[i] as any
+		const isExcludedTop =
+			excludeIdentity &&
+			excludeIdentity.fusionIndex === i &&
+			excludeIdentity.rowIndex === undefined
+
+		if (!isExcludedTop) {
+			const rn = item.remark_name?.trim()
+			if (rn) names.add(rn)
+		}
+
+		if (item.strategy_pool) {
+			for (let j = 0; j < item.strategy_pool.length; j++) {
+				const poolItem = item.strategy_pool[j]
+				const isExcludedChild =
+					excludeIdentity &&
+					excludeIdentity.fusionIndex === i &&
+					excludeIdentity.rowIndex === j
+				if (isExcludedChild) continue
+
+				const rn = poolItem.remark_name?.trim()
+				if (rn) names.add(rn)
+
+				if (poolItem.strategy_list) {
+					for (const sub of poolItem.strategy_list) {
+						const subRn = sub.remark_name?.trim()
+						if (subRn) names.add(subRn)
+					}
+				}
+			}
+		} else if (item.strategy_list) {
+			for (let j = 0; j < item.strategy_list.length; j++) {
+				const isExcludedChild =
+					excludeIdentity &&
+					excludeIdentity.fusionIndex === i &&
+					excludeIdentity.rowIndex === j
+				if (isExcludedChild) continue
+
+				const sub = item.strategy_list[j]
+				const rn = sub.remark_name?.trim()
+				if (rn) names.add(rn)
+			}
+		}
+	}
+
+	return names
 }

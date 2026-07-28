@@ -20,14 +20,18 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 export default function ScheduleControl() {
-	const [dataModuleAuto, setDataModuleAuto] = useState(false)
-	const [selectModuleAuto, setSelectModuleAuto] = useState(false)
 	const {
 		dataScheduleTimes,
 		selectScheduleTimes,
 		setDataScheduleTimes,
 		setSelectScheduleTimes,
 	} = useScheduleTimes()
+	const [dataModuleAuto, setDataModuleAuto] = useState(
+		() => dataScheduleTimes.length === 0,
+	)
+	const [selectModuleAuto, setSelectModuleAuto] = useState(
+		() => selectScheduleTimes.length === 0,
+	)
 
 	useEffect(() => {
 		setDataModuleAuto(dataScheduleTimes.length === 0)

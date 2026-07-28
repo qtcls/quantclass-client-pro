@@ -23,6 +23,7 @@ import { Check, HardDrive, Server, TriangleAlert } from "lucide-react"
 // 	const [year, month, day, hour, minute] = dateTimeString.split("-")
 // 	return `${year}-${month}-${day} ${hour}:${minute}`
 // }
+import { canIncrementalUpdate } from "@/renderer/utils/data-sync-status"
 import { cn } from "@renderer/lib/utils"
 
 export const dataColumns = (
@@ -33,13 +34,9 @@ export const dataColumns = (
 		accessorKey: "displayName",
 		header: () => <div className="text-foreground">数据名称</div>,
 		cell: ({ row }) => {
-			const canIncrementalUpdate =
-				row.original?.updateTime &&
-				row.original?.dataTime &&
-				row.original?.updateTime !== row.original?.dataTime &&
-				row.original?.canAutoUpdate === 1
+			const hasUpdate = canIncrementalUpdate(row.original)
 
-			const message = canIncrementalUpdate ? "数据有更新" : "数据已同步"
+			const message = hasUpdate ? "数据有更新" : "数据已同步"
 
 			return (
 				<div className="flex items-center gap-2">
@@ -48,12 +45,12 @@ export const dataColumns = (
 							<div
 								className={cn(
 									"flex items-center justify-center size-5 rounded-full",
-									canIncrementalUpdate
+									hasUpdate
 										? "bg-warning/20 text-warning"
 										: "bg-success/20 text-success",
 								)}
 							>
-								{canIncrementalUpdate ? (
+								{hasUpdate ? (
 									<TriangleAlert size={12} />
 								) : (
 									<Check size={12} />

@@ -13,7 +13,7 @@ import RebTimeConfigModal from "@/renderer/components/RebTimeConfigModal"
  * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
-import { ChangeLibrary } from "@/renderer/components/change-library"
+import { StrategyNameDisplay } from "@/renderer/components/strategy-name-display"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
@@ -29,11 +29,13 @@ import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
 import { cn } from "@/renderer/lib/utils"
 import ImportStrategyButton from "@/renderer/page/library/fusion/import-btn"
 import PosStrategyEditDialog from "@/renderer/page/strategy/pos-edit-dialog"
+import StrategyReplaceDialog from "@/renderer/page/strategy/replace-dialog"
 import type {
 	PosStrategyType,
 	SelectStgType,
 	StgGroupType,
 } from "@/renderer/types/strategy"
+import { getFusionTopRealMarketStrategyName } from "@/shared/lib/real-market-strategy-name"
 import { NumberInput } from "@heroui/number-input"
 import { Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
@@ -47,6 +49,10 @@ interface StrategyTableProps {
 	showCapWeight: boolean
 	/** 为 true 时不渲染操作列（pos 类型下 strategy_pool） */
 	hideOperationColumn?: boolean
+	/** 仓管 group 名称，用于子策略 real_market 默认标识 */
+	parentGroupName?: string
+	/** 仓管顶层单策略表格使用 X 前缀默认标识 */
+	realMarketFallback?: "fusion-top"
 }
 
 const StrategyTable = ({
@@ -54,6 +60,8 @@ const StrategyTable = ({
 	strategyIndex,
 	showCapWeight,
 	hideOperationColumn = false,
+	parentGroupName,
+	realMarketFallback,
 }: StrategyTableProps) => {
 	const columns = useGenLibraryColumn(
 		() => {},
@@ -61,6 +69,8 @@ const StrategyTable = ({
 		strategyIndex,
 		data,
 		hideOperationColumn,
+		parentGroupName,
+		realMarketFallback,
 	)
 
 	let tempCapWeight = 0
@@ -209,16 +219,40 @@ const FusionStrategyLibrary = () => {
 							</div>
 						</ButtonTooltip>
 
-						<div className="text-foreground text-xl font-semibold tracking-tight first:mt-0">
-							{strategyGroup.name}
-						</div>
+						<StrategyNameDisplay
+							name={strategyGroup.name}
+							remarkName={strategyGroup.remark_name}
+							fallbackRemarkName={
+								strategyGroup.remark_name?.trim()
+									? undefined
+									: getFusionTopRealMarketStrategyName(
+											strategyIndex,
+											strategyGroup.name,
+										)
+							}
+							nameClassName="text-xl font-semibold tracking-tight"
+						/>
 					</div>
 					<div className="flex items-center gap-2">
 						{strategyGroup.type === "pos" && (
-							<PosStrategyEditDialog
-								posStrategy={strategyGroup as PosStrategyType}
-								fusionIndex={strategyIndex}
-							/>
+							<>
+								<PosStrategyEditDialog
+									posStrategy={strategyGroup as PosStrategyType}
+									fusionIndex={strategyIndex}
+								/>
+								<StrategyReplaceDialog
+									strategy={strategyGroup as PosStrategyType}
+									strategyType="pos"
+									buttonClassName="rounded-full size-6"
+									onReplace={(newStg) => {
+										updateFusion(
+											fusion.map((item, i) =>
+												i === strategyIndex ? newStg : item,
+											),
+										)
+									}}
+								/>
+							</>
 						)}
 						<Popover
 							open={isDeletePopoverOpen}
@@ -296,7 +330,6 @@ const FusionStrategyLibrary = () => {
 
 	return (
 		<div className="w-full h-full space-y-4 py-4">
-			<ChangeLibrary currentLibraryType="pos" />
 			<ImportStrategyButton />
 			{fusion.map((strategyGroup, strategyIndex) => {
 				// 使用 isFoldState 来获取和更新每个 strategyGroup 的 isFold 状态
@@ -363,6 +396,7 @@ const FusionStrategyLibrary = () => {
 									data={strategyGroup.strategy_list}
 									strategyIndex={strategyIndex}
 									showCapWeight={true}
+									parentGroupName={strategyGroup.name}
 								/>
 								<ReTimingDisplay reTiming={strategyGroup.re_timing} />
 							</div>
@@ -434,9 +468,12 @@ const FusionStrategyLibrary = () => {
 								{isList ? (
 									strategy_pool.map((poolItem: any, index: number) => (
 										<div key={index}>
-											<div className="text-ml font-bold dark:text-gray-50">
-												{poolItem.name}
-											</div>
+											<StrategyNameDisplay
+												name={poolItem.name}
+												remarkName={poolItem.remark_name}
+												className="mb-1"
+												nameClassName="text-base font-bold dark:text-gray-50"
+											/>
 											<StrategyTable
 												data={poolItem.strategy_list}
 												strategyIndex={strategyIndex}
@@ -482,6 +519,7 @@ const FusionStrategyLibrary = () => {
 									data={[strategyGroup as SelectStgType]}
 									strategyIndex={strategyIndex}
 									showCapWeight={false}
+									realMarketFallback="fusion-top"
 								/>
 							</div>
 						)

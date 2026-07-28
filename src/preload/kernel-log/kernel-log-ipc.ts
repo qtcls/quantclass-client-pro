@@ -37,7 +37,7 @@ type KernelType = "fuel" | "select" | "rocket"
 
 async function getLogFileName(kernelType: KernelType): Promise<string> {
 	if (kernelType === "select") {
-		const libraryType = (await store.getValue(LIBRARY_TYPE, "select")) as string
+		const libraryType = (await store.getValue(LIBRARY_TYPE, "pos")) as string
 		return libraryType === "pos" ? "zeus.log" : "aqua.log"
 	}
 	const today = new Date()

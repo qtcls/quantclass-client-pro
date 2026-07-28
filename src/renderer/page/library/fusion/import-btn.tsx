@@ -26,7 +26,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/renderer/components/ui/dialog"
-import { BACKTEST_PAGE, REAL_MARKET_CONFIG_PAGE } from "@/renderer/constant"
+import { useBacktestDialog } from "@/renderer/components/backtest-dialog"
+import { TRADING_SECTION_ROUTE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import type {
@@ -68,6 +69,7 @@ export default function ImportStrategyButton() {
 	const [deleteOpen, setDeleteOpen] = useState(false)
 	const [rebTimeConfigOpen, setRebTimeConfigOpen] = useState(false)
 	const navigate = useNavigate()
+	const { openBacktest } = useBacktestDialog()
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
 	const { fusion, addFusionStrategies, updateFusion, resetFusion } =
 		useFusionManager()
@@ -118,15 +120,21 @@ export default function ImportStrategyButton() {
 						...selectStg,
 						...synConfig,
 						cap_weight: selectStg.cap_weight / all_cap_weight,
+						remark_name: selectStg.remark_name ?? "",
 					}
 				},
 			)
+			strategyCopy.remark_name = strategyCopy.remark_name ?? ""
 			strategyCopy.type = "group"
 			return strategyCopy as StgGroupType
 		} else {
 			// ** 单个策略 **
 			// 如果没有 strategy_list 且没有 strategy_pool，不处理
-			return { ...strategyCopy, ...synConfig } as SelectStgType
+			return {
+				...strategyCopy,
+				...synConfig,
+				remark_name: strategyCopy.remark_name ?? "",
+			} as SelectStgType
 		}
 	}
 	const processStrategies = (
@@ -136,8 +144,8 @@ export default function ImportStrategyButton() {
 			...item,
 			cap_weight: 0,
 			isFold: false,
+			remark_name: item.remark_name ?? "",
 		}))
-		// return initialReset
 		return initialReset.map((item) => processStrategy(item, {}))
 	}
 	const { mutateAsync: importPositionLibraryDir } = useMutation({
@@ -419,7 +427,7 @@ export default function ImportStrategyButton() {
 						variant="outline"
 						disabled={isAutoRocket}
 						className="h-8 lg:flex"
-						onClick={() => navigate(BACKTEST_PAGE)}
+						onClick={openBacktest}
 					>
 						<PencilRuler className="size-4 mr-2" />
 						前往回测
@@ -429,7 +437,7 @@ export default function ImportStrategyButton() {
 						size="sm"
 						variant="outline"
 						className="h-8 lg:flex"
-						onClick={() => navigate(REAL_MARKET_CONFIG_PAGE)}
+						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=real_trading`)}
 					>
 						<TvMinimalPlay className="size-4 mr-2" />
 						前往实盘

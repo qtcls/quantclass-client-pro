@@ -30,6 +30,7 @@ export type StgGroupType = {
 	cap_weight?: number
 	isFold: boolean
 	re_timing?: ReTimingType
+	remark_name?: string
 }
 
 export type PosStrategyType = {
@@ -46,6 +47,7 @@ export type PosStrategyType = {
 	isFold: boolean
 	re_timing?: ReTimingType
 	split_order_amount?: number
+	remark_name?: string
 }
 
 // 换仓时间配置类型

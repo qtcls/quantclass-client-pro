@@ -34,6 +34,14 @@ const decodeJwtExp = (token: string): number | null => {
 	}
 }
 
+const formatErrorWithCause = (error: unknown): string => {
+	const message = error instanceof Error ? error.message : String(error)
+	if (!(error instanceof Error) || error.cause == null) return message
+	const cause =
+		error.cause instanceof Error ? error.cause.message : String(error.cause)
+	return `${message} | cause: ${cause}`
+}
+
 const resolveFilePath = (): string =>
 	path.join(app.getPath("userData"), REFRESH_TOKEN_FILE)
 
@@ -109,33 +117,65 @@ class TokenStore {
 	async getAccessToken(
 		options: { force?: boolean } = {},
 	): Promise<string | null> {
-		if (options.force) return this.refreshAccessToken()
-
 		const current = this.accessToken
-		const nowSec = Math.floor(Date.now() / 1000)
+		const nowMs = Date.now()
+		const nowSec = Math.floor(nowMs / 1000)
 		const expSec = current?.exp ?? null
+		const remainMs = expSec !== null ? expSec * 1000 - nowMs : null
+		const baseDebug = `[tokenStore][debug] getAccessToken force=${Boolean(options.force)} hasAccess=${Boolean(current?.access_token)} hasRefresh=${Boolean(this.refreshToken)} exp=${expSec ?? "null"} now=${nowSec} remainMs=${remainMs ?? "null"}`
 
-		if (!current || (expSec !== null && expSec <= nowSec)) {
+		if (options.force) {
+			logger.info(`${baseDebug} branch=force_refresh`)
 			return this.refreshAccessToken()
 		}
 
-		if (expSec !== null && expSec * 1000 - Date.now() < NEAR_EXPIRE_MS) {
-			void this.refreshAccessToken()
+		if (!current || (expSec !== null && expSec <= nowSec)) {
+			logger.info(
+				`${baseDebug} branch=await_refresh reason=${!current ? "missing_access" : "expired"}`,
+			)
+			return this.refreshAccessToken()
 		}
 
+		if (expSec !== null && remainMs !== null && remainMs < NEAR_EXPIRE_MS) {
+			logger.info(`${baseDebug} branch=async_refresh_near_expire`)
+			void this.refreshAccessToken(false)
+			return current.access_token
+		}
+
+		logger.info(`${baseDebug} branch=return_current`)
 		return current.access_token
 	}
 
-	refreshAccessToken(): Promise<string | null> {
-		if (this.refreshPromise) return this.refreshPromise
+	async refreshAccessToken(
+		invalidateSessionOnFailure = true,
+	): Promise<string | null> {
+		if (this.refreshPromise) {
+			logger.info(
+				`[tokenStore][debug] refreshAccessToken reuse_inflight hasRefresh=${Boolean(this.refreshToken)}`,
+			)
+			return this.refreshPromise
+		}
 
-		this.refreshPromise = (async () => {
+		const promise = (async () => {
 			let newAccess: string | null = null
+			const invalidateSession = (): void => {
+				if (invalidateSessionOnFailure) {
+					broadcastAuthSessionInvalid()
+					return
+				}
+				logger.warn(
+					"[tokenStore] 刷新 access_token 失败，access 仍有效，跳过登出",
+				)
+			}
 			try {
 				const refreshToken = this.refreshToken
+				logger.info(
+					`[tokenStore][debug] refreshAccessToken start hasRefresh=${Boolean(refreshToken)} refreshTokenLen=${refreshToken?.length ?? 0} invalidateOnFail=${invalidateSessionOnFailure} url=${BASE_URL}/user/auth/refresh`,
+				)
+
 				if (!refreshToken) {
 					logger.error("[tokenStore] 无 refresh_token，无法刷新")
-					broadcastAuthSessionInvalid()
+					invalidateSession()
 					return null
 				}
 
@@ -151,7 +191,7 @@ class TokenStore {
 					logger.error(
 						`[tokenStore] 刷新 access_token 失败: HTTP ${res.status} ${res.statusText}`,
 					)
-					broadcastAuthSessionInvalid()
+					invalidateSession()
 					return null
 				}
 
@@ -162,7 +202,7 @@ class TokenStore {
 					!data.access_token
 				) {
 					logger.error("[tokenStore] 刷新 access_token 失败：响应无效")
-					broadcastAuthSessionInvalid()
+					invalidateSession()
 					return null
 				}
 
@@ -171,6 +211,7 @@ class TokenStore {
 					exp: decodeJwtExp(data.access_token),
 				}
 				newAccess = data.access_token
+				logger.info("[tokenStore] 刷新 access_token 成功")
 
 				if (
 					typeof data.refresh_token === "string" &&
@@ -182,16 +223,19 @@ class TokenStore {
 				}
 			} catch (error) {
 				logger.error(
-					`[tokenStore] 刷新 access_token 异常: ${error instanceof Error ? error.message : String(error)}`,
+					`[tokenStore] 刷新 access_token 异常: ${formatErrorWithCause(error)}`,
 				)
-				broadcastAuthSessionInvalid()
-			} finally {
-				this.refreshPromise = null
+				invalidateSession()
 			}
 			return newAccess
 		})()
 
-		return this.refreshPromise
+		this.refreshPromise = promise
+		try {
+			return await promise
+		} finally {
+			if (this.refreshPromise === promise) this.refreshPromise = null
+		}
 	}
 
 	// -- 调后端 logout，再清理本地
@@ -208,7 +252,7 @@ class TokenStore {
 				})
 			} catch (error) {
 				logger.error(
-					`[tokenStore] 退出登录失败: ${error instanceof Error ? error.message : String(error)}`,
+					`[tokenStore] 退出登录失败: ${formatErrorWithCause(error)}`,
 				)
 			}
 		}

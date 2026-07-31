@@ -54,10 +54,14 @@ function getStrategyType(strategy: any): StrategyType {
 	return "select"
 }
 
-function collectSelectFromGroups(strategies: any[]): any[] {
+function collectAllSelectStrategies(strategies: any[]): any[] {
 	const result: any[] = []
 
 	for (const s of strategies) {
+		if (getStrategyType(s) === "select") {
+			result.push(s)
+			continue
+		}
 		if (getStrategyType(s) !== "group" || !Array.isArray(s.strategy_list))
 			continue
 		for (const child of s.strategy_list) {
@@ -133,11 +137,9 @@ export default function StrategyReplaceDialog({
 			}
 
 			const matched =
-				strategyType === "group"
-					? collectSelectFromGroups(allStrategies)
-					: strategyType === "select"
-						? allStrategies.filter((s) => getStrategyType(s) === "select")
-						: allStrategies.filter((s) => getStrategyType(s) === strategyType)
+				strategyType === "select"
+					? collectAllSelectStrategies(allStrategies)
+					: allStrategies.filter((s) => getStrategyType(s) === strategyType)
 
 			if (matched.length === 0) {
 				toast.warning("未找到同类型的策略")
@@ -277,8 +279,7 @@ export default function StrategyReplaceDialog({
 								</li>
 								<li>
 									若当前策略尚未设置策略标识，替换前必须手动填写一个
-									<strong className="text-foreground">唯一</strong>
-									的
+									<strong className="text-foreground">唯一</strong>的
 									<strong className="text-foreground">
 										策略标识（remark_name）
 									</strong>

@@ -439,7 +439,7 @@ export const useGenLibraryColumn = (
 								/>
 								<StrategyReplaceDialog
 									strategy={row.original as SelectStgType}
-									strategyType={parentGroupName ? "group" : "select"}
+									strategyType="select"
 									onReplace={(newStg) => {
 										if (fusionIndex < 0) {
 											updateSelectStg(row.index, newStg)

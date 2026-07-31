@@ -514,6 +514,8 @@ export function MinDataTaskTable({
 
 	const datalist = pageData.datalist as TaskRow[]
 	const totalPages = Math.ceil(pageData.total / pageSize) || 1
+	const hasTaskData = stats.total > 0
+	const showDataTypeFilter = hasTaskData || dataTypeFilter !== "all"
 
 	return (
 		<Card>
@@ -585,7 +587,7 @@ export function MinDataTaskTable({
 					</div>
 				)}
 
-				{stats.total > 0 && (
+				{hasTaskData && (
 					<TaskProgress
 						statusCounts={stats.statusCounts}
 						total={stats.total}
@@ -594,7 +596,7 @@ export function MinDataTaskTable({
 					/>
 				)}
 
-				{stats.total > 0 && (
+				{showDataTypeFilter && (
 					<div className="space-y-3">
 						<div className="flex items-center gap-2">
 							<span className="text-sm font-medium whitespace-nowrap">
@@ -610,41 +612,45 @@ export function MinDataTaskTable({
 								onValueChange={handleDataTypeFilterChange}
 							/>
 						</div>
-						<div className="flex items-center justify-between gap-4">
-						<StatusFilterBar
-							statusCounts={stats.statusCounts}
-							total={stats.total}
-							statusFilter={statusFilter}
-							onStatusFilterChange={handleStatusFilterChange}
-						/>
-						<div className="flex items-center gap-2 shrink-0">
-							<div className="relative">
-								<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-								<Input
-									placeholder="搜索代码"
-									value={searchInput}
-									onChange={(e) => setSearchInput(e.target.value)}
-									onKeyDown={handleSearchKeyDown}
-									className="pl-9 w-[180px] h-8"
+						{hasTaskData && (
+							<div className="flex items-center justify-between gap-4">
+								<StatusFilterBar
+									statusCounts={stats.statusCounts}
+									total={stats.total}
+									statusFilter={statusFilter}
+									onStatusFilterChange={handleStatusFilterChange}
 								/>
+								<div className="flex items-center gap-2 shrink-0">
+									<div className="relative">
+										<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+										<Input
+											placeholder="搜索代码"
+											value={searchInput}
+											onChange={(e) => setSearchInput(e.target.value)}
+											onKeyDown={handleSearchKeyDown}
+											className="pl-9 w-[180px] h-8"
+										/>
+									</div>
+									{searchValue && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-8 px-2"
+											onClick={handleClearSearch}
+										>
+											清除
+										</Button>
+									)}
+								</div>
 							</div>
-							{searchValue && (
-								<Button
-									variant="ghost"
-									size="sm"
-									className="h-8 px-2"
-									onClick={handleClearSearch}
-								>
-									清除
-								</Button>
-							)}
-						</div>
-						</div>
+						)}
 					</div>
 				)}
 
-				{stats.total === 0 ? (
-					<div className="py-8 text-center text-muted-foreground">暂无数据</div>
+				{!hasTaskData ? (
+					<div className="py-8 text-center text-muted-foreground">
+						{dataTypeFilter !== "all" ? "无匹配记录" : "暂无数据"}
+					</div>
 				) : datalist.length === 0 ? (
 					<div className="py-8 text-center text-muted-foreground">
 						无匹配记录

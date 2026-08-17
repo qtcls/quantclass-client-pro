@@ -12,6 +12,10 @@ import { getJsonDataFromFile } from "@/main/core/dataList.js"
 import store, { rStore } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { ROCKET_STATS_PATH, SELECT_STATS_PATH } from "@/main/vars.js"
+import {
+	getFusionGroupSubRealMarketStrategyName,
+	getFusionTopRealMarketStrategyName,
+} from "@/shared/lib/real-market-strategy-name.js"
 import type {
 	StrategyStatus,
 	StrategyStatusStat,
@@ -824,7 +828,9 @@ async function getStrategyStatusListForPos(
 
 		for (let index = 0; index < posMgmtStrategies.length; index++) {
 			const strategy = posMgmtStrategies[index]
-			const strategyName = `X${index + 1}-${strategy.name}`
+			const strategyName =
+				strategy.remark_name?.trim() ||
+				getFusionTopRealMarketStrategyName(index, strategy.name)
 
 			const type: "pos" | "group" | "select" =
 				strategy.strategy_pool && Array.isArray(strategy.strategy_pool)
@@ -898,9 +904,14 @@ async function getStrategyStatusListForPos(
 					const subStrategy = subStrategies[index0]
 
 					const dictKey =
-						subStrategies.length > 1
-							? `${strategyName}#${index0}.${subStrategy.name}`
-							: strategyName
+						subStrategy.remark_name?.trim() ||
+						getFusionGroupSubRealMarketStrategyName(
+							index,
+							strategy.name,
+							index0,
+							subStrategy.name,
+							subStrategies.length,
+						)
 
 					const strategyConfig = findStrategyConfigByName(dictKey)
 

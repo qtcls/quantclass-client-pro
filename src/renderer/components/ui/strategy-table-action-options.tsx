@@ -98,7 +98,7 @@ export function StrategyTableActionOptions<TData>(
 				className="h-8 text-foreground lg:flex"
 				onClick={async () => {
 					// -- 权限检查
-					if (!checkWithToast({ requireMember: true }).isValid) {
+					if (!checkWithToast({ requireMemberOrStock: true }).isValid) {
 						return
 					}
 
@@ -210,7 +210,7 @@ const AddStrategyDialog: FC<{ refresh: () => void }> = ({ refresh }) => {
 				variant="outline"
 				onClick={() => {
 					// -- 权限检查
-					if (!checkWithToast({ requireMember: true }).isValid) {
+					if (!checkWithToast({ requireMemberOrStock: true }).isValid) {
 						return
 					}
 					setOpen(true)

@@ -39,6 +39,7 @@ import {
 	realMarketConfigSchemaAtom,
 } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { zodResolver } from "@hookform/resolvers/zod"
 import dayjs from "dayjs"
@@ -81,9 +82,14 @@ type FormData = z.infer<typeof RealMarketConfigSchema>
 export function TradingConfigForm() {
 	const { selectDirectory, createRealTradingDir, clearFactorCache } =
 		window.electronAPI
-	const { user } = useAtomValue(userAtom)
 	const { data: rocketStatus = false } = useAtomValue(rocketStatusQueryAtom)
+	const { permissions } = useAtomValue(userAtom)
 	const { checkWithToast } = usePermissionCheck()
+	const isMemberOrStock = checkPermission(
+		permissions,
+		"isMember",
+		"isStock",
+	)
 	const [choosing, setChoosing] = useState(false)
 	const [realMarketConfig, setRealMarketConfig] = useAtom(
 		realMarketConfigSchemaAtom,
@@ -136,7 +142,7 @@ export function TradingConfigForm() {
 			// -- 权限检查
 			if (
 				!checkWithToast({
-					requireMember: true,
+					requireMemberOrStock: true,
 					windowsOnly: true,
 					onlyIn2025: true,
 				}).isValid
@@ -262,7 +268,7 @@ export function TradingConfigForm() {
 
 										<FormControl>
 											<RadioGroup
-												disabled={!user?.isMember}
+												disabled={!isMemberOrStock}
 												value={field.value}
 												onValueChange={field.onChange}
 												className="flex space-x-1"
@@ -337,7 +343,7 @@ export function TradingConfigForm() {
 
 										<FormControl>
 											<RadioGroup
-												disabled={!user?.isMember}
+												disabled={!isMemberOrStock}
 												value={field.value}
 												onValueChange={field.onChange}
 												className="flex space-x-1"
@@ -387,7 +393,7 @@ export function TradingConfigForm() {
 
 										<FormControl>
 											<RadioGroup
-												disabled={!user?.isMember || isCiccBroker}
+												disabled={!isMemberOrStock || isCiccBroker}
 												value={field.value}
 												onValueChange={field.onChange}
 												className="flex space-x-1"
@@ -476,7 +482,7 @@ export function TradingConfigForm() {
 											<Input
 												{...field}
 												readOnly
-												disabled={!user?.isMember}
+												disabled={!isMemberOrStock}
 												onClick={() => handleFolderSelect.run("qmt_path")}
 												placeholder="请填写 qmt 安装路径..."
 											/>
@@ -484,7 +490,7 @@ export function TradingConfigForm() {
 										<Button
 											size="sm"
 											variant="outline"
-											disabled={!user?.isMember}
+											disabled={!isMemberOrStock}
 											onClick={(e) => {
 												e.preventDefault()
 												handleFolderSelect.run("qmt_path")
@@ -513,7 +519,7 @@ export function TradingConfigForm() {
 									<FormControl>
 										<Input
 											{...field}
-											disabled={!user?.isMember}
+											disabled={!isMemberOrStock}
 											className="w-full"
 											placeholder="请填写 qmt 账户号..."
 										/>
@@ -678,7 +684,7 @@ export function TradingConfigForm() {
 									</FormLabel>
 									<FormControl>
 										<RadioGroup
-											disabled={!user?.isMember}
+											disabled={!isMemberOrStock}
 											onValueChange={async (value) => {
 												const isRunning = await checkKernalRunning(["rocket"])
 												if (isRunning) {
@@ -723,7 +729,7 @@ export function TradingConfigForm() {
 								size="sm"
 								variant="outline"
 								className="w-fit text-destructive hover:text-destructive"
-								disabled={!user?.isMember}
+								disabled={!isMemberOrStock}
 								onClick={() => setFactorCacheConfirmOpen(true)}
 							>
 								<Trash2 className="mr-2 size-4" />

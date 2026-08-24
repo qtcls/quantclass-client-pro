@@ -26,6 +26,7 @@ import {
 	killKernalByForce,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import { checkPermission } from "@/shared/lib/permission.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
 import Store from "electron-store"
@@ -208,13 +209,17 @@ export const execBin = async (
 
 		if (kernel !== "fuel") {
 			const isAnonymous = (!api_key && !hid) || !userAccount?.isLoggedIn //--是否是游客
-			const isAllowed = userAccount?.isMember // --是否是分享会
+			const isAllowed = checkPermission(
+				userAccount?.permissions ?? [],
+				"isMember",
+				"isStock",
+			)
 			if (isAnonymous) {
 				logger.warn(`[exec-${kernel}] 未登录，不调用内核`)
 				return
 			}
 			if (!isAllowed) {
-				logger.warn(`[exec-${kernel}] 非分享会，不调用内核`)
+				logger.warn(`[exec-${kernel}] 无分享会或股票权限，不调用内核`)
 				return
 			}
 		}

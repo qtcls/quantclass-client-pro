@@ -19,6 +19,7 @@ import {
 	killKernalByForce,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import { checkPermission } from "@/shared/lib/permission.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
 import {
 	getLocalCalendarYmd,
@@ -68,8 +69,16 @@ async function initializeSystem() {
 		// 强制更新用户信息
 		const userInfo = await userStore.getUserAccount(true)
 
-		// 若未获取到或不是共享会会员则return
-		if (!userInfo?.isMember) return
+		// 若未获取到或没有分享会/股票权限则 return
+		if (
+			!checkPermission(
+				userInfo?.permissions ?? [],
+				"isMember",
+				"isStock",
+			)
+		) {
+			return
+		}
 	} catch (error) {
 		logger.error(`系统初始化失败: ${error}`)
 		throw error // -- 向上抛出错误，让调用方处理
@@ -231,8 +240,15 @@ async function wakeUpFuel(mw) {
 }
 
 async function wakeUpFusion(userAccount: UserAccount, mw) {
-	if (!userAccount?.isMember || !platform.isWindows) {
-		logger.info(`[fusion] 非分享会状态，跳过fusion，${userAccount?.user}`)
+	if (
+		!checkPermission(
+			userAccount?.permissions ?? [],
+			"isMember",
+			"isStock",
+		) ||
+		!platform.isWindows
+	) {
+		logger.info(`[fusion] 无分享会或股票权限，跳过fusion，${userAccount?.user}`)
 		return
 	}
 	try {
@@ -262,8 +278,14 @@ async function wakeUpRocket(userAccount: UserAccount, mw) {
 		return
 	}
 
-	if (!userAccount?.isMember) {
-		logger.info(`[trade] 非分享会状态，跳过Rocket，${userAccount?.user}`)
+	if (
+		!checkPermission(
+			userAccount?.permissions ?? [],
+			"isMember",
+			"isStock",
+		)
+	) {
+		logger.info(`[trade] 无分享会或股票权限，跳过Rocket，${userAccount?.user}`)
 		return
 	}
 

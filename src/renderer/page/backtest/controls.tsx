@@ -117,7 +117,7 @@ export const BacktestControls = () => {
 						// -- 权限检查
 						if (
 							!checkWithToast({
-								requireMember: true,
+								requireMemberOrStock: true,
 								windowsOnly: true,
 							}).isValid
 						) {
@@ -135,7 +135,7 @@ export const BacktestControls = () => {
 					// -- 权限检查
 					if (
 						!checkWithToast({
-							requireMember: true,
+							requireMemberOrStock: true,
 							windowsOnly: true,
 						}).isValid
 					) {

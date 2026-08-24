@@ -142,7 +142,7 @@ export function OverviewMetrics({ showFinanceInfo }: OverviewMetricsProps) {
 	useEffect(() => {
 		if (
 			checkWithToast({
-				requireMember: true,
+				requireMemberOrStock: true,
 				windowsOnly: true,
 				skipToast: true,
 			}).isValid

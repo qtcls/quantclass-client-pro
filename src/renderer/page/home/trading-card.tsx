@@ -92,7 +92,7 @@ export function TradingCard() {
 	const handleTradeCtrlClick = () => {
 		if (
 			!checkWithToast({
-				requireMember: true,
+				requireMemberOrStock: true,
 				windowsOnly: true,
 			}).isValid
 		) {

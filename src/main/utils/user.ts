@@ -39,6 +39,7 @@ export function calculatePermissions(user: UserAccountInfo | null) {
 
 	const permissions: string[] = []
 
+	if (isMember) permissions.push("isMember")
 	if (isStock) permissions.push("isStock")
 	if (isCrypto) permissions.push("isCrypto")
 	if (isBlock) permissions.push("isBlock")

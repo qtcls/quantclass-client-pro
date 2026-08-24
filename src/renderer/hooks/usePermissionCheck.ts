@@ -10,11 +10,14 @@
 
 import { isWindows } from "@/renderer/constant"
 import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { useAtomValue } from "jotai"
 import { toast } from "sonner"
 
 interface PermissionCheckOptions {
-	// -- 是否需要会员权限
+	// -- 是否需要分享会或股票权限
+	requireMemberOrStock?: boolean
+	// -- 是否仅需分享会权限
 	requireMember?: boolean
 	// -- 是否仅支持 Windows
 	windowsOnly?: boolean
@@ -25,6 +28,7 @@ interface PermissionCheckOptions {
 	// -- 自定义错误消息
 	messages?: {
 		requireLogin?: string
+		requireMemberOrStock?: string
 		requireMember?: string
 		windowsOnly?: string
 		onlyIn2025?: string
@@ -37,29 +41,23 @@ interface CheckResult {
 	// -- 错误消息
 	message?: string
 	// -- 错误类型
-	type?: "login" | "member" | "windows" | "2025"
+	type?: "login" | "memberOrStock" | "member" | "windows" | "2025"
 }
 
 const { openUrl } = window.electronAPI
 
 const { VITE_XBX_ENV } = import.meta.env
 
-type PermissionCondition =
-	| string
-	| string[]
-	| { conditions: string[]; method: "OR" | "AND" }
-
-/**
- * -- 权限检查 Hook
- * -- 用于检查用户的登录状态、会员权限、系统要求等
- */
 export function usePermissionCheck() {
-	const { isLoggedIn, isMember, permissions } = useAtomValue(userAtom)
+	const { isLoggedIn, permissions } = useAtomValue(userAtom)
 
 	/**
 	 * -- 显示提示信息
 	 */
-	const showToast = (message: string, type?: "login" | "member") => {
+	const showToast = (
+		message: string,
+		type?: "login" | "memberOrStock" | "member",
+	) => {
 		toast.dismiss()
 
 		if (type === "member") {
@@ -84,6 +82,7 @@ export function usePermissionCheck() {
 		options: PermissionCheckOptions = {},
 	): CheckResult => {
 		const {
+			requireMemberOrStock = false,
 			requireMember = false,
 			windowsOnly = false,
 			// onlyIn2025 = false,
@@ -98,8 +97,20 @@ export function usePermissionCheck() {
 			return { isValid: false, message, type: "login" }
 		}
 
-		// -- 检查会员权限
-		if (requireMember && !isMember) {
+		// -- 检查分享会或股票权限
+		if (
+			requireMemberOrStock &&
+			!checkPermission(permissions, "isMember", "isStock")
+		) {
+			const message =
+				messages.requireMemberOrStock ??
+				"本功能需开通股票课程或策略分享会"
+			!skipToast && showToast(message, "memberOrStock")
+			return { isValid: false, message, type: "memberOrStock" }
+		}
+
+		// -- 检查分享会权限
+		if (requireMember && !checkPermission(permissions, "isMember")) {
 			const message =
 				messages.requireMember ?? "本功能暂时仅限策略分享会同学使用"
 			!skipToast && showToast(message, "member")
@@ -125,55 +136,5 @@ export function usePermissionCheck() {
 		return { isValid: true }
 	}
 
-	/**
-	 * -- 权限检查（OR 逻辑）
-	 * -- 参数之间是 OR 关系，数组内部是 AND 关系 （可通过对象参数的 method 修改）
-	 */
-	const check = (...conditions: PermissionCondition[]): boolean => {
-		return conditions.some((condition) => {
-			if (typeof condition === "string") {
-				return permissions.includes(condition)
-			}
-
-			if (Array.isArray(condition)) {
-				return condition.every((c) => permissions.includes(c))
-			}
-
-			if (typeof condition === "object" && "conditions" in condition) {
-				if (condition.method === "AND") {
-					return condition.conditions.every((c) => permissions.includes(c))
-				}
-				return condition.conditions.some((c) => permissions.includes(c))
-			}
-
-			return false
-		})
-	}
-
-	/**
-	 * -- 权限检查（AND 逻辑）
-	 * -- 参数之间是 AND 关系，数组内部是 AND 关系（可通过对象参数的 method 修改）
-	 */
-	const checkAll = (...conditions: PermissionCondition[]): boolean => {
-		return conditions.every((condition) => {
-			if (typeof condition === "string") {
-				return permissions.includes(condition)
-			}
-
-			if (Array.isArray(condition)) {
-				return condition.every((c) => permissions.includes(c))
-			}
-
-			if (typeof condition === "object" && "conditions" in condition) {
-				if (condition.method === "OR") {
-					return condition.conditions.some((c) => permissions.includes(c))
-				}
-				return condition.conditions.every((c) => permissions.includes(c))
-			}
-
-			return false
-		})
-	}
-
-	return { checkWithToast, check, checkAll }
+	return { checkWithToast }
 }

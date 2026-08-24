@@ -20,6 +20,7 @@ import { isWindows } from "@/renderer/constant"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
 import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import dayjs from "dayjs"
 import { useAtom, useAtomValue } from "jotai"
 import {
@@ -33,7 +34,12 @@ import { useRef } from "react"
 import { useMemo } from "react"
 
 export const ProcessKanban = () => {
-	const { isMember } = useAtomValue(userAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const isMemberOrStock = checkPermission(
+		permissions,
+		"isMember",
+		"isStock",
+	)
 	const [{ data }] = useAtom(monitorProcessesQueryAtom)
 
 	const { VITE_XBX_ENV } = import.meta.env
@@ -41,7 +47,7 @@ export const ProcessKanban = () => {
 	// 实盘交易权限检查
 	const canRealTrading =
 		VITE_XBX_ENV === "development" ||
-		(isMember && isWindows && VITE_XBX_ENV === "production")
+		(isMemberOrStock && isWindows && VITE_XBX_ENV === "production")
 
 	return (
 		<div className="flex flex-col gap-2">
@@ -55,10 +61,10 @@ export const ProcessKanban = () => {
 
 			<div className="grid  gap-2">
 				<ProcessCard data={data} kernel="fuel" />
-				{canRealTrading && isMember && (
+				{canRealTrading && isMemberOrStock && (
 					<ProcessCard data={data} kernel="fusion" />
 				)}
-				{canRealTrading && isMember && (
+				{canRealTrading && isMemberOrStock && (
 					<ProcessCard data={data} kernel="rocket" />
 				)}
 			</div>

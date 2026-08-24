@@ -37,6 +37,7 @@ import { userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
 import type { SettingsType } from "@/renderer/types"
 import type { KernalType } from "@/shared/types"
+import { checkPermission } from "@/shared/lib/permission"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
 	Activity,
@@ -61,8 +62,13 @@ import { AboutPage } from "./about"
 
 export default function SettingsPage() {
 	const [showContributors, setShowContributors] = useState(false)
-	const { isMember } = useAtomValue(userAtom)
+	const { permissions } = useAtomValue(userAtom)
 	const { checkWithToast } = usePermissionCheck()
+	const isMemberOrStock = checkPermission(
+		permissions,
+		"isMember",
+		"isStock",
+	)
 	const [isAutoLogin, setIsAutoLogin] = useAtom(isAutoLoginAtom)
 
 	const { VITE_XBX_ENV } = import.meta.env
@@ -70,7 +76,7 @@ export default function SettingsPage() {
 	// 实盘交易权限检查
 	const canRealTrading =
 		VITE_XBX_ENV === "development" ||
-		(isMember && isWindows && VITE_XBX_ENV === "production")
+		(isMemberOrStock && isWindows && VITE_XBX_ENV === "production")
 	const version = useAtomValue(versionsAtom)
 	const setVersionList = useSetAtom(versionListAtom)
 	const { setAutoLaunch, openDataDirectory, killAllKernals, openUrl } =
@@ -113,7 +119,7 @@ export default function SettingsPage() {
 	}
 
 	const handleSetIsAutoLaunchRealTrading = (value: boolean) => {
-		if (!checkWithToast({ requireMember: true, onlyIn2025: true }).isValid)
+		if (!checkWithToast({ requireMemberOrStock: true, onlyIn2025: true }).isValid)
 			return
 
 		const updates: Partial<SettingsType> = {
@@ -285,7 +291,7 @@ export default function SettingsPage() {
 					variant="outline"
 					size="sm"
 					disabled={
-						!isMember || isCheckingAppVersions || isLoadingLocalVersions
+						!isMemberOrStock || isCheckingAppVersions || isLoadingLocalVersions
 					}
 					onClick={async () => {
 						await refetchAppVersions()
@@ -307,11 +313,11 @@ export default function SettingsPage() {
 				<Button
 					variant="outline"
 					size="sm"
-					disabled={!isMember}
+					disabled={!isMemberOrStock}
 					onClick={async () => {
-						if (!isMember) {
+						if (!isMemberOrStock) {
 							toast.dismiss()
-							toast.error("本功能为分享会同学使用")
+							toast.error("本功能需开通股票课程或策略分享会")
 							return
 						}
 						await handleUpdateKernals()
@@ -357,12 +363,12 @@ export default function SettingsPage() {
 							数据更新性能，性能越高，数据更新速度越快，但会占用更多性能。
 						</p>
 					</div>
-					<div className={cn(!isMember && "pointer-events-none opacity-50")}>
+					<div className={cn(!isMemberOrStock && "pointer-events-none opacity-50")}>
 						<PerformanceModeSelectTabs
 							name="数据更新"
 							defaultValue={settings.performance_mode || "EQUAL"}
 							onValueChange={(value) => {
-								if (!isMember) return
+								if (!isMemberOrStock) return
 								updateSettings({ performance_mode: value })
 							}}
 						/>
@@ -379,12 +385,12 @@ export default function SettingsPage() {
 							选股性能模式，性能越高，选股速度越快，但会占用更多性能。
 						</p>
 					</div>
-					<div className={cn(!isMember && "pointer-events-none opacity-50")}>
+					<div className={cn(!isMemberOrStock && "pointer-events-none opacity-50")}>
 						<PerformanceModeSelectTabs
 							name="选股"
 							defaultValue={realMarketConfig.performance_mode || "EQUAL"}
 							onValueChange={(value) => {
-								if (!isMember) return
+								if (!isMemberOrStock) return
 								setPerformanceMode(value)
 							}}
 						/>
@@ -431,7 +437,7 @@ export default function SettingsPage() {
 					<Switch
 						id="is_auto_launch_update"
 						checked={isAutoLaunchUpdate}
-						disabled={!isMember}
+						disabled={!isMemberOrStock}
 						onCheckedChange={handleSetIsAutoLaunchUpdate}
 					/>
 				</div>
@@ -452,7 +458,7 @@ export default function SettingsPage() {
 					<Switch
 						id="is_auto_launch_min_data"
 						checked={isAutoLaunchMinData}
-						disabled={!isMember}
+						disabled={!isMemberOrStock}
 						onCheckedChange={handleSetIsAutoLaunchMinData}
 					/>
 				</div>
@@ -474,7 +480,7 @@ export default function SettingsPage() {
 						<Switch
 							id="is_auto_launch_real_trading"
 							checked={isAutoLaunchRealTrading}
-							disabled={!isMember}
+							disabled={!isMemberOrStock}
 							onCheckedChange={handleSetIsAutoLaunchRealTrading}
 						/>
 					</div>

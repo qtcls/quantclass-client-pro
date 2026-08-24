@@ -31,13 +31,13 @@ export const userInfoMutationAtom = atomWithMutation<
 // -- 用户行为记录
 export const postUserActionMutationAtom = atomWithMutation((get) => {
 	const { clientVersion } = get(versionsAtom)
-	const { user } = get(userAtom)
+	const { isMember, isStock } = get(userAtom)
 
 	return {
 		mutationKey: ["post-user-action"],
 		mutationFn: async (action: string) => {
 			return postUserAction({
-				role: `client-${clientVersion}${user?.isMember ? "-fen" : ""}`,
+				role: `client-${clientVersion}${isMember ? "-fen" : isStock ? "-stock" : ""}`,
 				action,
 			})
 		},

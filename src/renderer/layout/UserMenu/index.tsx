@@ -24,6 +24,7 @@ import { cn } from "@/renderer/lib/utils"
 import { getStatusExpires } from "@/renderer/request"
 import { isLoginAtom, statusExpiresAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { useAtom, useSetAtom } from "jotai"
 import { ChevronsUpDown, UserRound } from "lucide-react"
 import { useEffect } from "react"
@@ -33,7 +34,12 @@ interface UserMenuProps {
 }
 
 export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
-	const [{ user, isLoggedIn, isMember }] = useAtom(userAtom)
+	const [{ user, isLoggedIn, permissions }] = useAtom(userAtom)
+	const isMemberOrStock = checkPermission(
+		permissions,
+		"isMember",
+		"isStock",
+	)
 	const setStatusExpires = useSetAtom(statusExpiresAtom)
 	const setIsLogin = useSetAtom(isLoginAtom)
 	const { requestLogin, canOpenLogin } = useOpenLoginWindow()
@@ -41,14 +47,14 @@ export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
 	useEffect(() => {
 		if (!isLoggedIn) return
 		setIsLogin(false)
-		if (isMember) return
+		if (isMemberOrStock) return
 		;(async () => {
 			const res = await getStatusExpires()
 			if (res.code === 200) {
 				setStatusExpires(res.data.valid_to)
 			}
 		})()
-	}, [isLoggedIn, isMember, setIsLogin, setStatusExpires])
+	}, [isLoggedIn, isMemberOrStock, setIsLogin, setStatusExpires])
 
 	const onLoginClick = () => {
 		if (!isLoggedIn && canOpenLogin) requestLogin()

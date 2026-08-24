@@ -74,7 +74,7 @@ export const RealMarketKanban = () => {
 	useEffect(() => {
 		if (
 			checkWithToast({
-				requireMember: true,
+				requireMemberOrStock: true,
 				windowsOnly: true,
 				skipToast: true,
 			}).isValid
@@ -138,7 +138,7 @@ export const RealMarketKanban = () => {
 							// -- 权限检查
 							if (
 								!checkWithToast({
-									requireMember: true,
+									requireMemberOrStock: true,
 									windowsOnly: true,
 								}).isValid
 							) {

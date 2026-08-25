@@ -10,6 +10,7 @@
 
 import { isMinDataUpdatingAtom, minDataModeAtom } from "@/renderer/store"
 import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
+import { usePermissionCheck } from "@/renderer/hooks/usePermissionCheck"
 import { useAtomValue, useSetAtom } from "jotai"
 import { useCallback, useMemo } from "react"
 import { toast } from "sonner"
@@ -20,6 +21,7 @@ export function useMinDataSchedule() {
 	const mode = useAtomValue(minDataModeAtom)
 	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
 	const setIsMinDataUpdating = useSetAtom(isMinDataUpdatingAtom)
+	const { checkWithToast } = usePermissionCheck()
 
 	const isQmtConfigured = useMemo(
 		() =>
@@ -30,6 +32,12 @@ export function useMinDataSchedule() {
 
 	const startMinDataSchedule = useCallback(
 		async (showToast = true) => {
+			if (
+				!checkWithToast({ requireMember: true, skipToast: !showToast }).isValid
+			) {
+				return false
+			}
+
 			if (!isQmtConfigured) {
 				toast.warning("QMT 未配置，请先在实盘配置中填写 QMT 账户号和安装路径")
 				return false
@@ -43,7 +51,7 @@ export function useMinDataSchedule() {
 			}
 			return true
 		},
-		[isQmtConfigured, mode, setIsMinDataUpdating],
+		[isQmtConfigured, mode, setIsMinDataUpdating, checkWithToast],
 	)
 
 	const stopMinDataSchedule = useCallback(async () => {

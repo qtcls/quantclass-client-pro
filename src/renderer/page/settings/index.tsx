@@ -65,6 +65,7 @@ export default function SettingsPage() {
 	const { permissions } = useAtomValue(userAtom)
 	const { checkWithToast } = usePermissionCheck()
 	const isMemberOrStock = checkPermission(permissions, "isMember", "isStock")
+	const isMember = checkPermission(permissions, "isMember")
 	const selectKernal = getSelectKernal(permissions)
 	const selectVersionKey =
 		selectKernal === "fusion" ? "fusionVersion" : "aquaVersion"
@@ -108,6 +109,12 @@ export default function SettingsPage() {
 	}
 
 	const handleSetIsAutoLaunchMinData = (value: boolean) => {
+		if (
+			value &&
+			!checkWithToast({ requireMember: true }).isValid
+		)
+			return
+
 		const updates: Partial<SettingsType> = { is_auto_launch_min_data: value }
 		if (!value) {
 			updates.is_auto_launch_real_trading = false
@@ -128,7 +135,9 @@ export default function SettingsPage() {
 		}
 		if (value) {
 			updates.is_auto_launch_update = true
-			updates.is_auto_launch_min_data = true
+			if (isMember) {
+				updates.is_auto_launch_min_data = true
+			}
 		}
 		updateSettings(updates)
 		toast.dismiss()
@@ -463,7 +472,7 @@ export default function SettingsPage() {
 					<Switch
 						id="is_auto_launch_min_data"
 						checked={isAutoLaunchMinData}
-						disabled={!isMemberOrStock}
+						disabled={!isMember}
 						onCheckedChange={handleSetIsAutoLaunchMinData}
 					/>
 				</div>

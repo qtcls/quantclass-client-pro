@@ -1,5 +1,9 @@
 import RebTimeConfigModal from "@/renderer/components/RebTimeConfigModal"
 import {
+	MemberPromoBanner,
+	MemberPromoDialog,
+} from "@/renderer/components/member-promo"
+import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
@@ -29,6 +33,8 @@ import type {
 } from "@/renderer/page/strategy/types"
 import { SelectStgFormSchema } from "@/renderer/schemas/strategy"
 import { rebTimeConfigAtom } from "@/renderer/store/storage"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { Input } from "@heroui/input"
 import { Select, SelectItem, SelectSection } from "@heroui/select"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -83,7 +89,16 @@ export function SelectStgForm({
 	const [saving, setSaving] = useState(false)
 	const [tabValue, setTabValue] = useState("开仓") //开仓 离场  --择时
 	const [rebTimeConfigModalOpen, setRebTimeConfigModalOpen] = useState(false)
+	const [memberPromoOpen, setMemberPromoOpen] = useState(false)
+	const [memberPromoFeature, setMemberPromoFeature] = useState("分享会专享功能")
+
+	function openMemberPromo(featureName: string) {
+		setMemberPromoFeature(featureName)
+		setMemberPromoOpen(true)
+	}
 	const rebTimeConfig = useAtomValue(rebTimeConfigAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const rebalanceTime = form.watch("rebalance_time") ?? "close-open"
 
 	// 初始化 signalTime 状态
@@ -154,7 +169,12 @@ export function SelectStgForm({
 			onSave({
 				...values,
 				select_num: Number(values.select_num),
-				rebalance_time: values.rebalance_time || "close-open",
+				rebalance_time: isMember
+					? values.rebalance_time || "close-open"
+					: "close-open",
+				offset_list: isMember ? values.offset_list : "0",
+				timing: isMember ? values.timing : undefined,
+				cross_sections: isMember ? values.cross_sections : undefined,
 				split_order_amount: Number(values.split_order_amount),
 			})
 			setSaving(false)
@@ -310,81 +330,88 @@ export function SelectStgForm({
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="offset_list"
-							render={({ field, formState }) => (
-								<FormItem>
-									<FormControl>
-										<Input
-											{...field}
-											isRequired
-											variant="bordered"
-											label={
-												<>
-													<span className="mr-1">offset_list</span>
-													<span className="text-xs">
-														多个数字用逗号分隔，如：0,1,2（不支持直接编辑）
-													</span>
-												</>
-											}
-											readOnly
-											errorMessage={formState.errors.offset_list?.message}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="scalein_targets"
-							render={({ field }) => (
-								<FormItem className="border-2 rounded-md px-3 py-2">
-									<div className="space-y-1 ">
-										<span className="text-xs">
-											分批进场目标仓位(offset间仓位分配) （不支持直接编辑）
-										</span>
-										{field.value && field.value?.length > 0 ? (
-											<ScaleinTargetsView scaleinTargetsValue={field.value} />
-										) : (
-											<div className="text-sm">未配置</div>
-										)}
-									</div>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="rebalance_time"
-							render={({ field }) => (
-								<FormItem className="flex flex-col">
-									<FormControl>
-										<Select
-											className="relative z-60"
-											{...field}
-											label={
-												<>
-													换仓时间
-													<span className="text-xs ml-1">
-														新手建议使用早盘换仓模式
-													</span>
-												</>
-											}
-											isRequired
-											variant="bordered"
-											selectedKeys={[field.value!]}
-											onChange={(e) => {
-												const new_value = e.target.value
-												if (!new_value) return
-												field.onChange(e)
-											}}
-										>
-											{getRebalanceOptions().map((item) => (
-												<SelectItem key={item.key} isDisabled={item.isDisabled}>
-													{item.label}
-												</SelectItem>
-											))}
-											{/* <SelectItem
+						{isMember ? (
+							<>
+								<FormField
+									control={form.control}
+									name="offset_list"
+									render={({ field, formState }) => (
+										<FormItem>
+											<FormControl>
+												<Input
+													{...field}
+													isRequired
+													variant="bordered"
+													label={
+														<>
+															<span className="mr-1">offset_list</span>
+															<span className="text-xs">
+																多个数字用逗号分隔，如：0,1,2（不支持直接编辑）
+															</span>
+														</>
+													}
+													readOnly
+													errorMessage={formState.errors.offset_list?.message}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="scalein_targets"
+									render={({ field }) => (
+										<FormItem className="border-2 rounded-md px-3 py-2">
+											<div className="space-y-1 ">
+												<span className="text-xs">
+													分批进场目标仓位(offset间仓位分配) （不支持直接编辑）
+												</span>
+												{field.value && field.value?.length > 0 ? (
+													<ScaleinTargetsView
+														scaleinTargetsValue={field.value}
+													/>
+												) : (
+													<div className="text-sm">未配置</div>
+												)}
+											</div>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rebalance_time"
+									render={({ field }) => (
+										<FormItem className="flex flex-col">
+											<FormControl>
+												<Select
+													className="relative z-60"
+													{...field}
+													label={
+														<>
+															换仓时间
+															<span className="text-xs ml-1">
+																新手建议使用早盘换仓模式
+															</span>
+														</>
+													}
+													isRequired
+													variant="bordered"
+													selectedKeys={[field.value!]}
+													onChange={(e) => {
+														const new_value = e.target.value
+														if (!new_value) return
+														field.onChange(e)
+													}}
+												>
+													{getRebalanceOptions().map((item) => (
+														<SelectItem
+															key={item.key}
+															isDisabled={item.isDisabled}
+														>
+															{item.label}
+														</SelectItem>
+													))}
+													{/* <SelectItem
 												key="close-open"
 												isDisabled={name.includes("定风波")}
 											>
@@ -414,11 +441,18 @@ export function SelectStgForm({
 											<SelectItem key="0955-0955">
 												{"9点55换仓：盘后选股->开盘后09:55换仓(卖出后买入)"}
 											</SelectItem> */}
-										</Select>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
+												</Select>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</>
+						) : (
+							<MemberPromoBanner
+								featureName="换仓时间 / offset"
+								onLearnMore={() => openMemberPromo("换仓时间 / offset")}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="factor_list"
@@ -631,107 +665,61 @@ export function SelectStgForm({
 								</FormItem>
 							)}
 						/>
-						<hr />
-						<div className="border-1 border-primary p-2 rounded-lg flex flex-col gap-2">
-							<Tabs
-								value={tabValue}
-								onValueChange={(value) => setTabValue(value)}
-							>
-								<TabsList>
-									<TabsTrigger value="开仓">择时开仓</TabsTrigger>
-									<TabsTrigger value="离场">择时离场</TabsTrigger>
-								</TabsList>
-							</Tabs>
-							{(tabValue === "开仓" && form.getValues("timing")) ||
-							(tabValue === "离场" && form.getValues("override")) ? (
-								<>
-									<FormField
-										key={`${tabValue}-1`}
-										control={form.control}
-										name={tabValue === "开仓" ? "timing" : "override"}
-										render={({ field }) => (
-											<FormItem className={cn("flex flex-col px-1")}>
-												<FormLabel className="flex items-center gap-1">
-													<Timer className="size-4 mr-1" />
-													择时{tabValue}设置
-													<span className="text-xs">
-														（择时策略参数与择时策略具体实现有关）
-													</span>
-												</FormLabel>
+						{isMember ? (
+							<>
+								<hr />
+								<div className="border-1 border-primary p-2 rounded-lg flex flex-col gap-2">
+									<Tabs
+										value={tabValue}
+										onValueChange={(value) => setTabValue(value)}
+									>
+										<TabsList>
+											<TabsTrigger value="开仓">择时开仓</TabsTrigger>
+											<TabsTrigger value="离场">择时离场</TabsTrigger>
+										</TabsList>
+									</Tabs>
+									{(tabValue === "开仓" && form.getValues("timing")) ||
+									(tabValue === "离场" && form.getValues("override")) ? (
+										<>
+											<FormField
+												key={`${tabValue}-1`}
+												control={form.control}
+												name={tabValue === "开仓" ? "timing" : "override"}
+												render={({ field }) => (
+													<FormItem className={cn("flex flex-col px-1")}>
+														<FormLabel className="flex items-center gap-1">
+															<Timer className="size-4 mr-1" />
+															择时{tabValue}设置
+															<span className="text-xs">
+																（择时策略参数与择时策略具体实现有关）
+															</span>
+														</FormLabel>
 
-												<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
-													<span>策略名称</span>
-													<span>因子计算的股票范围</span>
-													<span>策略参数</span>
-													<span>计算择时的时间</span>
-												</div>
+														<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+															<span>策略名称</span>
+															<span>因子计算的股票范围</span>
+															<span>策略参数</span>
+															<span>计算择时的时间</span>
+														</div>
 
-												<div className="grid grid-cols-4 gap-2">
-													<FormControl>
-														<InputUI
-															value={field.value?.name}
-															className="text-muted-foreground text-xs"
-															readOnly
-														/>
-													</FormControl>
-													<FormControl>
-														<InputUI
-															value={field.value?.limit}
-															className="text-muted-foreground text-xs"
-															readOnly
-														/>
-													</FormControl>
-													<FormControl>
-														<InputUI
-															value={JSON.stringify(field.value?.params)}
-															className="text-muted-foreground text-xs"
-															readOnly
-														/>
-													</FormControl>
-													<FormControl>
-														<InputUI
-															value={
-																!field.value?.signal_time ||
-																field.value?.signal_time === "close"
-																	? signalTime
-																	: "close"
-															}
-															className="text-muted-foreground text-xs"
-															readOnly
-														/>
-													</FormControl>
-												</div>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormField
-										key={`${tabValue}-2`}
-										control={form.control}
-										name={tabValue === "开仓" ? "timing" : "override"}
-										render={({ field }) => (
-											<FormItem className={cn("flex flex-col px-1")}>
-												<FormLabel className="flex items-center gap-1">
-													<AlarmClockCheck className="size-4 mr-1" />
-													择时{tabValue}因子列表
-													<span className="text-xs">（暂不支持直接编辑）</span>
-												</FormLabel>
-
-												<div className="grid grid-cols-5 gap-2 text-xs text-muted-foreground">
-													<span>因子名称</span>
-													<span>排序方式</span>
-													<span>因子参数</span>
-													<span>因子计算参数</span>
-													<span>分钟数据</span>
-												</div>
-
-												<div className="space-y-2">
-													{field.value?.factor_list.map((factor, index) => (
-														<div key={index} className="grid grid-cols-5 gap-2">
+														<div className="grid grid-cols-4 gap-2">
 															<FormControl>
 																<InputUI
-																	value={factor[0]} // -- 因子名称
+																	value={field.value?.name}
+																	className="text-muted-foreground text-xs"
+																	readOnly
+																/>
+															</FormControl>
+															<FormControl>
+																<InputUI
+																	value={field.value?.limit}
+																	className="text-muted-foreground text-xs"
+																	readOnly
+																/>
+															</FormControl>
+															<FormControl>
+																<InputUI
+																	value={JSON.stringify(field.value?.params)}
 																	className="text-muted-foreground text-xs"
 																	readOnly
 																/>
@@ -739,520 +727,613 @@ export function SelectStgForm({
 															<FormControl>
 																<InputUI
 																	value={
-																		factor[1] ? "从小到大排序" : "从大到小排序"
-																	} // -- 排序方式
-																	className="text-muted-foreground text-xs"
-																	readOnly
-																/>
-															</FormControl>
-															<FormControl>
-																<InputUI
-																	value={
-																		factor[2] !== null
-																			? JSON.stringify(factor[2])
-																			: "无参数"
-																	} // -- 因子参数
-																	className="text-muted-foreground text-xs font-mono"
-																	readOnly
-																/>
-															</FormControl>
-															<FormControl>
-																<InputUI
-																	value={factor[3]} // -- 因子计算参数（比如权重）
-																	className="text-muted-foreground text-xs"
-																	readOnly
-																/>
-															</FormControl>
-															<FormControl>
-																<InputUI
-																	value={factor[4] || "close"} // -- 分钟数据
+																		!field.value?.signal_time ||
+																		field.value?.signal_time === "close"
+																			? signalTime
+																			: "close"
+																	}
 																	className="text-muted-foreground text-xs"
 																	readOnly
 																/>
 															</FormControl>
 														</div>
-													))}
-												</div>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
+											<FormField
+												key={`${tabValue}-2`}
+												control={form.control}
+												name={tabValue === "开仓" ? "timing" : "override"}
+												render={({ field }) => (
+													<FormItem className={cn("flex flex-col px-1")}>
+														<FormLabel className="flex items-center gap-1">
+															<AlarmClockCheck className="size-4 mr-1" />
+															择时{tabValue}因子列表
+															<span className="text-xs">
+																（暂不支持直接编辑）
+															</span>
+														</FormLabel>
 
-									<FormField
-										key={`${tabValue}-3`}
-										control={form.control}
-										name={tabValue === "开仓" ? "timing" : "override"}
-										render={({ field }) => (
-											<FormItem className={cn("px-1")}>
-												<FormLabel className="flex items-center gap-1">
-													<Shell className="size-4 mr-1" />
-													择时{tabValue}默认仓位
-													<span className="text-xs">
-														（当因各种原因无法按时算出择时信号的时候的默认仓位）
-													</span>
-												</FormLabel>
-												<FormControl>
-													<InputUI
-														value={getFallbackPositionLabel(
-															field.value?.fallback_position ?? -1,
-														)}
-														className="text-muted-foreground text-xs"
-													/>
-												</FormControl>
-												<p className="text-muted-foreground text-xs">
-													{(field.value?.fallback_position ?? -1) === -1
-														? "会依据因子具体数值安排仓位"
-														: ""}
-												</p>
-											</FormItem>
-										)}
-									/>
-								</>
-							) : (
-								<div className="flex flex-col gap-1 bg-gray-100 border p-2 rounded-lg dark:bg-black">
-									<h3 className="text-sm flex items-center gap-1">
-										<Timer className="size-4 mr-1" />
-										无择时{tabValue}配置
-									</h3>
-									<p className="text-muted-foreground text-xs">
-										择时策略参数与择时策略具体实现有关，请先配置择时策略
-									</p>
-								</div>
-							)}
-						</div>
-						<FormField
-							control={form.control}
-							name="cross_sections"
-							render={({ field }) => (
-								<FormItem className={cn("flex flex-col")}>
-									<div className="rounded-lg border  ">
-										<FormLabel className="flex items-center gap-1 p-2 py-3">
-											<ChartPie className="size-4 mr-1" />
-											截面因子列表
-											<span className="text-xs">（暂不支持直接编辑）</span>
-										</FormLabel>
-										<Separator />
-										<div className="px-4">
-											{field.value?.length > 0 ? (
-												<Accordion type="multiple" className="w-full pb-4">
-													{field.value?.map((crossItem, index) => (
-														<AccordionItem key={index} value={`cross-${index}`}>
-															<AccordionTrigger className="!no-underline !hover:no-underline py-3">
-																<div className="flex items-center gap-2">
-																	<span className="hover:underline">
-																		{crossItem.name}
-																	</span>
-																	<span className="text-xs text-muted-foreground flex items-center gap-1">
-																		{crossItem.is_sort_asc === undefined ? (
-																			<>
-																				(从小到大排序
-																				<ArrowUp className="size-4" />)
-																			</>
-																		) : crossItem.is_sort_asc ? (
-																			<>
-																				(从小到大排序
-																				<ArrowUp className="size-4" />)
-																			</>
-																		) : (
-																			<>
-																				(从大到小排序
-																				<ArrowDown className="size-4" />)
-																			</>
-																		)}
-																	</span>
+														<div className="grid grid-cols-5 gap-2 text-xs text-muted-foreground">
+															<span>因子名称</span>
+															<span>排序方式</span>
+															<span>因子参数</span>
+															<span>因子计算参数</span>
+															<span>分钟数据</span>
+														</div>
+
+														<div className="space-y-2">
+															{field.value?.factor_list.map((factor, index) => (
+																<div
+																	key={index}
+																	className="grid grid-cols-5 gap-2"
+																>
+																	<FormControl>
+																		<InputUI
+																			value={factor[0]} // -- 因子名称
+																			className="text-muted-foreground text-xs"
+																			readOnly
+																		/>
+																	</FormControl>
+																	<FormControl>
+																		<InputUI
+																			value={
+																				factor[1]
+																					? "从小到大排序"
+																					: "从大到小排序"
+																			} // -- 排序方式
+																			className="text-muted-foreground text-xs"
+																			readOnly
+																		/>
+																	</FormControl>
+																	<FormControl>
+																		<InputUI
+																			value={
+																				factor[2] !== null
+																					? JSON.stringify(factor[2])
+																					: "无参数"
+																			} // -- 因子参数
+																			className="text-muted-foreground text-xs font-mono"
+																			readOnly
+																		/>
+																	</FormControl>
+																	<FormControl>
+																		<InputUI
+																			value={factor[3]} // -- 因子计算参数（比如权重）
+																			className="text-muted-foreground text-xs"
+																			readOnly
+																		/>
+																	</FormControl>
+																	<FormControl>
+																		<InputUI
+																			value={factor[4] || "close"} // -- 分钟数据
+																			className="text-muted-foreground text-xs"
+																			readOnly
+																		/>
+																	</FormControl>
 																</div>
-															</AccordionTrigger>
-															<AccordionContent className="flex flex-col gap-4 text-balance bg-gray-100 dark:bg-black border p-2 rounded-lg mb-2">
-																<div className="space-y-2">
-																	<div className="flex items-center gap-1">
-																		<CircuitBoard className="size-4 mr-1" />
-																		<span>依赖的时序因子列表</span>
-																		<span className="text-xs">
-																			（暂不支持直接编辑）
-																		</span>
-																	</div>
+															))}
+														</div>
 
-																	{crossItem?.factor_list?.length > 0 ? (
-																		<>
-																			<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
-																				<span>因子名称</span>
-																				<span>排序方式</span>
-																				<span>因子参数</span>
-																				<span>因子计算参数（比如权重）</span>
-																			</div>
-																			<div className="space-y-2">
-																				{crossItem?.factor_list?.map(
-																					(
-																						factor: [
-																							string,
-																							boolean,
-																							any,
-																							string | number | null,
-																						],
-																						index: number,
-																					) => (
-																						<div
-																							key={index}
-																							className="grid grid-cols-4 gap-2"
-																						>
-																							<FormControl>
-																								<InputUI
-																									value={factor[0]} // -- 因子名称
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={
-																										factor[1]
-																											? "从小到大排序"
-																											: "从大到小排序"
-																									} // -- 排序方式
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={
-																										factor[2] !== null
-																											? JSON.stringify(
-																													factor[2],
-																												)
-																											: "无参数"
-																									} // -- 因子参数
-																									className="text-muted-foreground text-xs font-mono"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={factor[3] ?? ""} // -- 因子计算参数（比如权重）
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																						</div>
-																					),
-																				)}
-																			</div>
-																		</>
-																	) : (
-																		<div className="text-muted-foreground ml-2 text-xs">
-																			暂无依赖因子，请先进行配置
-																		</div>
-																	)}
-																</div>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 
-																<Separator />
-
-																<div className="space-y-2">
-																	<div className="grid grid-cols-4 gap-2 text-xs ">
-																		<span>参数</span>
-																		<span>横截面因子聚合权重</span>
-																		<span>过滤条件</span>
-																		<span>分钟数据</span>
-																	</div>
-																	<div className="space-y-2">
-																		<div className="grid grid-cols-4 gap-2">
-																			<FormControl>
-																				<InputUI
-																					value={crossItem?.params ?? "无"} // -- 参数
-																					className="text-muted-foreground text-xs"
-																					readOnly
-																				/>
-																			</FormControl>
-																			<FormControl>
-																				<InputUI
-																					value={crossItem?.args ?? "无"} // -- 横截面因子聚合权重
-																					className="text-muted-foreground text-xs"
-																					readOnly
-																				/>
-																			</FormControl>
-																			<FormControl>
-																				<InputUI
-																					value={crossItem?.method ?? "无"} // -- 过滤条件
-																					className="text-muted-foreground text-xs"
-																					readOnly
-																				/>
-																			</FormControl>
-																			<FormControl>
-																				<InputUI
-																					value={crossItem?.minutes ?? "无"} // -- 分钟数据
-																					className="text-muted-foreground text-xs"
-																					readOnly
-																				/>
-																			</FormControl>
-																		</div>
-																	</div>
-																</div>
-															</AccordionContent>
-														</AccordionItem>
-													))}
-												</Accordion>
-											) : (
-												<div className="text-muted-foreground text-xs py-2">
-													暂无截面因子，请先进行配置
-												</div>
-											)}
+											<FormField
+												key={`${tabValue}-3`}
+												control={form.control}
+												name={tabValue === "开仓" ? "timing" : "override"}
+												render={({ field }) => (
+													<FormItem className={cn("px-1")}>
+														<FormLabel className="flex items-center gap-1">
+															<Shell className="size-4 mr-1" />
+															择时{tabValue}默认仓位
+															<span className="text-xs">
+																（当因各种原因无法按时算出择时信号的时候的默认仓位）
+															</span>
+														</FormLabel>
+														<FormControl>
+															<InputUI
+																value={getFallbackPositionLabel(
+																	field.value?.fallback_position ?? -1,
+																)}
+																className="text-muted-foreground text-xs"
+															/>
+														</FormControl>
+														<p className="text-muted-foreground text-xs">
+															{(field.value?.fallback_position ?? -1) === -1
+																? "会依据因子具体数值安排仓位"
+																: ""}
+														</p>
+													</FormItem>
+												)}
+											/>
+										</>
+									) : (
+										<div className="flex flex-col gap-1 bg-gray-100 border p-2 rounded-lg dark:bg-black">
+											<h3 className="text-sm flex items-center gap-1">
+												<Timer className="size-4 mr-1" />
+												无择时{tabValue}配置
+											</h3>
+											<p className="text-muted-foreground text-xs">
+												择时策略参数与择时策略具体实现有关，请先配置择时策略
+											</p>
 										</div>
-									</div>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="stock_timing_list"
-							render={({ field }) => (
-								<FormItem className={cn("flex flex-col")}>
-									<div className="rounded-lg border  ">
-										<FormLabel className="flex items-center gap-1 p-2 py-3">
-											<Timer className="size-4 mr-1" />
-											个股择时列表
-											<span className="text-xs">（暂不支持直接编辑）</span>
-										</FormLabel>
-										<Separator />
-										<div className="px-4">
-											{(field.value ?? []).length > 0 ? (
-												<Accordion type="multiple" className="w-full pb-4">
-													{(field.value ?? []).map((stockTimingItem, index) => (
-														<AccordionItem
-															key={index}
-															value={`stock-timing-${index}`}
-														>
-															<AccordionTrigger className="!no-underline !hover:no-underline py-3">
-																<div className="flex items-center gap-2">
-																	<span className="hover:underline">
-																		{stockTimingItem.name}
-																	</span>
-																	{stockTimingItem.period && (
-																		<span className="text-xs text-muted-foreground">
-																			({stockTimingItem.period})
+									)}
+								</div>
+							</>
+						) : (
+							<>
+								<hr />
+								<MemberPromoBanner
+									featureName="盘中择时"
+									onLearnMore={() => openMemberPromo("盘中择时")}
+								/>
+							</>
+						)}
+						{isMember ? (
+							<FormField
+								control={form.control}
+								name="cross_sections"
+								render={({ field }) => (
+									<FormItem className={cn("flex flex-col")}>
+										<div className="rounded-lg border  ">
+											<FormLabel className="flex items-center gap-1 p-2 py-3">
+												<ChartPie className="size-4 mr-1" />
+												截面因子列表
+												<span className="text-xs">（暂不支持直接编辑）</span>
+											</FormLabel>
+											<Separator />
+											<div className="px-4">
+												{field.value?.length > 0 ? (
+													<Accordion type="multiple" className="w-full pb-4">
+														{field.value?.map((crossItem, index) => (
+															<AccordionItem
+																key={index}
+																value={`cross-${index}`}
+															>
+																<AccordionTrigger className="!no-underline !hover:no-underline py-3">
+																	<div className="flex items-center gap-2">
+																		<span className="hover:underline">
+																			{crossItem.name}
 																		</span>
-																	)}
-																</div>
-															</AccordionTrigger>
-															<AccordionContent className="flex flex-col gap-4 text-balance bg-gray-100 dark:bg-black border p-2 rounded-lg mb-2">
-																<div className="space-y-2">
-																	<div className="flex items-center gap-1">
-																		<CircuitBoard className="size-4 mr-1" />
-																		<span>依赖的时序因子列表</span>
-																		<span className="text-xs">
-																			（暂不支持直接编辑）
+																		<span className="text-xs text-muted-foreground flex items-center gap-1">
+																			{crossItem.is_sort_asc === undefined ? (
+																				<>
+																					(从小到大排序
+																					<ArrowUp className="size-4" />)
+																				</>
+																			) : crossItem.is_sort_asc ? (
+																				<>
+																					(从小到大排序
+																					<ArrowUp className="size-4" />)
+																				</>
+																			) : (
+																				<>
+																					(从大到小排序
+																					<ArrowDown className="size-4" />)
+																				</>
+																			)}
 																		</span>
 																	</div>
-
-																	{stockTimingItem?.factor_list?.length > 0 ? (
-																		<>
-																			<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
-																				<span>因子名称</span>
-																				<span>排序方式</span>
-																				<span>因子参数</span>
-																				<span>因子计算参数（比如权重）</span>
-																			</div>
-																			<div className="space-y-2">
-																				{stockTimingItem?.factor_list?.map(
-																					(
-																						factor: [
-																							string,
-																							boolean,
-																							any,
-																							string | number | null,
-																						],
-																						idx: number,
-																					) => (
-																						<div
-																							key={idx}
-																							className="grid grid-cols-4 gap-2"
-																						>
-																							<FormControl>
-																								<InputUI
-																									value={factor[0]}
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={
-																										factor[1]
-																											? "从小到大排序"
-																											: "从大到小排序"
-																									}
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={
-																										factor[2] !== null
-																											? JSON.stringify(
-																													factor[2],
-																												)
-																											: "无参数"
-																									}
-																									className="text-muted-foreground text-xs font-mono"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={factor[3] ?? ""}
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																						</div>
-																					),
-																				)}
-																			</div>
-																		</>
-																	) : (
-																		<div className="text-muted-foreground ml-2 text-xs">
-																			暂无依赖因子，请先进行配置
+																</AccordionTrigger>
+																<AccordionContent className="flex flex-col gap-4 text-balance bg-gray-100 dark:bg-black border p-2 rounded-lg mb-2">
+																	<div className="space-y-2">
+																		<div className="flex items-center gap-1">
+																			<CircuitBoard className="size-4 mr-1" />
+																			<span>依赖的时序因子列表</span>
+																			<span className="text-xs">
+																				（暂不支持直接编辑）
+																			</span>
 																		</div>
-																	)}
-																</div>
 
-																<div className="space-y-2">
-																	<div className="flex items-center gap-1">
-																		<Filter className="size-4 mr-1" />
-																		<span>过滤因子列表</span>
-																		<span className="text-xs">
-																			（暂不支持直接编辑）
-																		</span>
-																	</div>
-
-																	{stockTimingItem?.filter_list?.length > 0 ? (
-																		<>
-																			<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
-																				<span>因子名称</span>
-																				<span>因子参数</span>
-																				<span>过滤条件</span>
-																				<span>排序方式</span>
-																			</div>
-																			<div className="space-y-2">
-																				{stockTimingItem?.filter_list?.map(
-																					(
-																						filter: [
-																							string,
-																							any,
-																							string,
-																							boolean | undefined,
-																						],
-																						idx: number,
-																					) => (
-																						<div
-																							key={idx}
-																							className="grid grid-cols-4 gap-2"
-																						>
-																							<FormControl>
-																								<InputUI
-																									value={filter[0]}
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={JSON.stringify(filter[1])}
-																									className="text-muted-foreground text-xs font-mono"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={filter[2]}
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																							<FormControl>
-																								<InputUI
-																									value={
-																										filter[3] === undefined
-																											? "从小到大排序"
-																											: filter[3]
+																		{crossItem?.factor_list?.length > 0 ? (
+																			<>
+																				<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+																					<span>因子名称</span>
+																					<span>排序方式</span>
+																					<span>因子参数</span>
+																					<span>因子计算参数（比如权重）</span>
+																				</div>
+																				<div className="space-y-2">
+																					{crossItem?.factor_list?.map(
+																						(
+																							factor: [
+																								string,
+																								boolean,
+																								any,
+																								string | number | null,
+																							],
+																							index: number,
+																						) => (
+																							<div
+																								key={index}
+																								className="grid grid-cols-4 gap-2"
+																							>
+																								<FormControl>
+																									<InputUI
+																										value={factor[0]} // -- 因子名称
+																										className="text-muted-foreground text-xs"
+																										readOnly
+																									/>
+																								</FormControl>
+																								<FormControl>
+																									<InputUI
+																										value={
+																											factor[1]
 																												? "从小到大排序"
 																												: "从大到小排序"
-																									}
-																									className="text-muted-foreground text-xs"
-																									readOnly
-																								/>
-																							</FormControl>
-																						</div>
-																					),
-																				)}
+																										} // -- 排序方式
+																										className="text-muted-foreground text-xs"
+																										readOnly
+																									/>
+																								</FormControl>
+																								<FormControl>
+																									<InputUI
+																										value={
+																											factor[2] !== null
+																												? JSON.stringify(
+																														factor[2],
+																													)
+																												: "无参数"
+																										} // -- 因子参数
+																										className="text-muted-foreground text-xs font-mono"
+																										readOnly
+																									/>
+																								</FormControl>
+																								<FormControl>
+																									<InputUI
+																										value={factor[3] ?? ""} // -- 因子计算参数（比如权重）
+																										className="text-muted-foreground text-xs"
+																										readOnly
+																									/>
+																								</FormControl>
+																							</div>
+																						),
+																					)}
+																				</div>
+																			</>
+																		) : (
+																			<div className="text-muted-foreground ml-2 text-xs">
+																				暂无依赖因子，请先进行配置
 																			</div>
-																		</>
-																	) : (
-																		<div className="text-muted-foreground ml-2 text-xs">
-																			暂无过滤因子，请先进行配置
-																		</div>
-																	)}
-																</div>
-
-																<Separator />
-
-																<div className="space-y-2">
-																	<div className="grid grid-cols-4 gap-2 text-xs ">
-																		<span>参数</span>
-																		<span>权重</span>
-																		<span>周期</span>
-																		<span />
+																		)}
 																	</div>
+
+																	<Separator />
+
 																	<div className="space-y-2">
-																		<div className="grid grid-cols-4 gap-2">
-																			<FormControl>
-																				<InputUI
-																					value={
-																						stockTimingItem?.params ?? "无"
-																					}
-																					className="text-muted-foreground text-xs"
-																					readOnly
-																				/>
-																			</FormControl>
-																			<FormControl>
-																				<InputUI
-																					value={
-																						stockTimingItem?.weight ?? "无"
-																					}
-																					className="text-muted-foreground text-xs"
-																					readOnly
-																				/>
-																			</FormControl>
-																			<FormControl>
-																				<InputUI
-																					value={
-																						stockTimingItem?.period ?? "无"
-																					}
-																					className="text-muted-foreground text-xs"
-																					readOnly
-																				/>
-																			</FormControl>
-																			<span />
+																		<div className="grid grid-cols-4 gap-2 text-xs ">
+																			<span>参数</span>
+																			<span>横截面因子聚合权重</span>
+																			<span>过滤条件</span>
+																			<span>分钟数据</span>
+																		</div>
+																		<div className="space-y-2">
+																			<div className="grid grid-cols-4 gap-2">
+																				<FormControl>
+																					<InputUI
+																						value={crossItem?.params ?? "无"} // -- 参数
+																						className="text-muted-foreground text-xs"
+																						readOnly
+																					/>
+																				</FormControl>
+																				<FormControl>
+																					<InputUI
+																						value={crossItem?.args ?? "无"} // -- 横截面因子聚合权重
+																						className="text-muted-foreground text-xs"
+																						readOnly
+																					/>
+																				</FormControl>
+																				<FormControl>
+																					<InputUI
+																						value={crossItem?.method ?? "无"} // -- 过滤条件
+																						className="text-muted-foreground text-xs"
+																						readOnly
+																					/>
+																				</FormControl>
+																				<FormControl>
+																					<InputUI
+																						value={crossItem?.minutes ?? "无"} // -- 分钟数据
+																						className="text-muted-foreground text-xs"
+																						readOnly
+																					/>
+																				</FormControl>
+																			</div>
 																		</div>
 																	</div>
-																</div>
-															</AccordionContent>
-														</AccordionItem>
-													))}
-												</Accordion>
-											) : (
-												<div className="text-muted-foreground text-xs py-2">
-													暂无个股择时，请先进行配置
-												</div>
-											)}
+																</AccordionContent>
+															</AccordionItem>
+														))}
+													</Accordion>
+												) : (
+													<div className="text-muted-foreground text-xs py-2">
+														暂无截面因子，请先进行配置
+													</div>
+												)}
+											</div>
 										</div>
-									</div>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						) : (
+							<>
+								<hr />
+								<MemberPromoBanner
+									featureName="截面因子"
+									onLearnMore={() => openMemberPromo("截面因子")}
+								/>
+							</>
+						)}
+						{isMember ? (
+							<FormField
+								control={form.control}
+								name="stock_timing_list"
+								render={({ field }) => (
+									<FormItem className={cn("flex flex-col")}>
+										<div className="rounded-lg border  ">
+											<FormLabel className="flex items-center gap-1 p-2 py-3">
+												<Timer className="size-4 mr-1" />
+												个股择时列表
+												<span className="text-xs">（暂不支持直接编辑）</span>
+											</FormLabel>
+											<Separator />
+											<div className="px-4">
+												{(field.value ?? []).length > 0 ? (
+													<Accordion type="multiple" className="w-full pb-4">
+														{(field.value ?? []).map(
+															(stockTimingItem, index) => (
+																<AccordionItem
+																	key={index}
+																	value={`stock-timing-${index}`}
+																>
+																	<AccordionTrigger className="!no-underline !hover:no-underline py-3">
+																		<div className="flex items-center gap-2">
+																			<span className="hover:underline">
+																				{stockTimingItem.name}
+																			</span>
+																			{stockTimingItem.period && (
+																				<span className="text-xs text-muted-foreground">
+																					({stockTimingItem.period})
+																				</span>
+																			)}
+																		</div>
+																	</AccordionTrigger>
+																	<AccordionContent className="flex flex-col gap-4 text-balance bg-gray-100 dark:bg-black border p-2 rounded-lg mb-2">
+																		<div className="space-y-2">
+																			<div className="flex items-center gap-1">
+																				<CircuitBoard className="size-4 mr-1" />
+																				<span>依赖的时序因子列表</span>
+																				<span className="text-xs">
+																					（暂不支持直接编辑）
+																				</span>
+																			</div>
+
+																			{stockTimingItem?.factor_list?.length >
+																			0 ? (
+																				<>
+																					<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+																						<span>因子名称</span>
+																						<span>排序方式</span>
+																						<span>因子参数</span>
+																						<span>
+																							因子计算参数（比如权重）
+																						</span>
+																					</div>
+																					<div className="space-y-2">
+																						{stockTimingItem?.factor_list?.map(
+																							(
+																								factor: [
+																									string,
+																									boolean,
+																									any,
+																									string | number | null,
+																								],
+																								idx: number,
+																							) => (
+																								<div
+																									key={idx}
+																									className="grid grid-cols-4 gap-2"
+																								>
+																									<FormControl>
+																										<InputUI
+																											value={factor[0]}
+																											className="text-muted-foreground text-xs"
+																											readOnly
+																										/>
+																									</FormControl>
+																									<FormControl>
+																										<InputUI
+																											value={
+																												factor[1]
+																													? "从小到大排序"
+																													: "从大到小排序"
+																											}
+																											className="text-muted-foreground text-xs"
+																											readOnly
+																										/>
+																									</FormControl>
+																									<FormControl>
+																										<InputUI
+																											value={
+																												factor[2] !== null
+																													? JSON.stringify(
+																															factor[2],
+																														)
+																													: "无参数"
+																											}
+																											className="text-muted-foreground text-xs font-mono"
+																											readOnly
+																										/>
+																									</FormControl>
+																									<FormControl>
+																										<InputUI
+																											value={factor[3] ?? ""}
+																											className="text-muted-foreground text-xs"
+																											readOnly
+																										/>
+																									</FormControl>
+																								</div>
+																							),
+																						)}
+																					</div>
+																				</>
+																			) : (
+																				<div className="text-muted-foreground ml-2 text-xs">
+																					暂无依赖因子，请先进行配置
+																				</div>
+																			)}
+																		</div>
+
+																		<div className="space-y-2">
+																			<div className="flex items-center gap-1">
+																				<Filter className="size-4 mr-1" />
+																				<span>过滤因子列表</span>
+																				<span className="text-xs">
+																					（暂不支持直接编辑）
+																				</span>
+																			</div>
+
+																			{stockTimingItem?.filter_list?.length >
+																			0 ? (
+																				<>
+																					<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+																						<span>因子名称</span>
+																						<span>因子参数</span>
+																						<span>过滤条件</span>
+																						<span>排序方式</span>
+																					</div>
+																					<div className="space-y-2">
+																						{stockTimingItem?.filter_list?.map(
+																							(
+																								filter: [
+																									string,
+																									any,
+																									string,
+																									boolean | undefined,
+																								],
+																								idx: number,
+																							) => (
+																								<div
+																									key={idx}
+																									className="grid grid-cols-4 gap-2"
+																								>
+																									<FormControl>
+																										<InputUI
+																											value={filter[0]}
+																											className="text-muted-foreground text-xs"
+																											readOnly
+																										/>
+																									</FormControl>
+																									<FormControl>
+																										<InputUI
+																											value={JSON.stringify(
+																												filter[1],
+																											)}
+																											className="text-muted-foreground text-xs font-mono"
+																											readOnly
+																										/>
+																									</FormControl>
+																									<FormControl>
+																										<InputUI
+																											value={filter[2]}
+																											className="text-muted-foreground text-xs"
+																											readOnly
+																										/>
+																									</FormControl>
+																									<FormControl>
+																										<InputUI
+																											value={
+																												filter[3] === undefined
+																													? "从小到大排序"
+																													: filter[3]
+																														? "从小到大排序"
+																														: "从大到小排序"
+																											}
+																											className="text-muted-foreground text-xs"
+																											readOnly
+																										/>
+																									</FormControl>
+																								</div>
+																							),
+																						)}
+																					</div>
+																				</>
+																			) : (
+																				<div className="text-muted-foreground ml-2 text-xs">
+																					暂无过滤因子，请先进行配置
+																				</div>
+																			)}
+																		</div>
+
+																		<Separator />
+
+																		<div className="space-y-2">
+																			<div className="grid grid-cols-4 gap-2 text-xs ">
+																				<span>参数</span>
+																				<span>权重</span>
+																				<span>周期</span>
+																				<span />
+																			</div>
+																			<div className="space-y-2">
+																				<div className="grid grid-cols-4 gap-2">
+																					<FormControl>
+																						<InputUI
+																							value={
+																								stockTimingItem?.params ?? "无"
+																							}
+																							className="text-muted-foreground text-xs"
+																							readOnly
+																						/>
+																					</FormControl>
+																					<FormControl>
+																						<InputUI
+																							value={
+																								stockTimingItem?.weight ?? "无"
+																							}
+																							className="text-muted-foreground text-xs"
+																							readOnly
+																						/>
+																					</FormControl>
+																					<FormControl>
+																						<InputUI
+																							value={
+																								stockTimingItem?.period ?? "无"
+																							}
+																							className="text-muted-foreground text-xs"
+																							readOnly
+																						/>
+																					</FormControl>
+																					<span />
+																				</div>
+																			</div>
+																		</div>
+																	</AccordionContent>
+																</AccordionItem>
+															),
+														)}
+													</Accordion>
+												) : (
+													<div className="text-muted-foreground text-xs py-2">
+														暂无个股择时，请先进行配置
+													</div>
+												)}
+											</div>
+										</div>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						) : (
+							<MemberPromoBanner
+								featureName="个股择时"
+								onLearnMore={() => openMemberPromo("个股择时")}
+							/>
+						)}
 						<div className="flex flex-col gap-3 bg-gray-100 border p-2 rounded-lg dark:bg-black">
 							<h3 className="text-sm text-warning-600 dark:text-warning flex items-center gap-1">
 								<Biohazard className="size-4 mr-1 font-bold" />
@@ -1376,6 +1457,11 @@ export function SelectStgForm({
 					</Button>
 				</CardFooter>
 			</form>
+			<MemberPromoDialog
+				open={memberPromoOpen}
+				onOpenChange={setMemberPromoOpen}
+				featureName={memberPromoFeature}
+			/>
 			<RebTimeConfigModal
 				open={rebTimeConfigModalOpen}
 				onOpenChange={setRebTimeConfigModalOpen}

@@ -19,7 +19,8 @@ export const versionsAtom = atomWithStorage<
 	Partial<{
 		clientVersion: string // 客户端
 		fuelVersion: string // 数据内核
-		fusionVersion: string // 选股内核
+		fusionVersion: string // 选股内核（分享会）
+		aquaVersion: string // 选股内核（股票）
 		rocketVersion: string // 下单内核
 		scmVersion: string // config 大师内核
 	}>

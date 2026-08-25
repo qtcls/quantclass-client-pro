@@ -8,7 +8,6 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-
 export type PermissionCondition =
 	| string
 	| string[]
@@ -58,4 +57,8 @@ function matchPermission(
 	}
 
 	return false
+}
+
+export function getSelectKernal(permissions: string[]): "fusion" | "aqua" {
+	return checkPermission(permissions, "isMember") ? "fusion" : "aqua"
 }

@@ -11,14 +11,6 @@
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
 import { Label } from "@/renderer/components/ui/label"
-import { ScrollArea } from "@/renderer/components/ui/scroll-area"
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/renderer/components/ui/select"
 import {
 	Pagination,
 	PaginationContent,
@@ -28,6 +20,14 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from "@/renderer/components/ui/pagination"
+import { ScrollArea } from "@/renderer/components/ui/scroll-area"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/renderer/components/ui/select"
 import { cn } from "@/renderer/lib/utils"
 import { unreadNotificationCountAtom } from "@/renderer/store"
 import {
@@ -46,8 +46,8 @@ import {
 	Bell,
 	CheckCheck,
 	CircleCheck,
-	Info,
 	Inbox,
+	Info,
 	Mail,
 	RefreshCw,
 	RotateCcw,
@@ -102,6 +102,7 @@ const SOURCE_LABEL: Record<string, string> = {
 	fuel: "Fuel",
 	rocket: "Rocket",
 	fusion: "Fusion",
+	aqua: "Aqua",
 }
 
 /** 三条来源各一色，与 event 同行展示 */
@@ -111,6 +112,7 @@ const SOURCE_BADGE_CLASS: Record<NotificationSource, string> = {
 		"border-violet-600/55 bg-violet-500/15 text-violet-950 shadow-none dark:border-violet-400/45 dark:bg-violet-500/20 dark:text-violet-50",
 	fusion:
 		"border-sky-600/55 bg-sky-500/15 text-sky-950 shadow-none dark:border-sky-400/45 dark:bg-sky-500/20 dark:text-sky-50",
+	aqua: "border-sky-600/55 bg-sky-500/15 text-sky-950 shadow-none dark:border-sky-400/45 dark:bg-sky-500/20 dark:text-sky-50",
 }
 
 const LEVEL_LABEL: Record<string, string> = {
@@ -189,10 +191,7 @@ function NotificationLevelIcon({ level }: { level: string }) {
 			return (
 				<span title={label} aria-label={label} className="inline-flex">
 					<CircleCheck
-						className={cn(
-							common,
-							"text-emerald-600 dark:text-emerald-500",
-						)}
+						className={cn(common, "text-emerald-600 dark:text-emerald-500")}
 						strokeWidth={2.25}
 						aria-hidden
 					/>
@@ -334,9 +333,7 @@ export function NotificationsPanel() {
 					<Bell className="size-4 shrink-0" />
 					<span>通知中心</span>
 				</div>
-				<p className="text-xs text-muted-foreground">
-					由内核推送的通知记录
-				</p>
+				<p className="text-xs text-muted-foreground">由内核推送的通知记录</p>
 			</div>
 
 			<div className="shrink-0 rounded-md border bg-muted/30 px-3 py-2.5">
@@ -434,7 +431,9 @@ export function NotificationsPanel() {
 							onClick={refresh}
 							disabled={loading}
 						>
-							<RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+							<RefreshCw
+								className={cn("size-3.5", loading && "animate-spin")}
+							/>
 							刷新
 						</Button>
 						<Button
@@ -467,12 +466,9 @@ export function NotificationsPanel() {
 						<ul className="divide-y">
 							{items.map((item) => {
 								const isUnread = !item.read_at
-								const sourceLabel =
-									SOURCE_LABEL[item.source] ?? item.source
+								const sourceLabel = SOURCE_LABEL[item.source] ?? item.source
 								const sourceClass =
-									SOURCE_BADGE_CLASS[
-										item.source as NotificationSource
-									] ??
+									SOURCE_BADGE_CLASS[item.source as NotificationSource] ??
 									"border-muted-foreground/35 bg-muted/40 text-foreground shadow-none"
 								const payloadText = tryFormatPayload(item.payload)
 								return (
@@ -622,14 +618,10 @@ export function NotificationsPanel() {
 								)}
 								<PaginationItem>
 									<PaginationNext
-										onClick={() =>
-											setPage((p) => Math.min(totalPages, p + 1))
-										}
+										onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
 										disabled={page >= totalPages}
 										className={
-											page >= totalPages
-												? "pointer-events-none opacity-50"
-												: ""
+											page >= totalPages ? "pointer-events-none opacity-50" : ""
 										}
 									/>
 								</PaginationItem>

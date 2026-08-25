@@ -8,21 +8,28 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { MemberPromoDialog } from "@/renderer/components/member-promo"
 import { Button } from "@/renderer/components/ui/button"
 import { Input } from "@/renderer/components/ui/input"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtomValue } from "jotai"
 import { ShieldBan, Trash } from "lucide-react"
 import { useState } from "react"
 
-import { toast } from "sonner"
-import { validateStockCode } from "@/renderer/utils"
-import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
-import BuyBlacklistAddConfirm from "./confirm-add-dialog"
 import { useAlertDialog } from "@/renderer/context/alert-dialog"
+import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
+import { validateStockCode } from "@/renderer/utils"
+import { toast } from "sonner"
+import BuyBlacklistAddConfirm from "./confirm-add-dialog"
 
 export default function BuyBlacklistAddInput() {
 	const { addBlacklistItem, setBuyBlacklist, isBlacklisted, buyBlacklist } =
 		useBuyBlacklist()
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const [input, setInput] = useState("")
+	const [promoOpen, setPromoOpen] = useState(false)
 
 	const { open: openAlert } = useAlertDialog()
 
@@ -31,13 +38,11 @@ export default function BuyBlacklistAddInput() {
 
 	// 验证股票代码并处理拉黑逻辑
 	const handleBlacklistStock = (stockCode: string) => {
-		// 检查是否已拉黑
 		if (isBlacklisted(stockCode)) {
 			toast.warning("该股票已拉黑")
 			return
 		}
 
-		// 验证股票代码格式
 		if (!validateStockCode(stockCode)) {
 			toast.error(
 				"请输入正确的股票代码格式（如：sz000001、sh600000、bj430047）",
@@ -45,12 +50,10 @@ export default function BuyBlacklistAddInput() {
 			return
 		}
 
-		// 打开原因输入对话框
 		setPendingStockCode(stockCode)
 		setReasonDialog(true)
 	}
 
-	// 处理输入框回车键
 	const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter" && input.trim()) {
 			handleBlacklistStock(input.trim())
@@ -72,6 +75,10 @@ export default function BuyBlacklistAddInput() {
 			okText: "清空",
 			cancelText: "取消",
 			onOk: () => {
+				if (!isMember) {
+					setPromoOpen(true)
+					return
+				}
 				setBuyBlacklist([])
 				toast.success("已清空黑名单")
 			},
@@ -121,6 +128,11 @@ export default function BuyBlacklistAddInput() {
 					setInput("")
 					toast.success(`拉黑${buyBlacklistItem.code}成功`)
 				}}
+			/>
+			<MemberPromoDialog
+				open={promoOpen}
+				onOpenChange={setPromoOpen}
+				featureName="买入黑名单"
 			/>
 		</>
 	)

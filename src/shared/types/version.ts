@@ -29,6 +29,7 @@ export interface AppVersions {
 	app: KernalVersionType
 	fuel: KernalVersionType[]
 	fusion: KernalVersionType[]
+	aqua: KernalVersionType[]
 	rocket: KernalVersionType[]
 	scm: KernalVersionType[]
 }

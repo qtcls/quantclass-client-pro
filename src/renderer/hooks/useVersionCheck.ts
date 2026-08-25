@@ -9,7 +9,9 @@
  */
 
 import { useAppVersions } from "@/renderer/hooks/useAppVersion"
+import { userAtom } from "@/renderer/store/user"
 import { versionsAtom } from "@/renderer/store/versions"
+import { getSelectKernal } from "@/shared/lib/permission"
 import { useAtomValue } from "jotai"
 import { useMemo } from "react"
 
@@ -20,6 +22,10 @@ import { useMemo } from "react"
 export const useVersionCheck = () => {
 	const { appVersions, isCheckingAppVersions } = useAppVersions()
 	const localVersions = useAtomValue(versionsAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const selectKernal = getSelectKernal(permissions)
+	const selectVersionKey =
+		selectKernal === "fusion" ? "fusionVersion" : "aquaVersion"
 
 	// 检查是否有客户端版本更新
 	const hasClientUpdate = useMemo(() => {
@@ -36,17 +42,19 @@ export const useVersionCheck = () => {
 		if (!latestRemoteVersions || !localVersions) {
 			return {
 				fuel: false,
-				fusion: false,
+				select: false,
 				rocket: false,
 			}
 		}
 
 		return {
 			fuel: latestRemoteVersions?.fuel !== localVersions.fuelVersion,
-			fusion: latestRemoteVersions?.fusion !== localVersions.fusionVersion,
+			select:
+				latestRemoteVersions?.[selectKernal] !==
+				localVersions[selectVersionKey],
 			rocket: latestRemoteVersions?.rocket !== localVersions.rocketVersion,
 		}
-	}, [appVersions?.latest, localVersions])
+	}, [appVersions?.latest, localVersions, selectKernal, selectVersionKey])
 
 	// 检查是否有任何更新
 	const hasAnyUpdate = useMemo(() => {
@@ -71,9 +79,9 @@ export const useVersionCheck = () => {
 			)
 		}
 
-		if (hasKernalUpdates.fusion) {
+		if (hasKernalUpdates.select) {
 			updates.push(
-				`选股内核: ${localVersions?.fusionVersion} → ${appVersions?.latest?.fusion}`,
+				`选股内核: ${localVersions?.[selectVersionKey]} → ${appVersions?.latest?.[selectKernal]}`,
 			)
 		}
 
@@ -84,7 +92,15 @@ export const useVersionCheck = () => {
 		}
 
 		return updates.length > 0 ? updates.join("\n") : ""
-	}, [hasAnyUpdate, hasClientUpdate, hasKernalUpdates, localVersions, appVersions])
+	}, [
+		hasAnyUpdate,
+		hasClientUpdate,
+		hasKernalUpdates,
+		localVersions,
+		appVersions,
+		selectKernal,
+		selectVersionKey,
+	])
 
 	return {
 		hasClientUpdate,

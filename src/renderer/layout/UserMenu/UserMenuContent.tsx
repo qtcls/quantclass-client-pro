@@ -9,6 +9,10 @@
  */
 
 import {
+	FEN_CLASS_URL,
+	MemberPromoDialog,
+} from "@/renderer/components/member-promo"
+import {
 	Avatar,
 	AvatarFallback,
 	AvatarImage,
@@ -24,6 +28,7 @@ import { useLogout } from "@/renderer/layout/UserMenu/useLogout"
 import { cn } from "@/renderer/lib/utils"
 import type { UserAccountInfo } from "@/shared/types"
 import { LogOut, Sparkles } from "lucide-react"
+import { useState } from "react"
 
 interface UserMenuContentProps {
 	user: UserAccountInfo | null
@@ -37,42 +42,50 @@ export const UserMenuContent = ({
 	align = "end",
 }: UserMenuContentProps) => {
 	const { handleLogout } = useLogout()
+	const [promoOpen, setPromoOpen] = useState(false)
 	const { openUrl } = window.electronAPI
 	return (
-		<DropdownMenuContent
-			className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-			side={side}
-			align={align}
-			sideOffset={4}
-		>
-			<DropdownMenuLabel className="p-0 font-normal">
-				<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-					<Avatar className="h-8 w-8 rounded-lg">
-						<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
-						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
-					</Avatar>
-					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">{user?.nickname}</span>
+		<>
+			<DropdownMenuContent
+				className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+				side={side}
+				align={align}
+				sideOffset={4}
+			>
+				<DropdownMenuLabel className="p-0 font-normal">
+					<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+						<Avatar className="h-8 w-8 rounded-lg">
+							<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
+							<AvatarFallback className="rounded-lg">CN</AvatarFallback>
+						</Avatar>
+						<div className="grid flex-1 text-left text-sm leading-tight">
+							<span className="truncate font-semibold">{user?.nickname}</span>
+						</div>
 					</div>
-				</div>
-			</DropdownMenuLabel>
-			<DropdownMenuSeparator />
-			<DropdownMenuGroup>
-				<DropdownMenuItem
-					className={cn(user?.isMember && "hover:cursor-default")}
-					onClick={() => {
-						openUrl("https://www.quantclass.cn/fen/class/fen-2025")
-					}}
-				>
-					<Sparkles />
-					{user?.isMember ? "已开通分享会" : "了解分享会"}
+				</DropdownMenuLabel>
+				<DropdownMenuSeparator />
+				<DropdownMenuGroup>
+					<DropdownMenuItem
+						className={cn(user?.isMember && "hover:cursor-default")}
+						onClick={() => {
+							if (user?.isMember) {
+								openUrl(FEN_CLASS_URL)
+								return
+							}
+							setPromoOpen(true)
+						}}
+					>
+						<Sparkles />
+						{user?.isMember ? "已开通分享会" : "了解分享会"}
+					</DropdownMenuItem>
+				</DropdownMenuGroup>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem onClick={() => handleLogout()}>
+					<LogOut />
+					登出
 				</DropdownMenuItem>
-			</DropdownMenuGroup>
-			<DropdownMenuSeparator />
-			<DropdownMenuItem onClick={() => handleLogout()}>
-				<LogOut />
-				登出
-			</DropdownMenuItem>
-		</DropdownMenuContent>
+			</DropdownMenuContent>
+			<MemberPromoDialog open={promoOpen} onOpenChange={setPromoOpen} />
+		</>
 	)
 }

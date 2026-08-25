@@ -17,11 +17,14 @@ import { promisify } from "node:util"
 import { getKernelVersion } from "@/main/core/lib.js"
 import windowManager from "@/main/lib/WindowManager.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
+import { userStore } from "@/main/lib/userStore.js"
 import { postUserMainAction } from "@/main/request/index.js"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
+import { getSelectKernal } from "@/shared/lib/permission.js"
 import type { AppVersions } from "@/shared/types/index.js"
+import type { KernalType } from "@/shared/types/kernal.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
 import {
@@ -123,7 +126,7 @@ export async function checkRemoteVersions(now = true): Promise<AppVersions> {
  * @returns
  */
 export async function downloadKernal(
-	kernal: "fuel" | "fusion" | "rocket" | "scm",
+	kernal: KernalType,
 	version: string,
 	downloadUrl: string,
 ) {
@@ -255,10 +258,20 @@ export async function downloadKernal(
 	}
 }
 
-export async function updateKernal(
-	kernal: "fusion" | "rocket" | "fuel" | "scm",
-	targetVersion?: string,
-) {
+export async function updateKernal(kernal: KernalType, targetVersion?: string) {
+	if (kernal === "fusion" || kernal === "aqua") {
+		const userAccount = await userStore.getUserAccount()
+		const allowed = getSelectKernal(userAccount?.permissions ?? [])
+		if (kernal !== allowed) {
+			const message =
+				kernal === "fusion"
+					? "当前身份不允许下载 fusion 内核"
+					: "当前身份不允许下载 aqua 内核"
+			logger.warn(`[${kernal}] ${message}`)
+			return { success: false, error: message }
+		}
+	}
+
 	const winKernals = ["rocket"]
 	// -- 如果需要立即检查版本，并且没有指定版本，则立即检查版本
 	const remoteVersions = await checkRemoteVersions(!targetVersion)
@@ -286,9 +299,14 @@ export async function updateKernal(
 		downloadVersion = remoteVersions.latest[kernal]
 	}
 
-	let downloadUrl = remoteVersions[kernal].find(
-		(v) => v.version === downloadVersion,
-	)?.download as string
+	const versionList = remoteVersions[kernal]
+	if (!Array.isArray(versionList) || versionList.length === 0) {
+		logger.error(`[${kernal}] 远程版本列表为空`)
+		return { success: false, error: `未找到 ${kernal} 内核版本` }
+	}
+
+	let downloadUrl = versionList.find((v) => v.version === downloadVersion)
+		?.download as string
 
 	logger.info(`[${kernal}] ${downloadVersion} 下载地址: ${downloadUrl}`)
 

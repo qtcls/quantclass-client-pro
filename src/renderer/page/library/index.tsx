@@ -13,14 +13,18 @@ import { Input } from "@/renderer/components/ui/input"
 import { H2 } from "@/renderer/components/ui/typography"
 import { LibraryTable } from "@/renderer/page/library/table"
 import { backtestConfigAtom } from "@/renderer/store/storage"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { useUnmount } from "etc-hooks"
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { Edit } from "lucide-react"
 import { useRef, useState } from "react"
 import { RatioIntro } from "../FAQ/ratioIntro"
 
 export default function StrategyLibrary() {
 	const { setStoreValue } = window.electronAPI
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 
 	const tableRef = useRef<{ refresh: () => Promise<void> }>()
 	const [isEditing, setIsEditing] = useState(false)
@@ -71,6 +75,9 @@ export default function StrategyLibrary() {
 				</div>
 				<p className="text-muted-foreground">
 					导入、查看、编辑各类策略。并设置策略的实盘资金占比
+					{!isMember && (
+						<span className="text-warning">（基础身份最多导入 3 个策略）</span>
+					)}
 				</p>
 			</div>
 

@@ -24,12 +24,14 @@ import { NotificationsPopover } from "@/renderer/layout/NotificationsPopover"
 import { SystemVersionChip } from "@/renderer/layout/SystemVersionChip"
 import { cn } from "@/renderer/lib/utils"
 import { activeTabAtom } from "@/renderer/store"
+import { userAtom } from "@/renderer/store/user"
 import { versionsAtom } from "@/renderer/store/versions"
+import { canIncrementalUpdate } from "@/renderer/utils/data-sync-status"
 import {
 	type KernelVersionUpdateLevel,
 	getKernelVersionUpdateLevel,
 } from "@/renderer/utils/kernel-version-status"
-import { canIncrementalUpdate } from "@/renderer/utils/data-sync-status"
+import { getSelectKernal } from "@/shared/lib/permission"
 import type { AppVersions } from "@/shared/types"
 import dayjs from "dayjs"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -68,10 +70,14 @@ function getSystemKernelVersionUpdateLevel(
 		| {
 				fuelVersion?: string
 				fusionVersion?: string
+				aquaVersion?: string
 				rocketVersion?: string
 		  }
 		| undefined,
+	selectKernal: "fusion" | "aqua",
 ): KernelVersionUpdateLevel {
+	const selectVersionKey =
+		selectKernal === "fusion" ? "fusionVersion" : "aquaVersion"
 	const levels: KernelVersionUpdateLevel[] = [
 		getKernelVersionUpdateLevel(
 			localVersions?.fuelVersion,
@@ -79,9 +85,9 @@ function getSystemKernelVersionUpdateLevel(
 			appVersions?.fuel ?? [],
 		),
 		getKernelVersionUpdateLevel(
-			localVersions?.fusionVersion,
-			appVersions?.latest?.fusion,
-			appVersions?.fusion ?? [],
+			localVersions?.[selectVersionKey],
+			appVersions?.latest?.[selectKernal],
+			appVersions?.[selectKernal] ?? [],
 		),
 	]
 
@@ -148,13 +154,20 @@ export function MonitorStrip() {
 	const { appVersions } = useAppVersions()
 	const { hasClientUpdate } = useVersionCheck()
 	const localVersions = useAtomValue(versionsAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const selectKernal = getSelectKernal(permissions)
 	const [clock, setClock] = useState(() => dayjs().format("HH:mm:ss"))
 	const { productList } = useProductList()
 	const tradingSession = useTradingSession()
 
 	const systemKernelLevel = useMemo(
-		() => getSystemKernelVersionUpdateLevel(appVersions, localVersions),
-		[appVersions, localVersions],
+		() =>
+			getSystemKernelVersionUpdateLevel(
+				appVersions,
+				localVersions,
+				selectKernal,
+			),
+		[appVersions, localVersions, selectKernal],
 	)
 
 	const systemLevel = useMemo(() => {

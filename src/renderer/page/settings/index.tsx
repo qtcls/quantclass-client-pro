@@ -36,8 +36,8 @@ import { isAutoLoginAtom, versionListAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
 import type { SettingsType } from "@/renderer/types"
+import { checkPermission, getSelectKernal } from "@/shared/lib/permission"
 import type { KernalType } from "@/shared/types"
-import { checkPermission } from "@/shared/lib/permission"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
 	Activity,
@@ -64,11 +64,10 @@ export default function SettingsPage() {
 	const [showContributors, setShowContributors] = useState(false)
 	const { permissions } = useAtomValue(userAtom)
 	const { checkWithToast } = usePermissionCheck()
-	const isMemberOrStock = checkPermission(
-		permissions,
-		"isMember",
-		"isStock",
-	)
+	const isMemberOrStock = checkPermission(permissions, "isMember", "isStock")
+	const selectKernal = getSelectKernal(permissions)
+	const selectVersionKey =
+		selectKernal === "fusion" ? "fusionVersion" : "aquaVersion"
 	const [isAutoLogin, setIsAutoLogin] = useAtom(isAutoLoginAtom)
 
 	const { VITE_XBX_ENV } = import.meta.env
@@ -119,7 +118,9 @@ export default function SettingsPage() {
 	}
 
 	const handleSetIsAutoLaunchRealTrading = (value: boolean) => {
-		if (!checkWithToast({ requireMemberOrStock: true, onlyIn2025: true }).isValid)
+		if (
+			!checkWithToast({ requireMemberOrStock: true, onlyIn2025: true }).isValid
+		)
 			return
 
 		const updates: Partial<SettingsType> = {
@@ -196,7 +197,7 @@ export default function SettingsPage() {
 				await killAllKernals(true)
 
 				// -- 更新内核
-				for (const kernal of ["fuel", "fusion", "rocket"]) {
+				for (const kernal of ["fuel", selectKernal, "rocket"]) {
 					await invokeUpdateKernal(kernal as KernalType)
 				}
 				await refetchLocalVersions()
@@ -267,10 +268,10 @@ export default function SettingsPage() {
 
 					<>
 						<KernalVersion
-							name="fusion"
+							name={selectKernal}
 							title="选股内核"
 							Icon={SquareFunction}
-							versionKey="fusionVersion"
+							versionKey={selectVersionKey}
 							appVersions={appVersions}
 						/>
 
@@ -363,7 +364,9 @@ export default function SettingsPage() {
 							数据更新性能，性能越高，数据更新速度越快，但会占用更多性能。
 						</p>
 					</div>
-					<div className={cn(!isMemberOrStock && "pointer-events-none opacity-50")}>
+					<div
+						className={cn(!isMemberOrStock && "pointer-events-none opacity-50")}
+					>
 						<PerformanceModeSelectTabs
 							name="数据更新"
 							defaultValue={settings.performance_mode || "EQUAL"}
@@ -385,7 +388,9 @@ export default function SettingsPage() {
 							选股性能模式，性能越高，选股速度越快，但会占用更多性能。
 						</p>
 					</div>
-					<div className={cn(!isMemberOrStock && "pointer-events-none opacity-50")}>
+					<div
+						className={cn(!isMemberOrStock && "pointer-events-none opacity-50")}
+					>
 						<PerformanceModeSelectTabs
 							name="选股"
 							defaultValue={realMarketConfig.performance_mode || "EQUAL"}

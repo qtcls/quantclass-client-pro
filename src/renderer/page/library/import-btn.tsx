@@ -28,10 +28,12 @@ import { DialogFooter, DialogHeader } from "@/renderer/components/ui/dialog"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { backtestConfigAtom, reTimingAtom } from "@/renderer/store/storage"
+import { userAtom } from "@/renderer/store/user"
 import type { SelectStgType } from "@/renderer/types/strategy"
 import { openRealTradingFolder } from "@/renderer/utils"
+import { checkPermission } from "@/shared/lib/permission"
 import { useMutation } from "@tanstack/react-query"
-import { useSetAtom } from "jotai"
+import { useAtomValue, useSetAtom } from "jotai"
 import { isArray } from "lodash-es"
 import {
 	BadgePlus,
@@ -61,7 +63,15 @@ export default function StgImportButton() {
 	const setBacktestConfig = useSetAtom(backtestConfigAtom)
 	const setReTiming = useSetAtom(reTimingAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
-	const { resetSelectStgList, addSelectStgList } = useStrategyManager()
+	const {
+		resetSelectStgList,
+		addSelectStgList,
+		updateSelectStgList,
+		selectStgList,
+	} = useStrategyManager()
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+	const isAtStrategyLimit = !isMember && selectStgList.length >= 3
 	const { mutateAsync: importLibraryDir, isPending } = useMutation({
 		mutationKey: ["import-library"],
 		mutationFn: async (configFilePath: string) =>
@@ -92,7 +102,18 @@ export default function StgImportButton() {
 					...p,
 					backtest_name: backtestName,
 				}))
-				addSelectStgList(strategyListWithCap0 as SelectStgType[])
+				if (isMember) {
+					updateSelectStgList(strategyListWithCap0 as SelectStgType[])
+				} else {
+					const remaining = 3 - selectStgList.length
+					if (remaining <= 0) {
+						toast.error("基础版最多导入 3 个策略")
+						return
+					}
+					addSelectStgList(
+						(strategyListWithCap0 as SelectStgType[]).slice(0, remaining),
+					)
+				}
 			}
 			setImportOpen(false)
 			toast.success("导入成功")
@@ -111,7 +132,7 @@ export default function StgImportButton() {
 					size="sm"
 					variant="outline"
 					className="h-8 lg:flex"
-					disabled={isAutoRocket}
+					disabled={isAutoRocket || isAtStrategyLimit}
 					onClick={() => setImportOpen(true)}
 				>
 					<FolderDown className="size-4 mr-2" />
@@ -154,15 +175,17 @@ export default function StgImportButton() {
 					打开文件夹
 				</Button>
 			</ButtonTooltip>
-			<Button
-				size="sm"
-				variant="outline"
-				className="h-8 lg:flex"
-				onClick={() => setRebTimeConfigOpen(true)}
-			>
-				<Clock className="size-4 mr-2" />
-				换仓时间配置
-			</Button>
+			<ButtonTooltip content="换仓时间配置">
+				<Button
+					size="sm"
+					variant="outline"
+					className="h-8 lg:flex"
+					onClick={() => setRebTimeConfigOpen(true)}
+				>
+					<Clock className="size-4 mr-2" />
+					换仓时间配置
+				</Button>
+			</ButtonTooltip>
 			<RebTimeConfigModal
 				open={rebTimeConfigOpen}
 				onOpenChange={setRebTimeConfigOpen}
@@ -203,7 +226,15 @@ export default function StgImportButton() {
 						<ul className="list-inside space-y-2">
 							<li className="flex items-center">
 								<BadgePlus size={18} className="mr-2" /> 选中策略会{" "}
-								<span className="text-success font-bold">增加</span>
+								<span
+									className={
+										isMember
+											? "text-warning font-bold"
+											: "text-success font-bold"
+									}
+								>
+									{isMember ? "覆盖" : "增加"}
+								</span>
 								到当前策略库中
 							</li>
 							<li className="flex items-center">

@@ -8,6 +8,10 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import {
+	MemberPromoBanner,
+	MemberPromoDialog,
+} from "@/renderer/components/member-promo"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
 import {
@@ -27,7 +31,10 @@ import { H4 } from "@/renderer/components/ui/typography"
 import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
 import { cn } from "@/renderer/lib/utils"
 import BuyBlacklistAddInput from "@/renderer/page/trading/buy-blacklist/add-input"
+import { userAtom } from "@/renderer/store/user"
 import type { BlacklistItem } from "@/renderer/types/trading"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtomValue } from "jotai"
 import { CircleSlash2, ShieldBan, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -36,6 +43,9 @@ export default function BuyBlacklist({
 	titleSize,
 }: { titleSize?: string | null }) {
 	const { buyBlacklist: blacklist, removeBlacklistItem } = useBuyBlacklist()
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+	const [promoOpen, setPromoOpen] = useState(false)
 	const [deletePopoverOpen, setDeletePopoverOpen] = useState<string | null>(
 		null,
 	)
@@ -87,14 +97,30 @@ export default function BuyBlacklist({
 	return (
 		<>
 			{titleSize ? (
-				<div className="flex items-center gap-2 text-lg font-bold mb-2">
-					<ShieldBan />
-					买入黑名单
+				<div className="mb-2 flex w-full items-center gap-3">
+					<div className="flex shrink-0 items-center gap-2 text-lg font-bold">
+						<ShieldBan />
+						买入黑名单
+					</div>
+					{!isMember && (
+						<MemberPromoBanner
+							featureName="买入黑名单"
+							onLearnMore={() => setPromoOpen(true)}
+						/>
+					)}
 				</div>
 			) : (
-				<H4 className="flex items-center gap-2">
-					<ShieldBan size={24} /> 买入黑名单
-				</H4>
+				<div className="flex w-full items-center gap-3">
+					<H4 className="flex shrink-0 items-center gap-2">
+						<ShieldBan size={24} /> 买入黑名单
+					</H4>
+					{!isMember && (
+						<MemberPromoBanner
+							featureName="买入黑名单"
+							onLearnMore={() => setPromoOpen(true)}
+						/>
+					)}
+				</div>
 			)}
 
 			<div className="text-muted-foreground pt-1 mb-2 text-sm">
@@ -102,7 +128,6 @@ export default function BuyBlacklist({
 				<span className="font-bold text-primary">下单前设置都有效</span>
 				，黑名单内的股票不再会被自动买入（但原有持仓会正常卖出）。如在该股票被下单后设置，会在下次下单时生效。
 			</div>
-			{/* 添加黑名单，传入参数保持同步 */}
 			<BuyBlacklistAddInput />
 			{blacklist.length === 0 ? (
 				<div className="text-muted-foreground text-sm py-2 flex items-center">
@@ -181,6 +206,11 @@ export default function BuyBlacklist({
 					</TableBody>
 				</Table>
 			)}
+			<MemberPromoDialog
+				open={promoOpen}
+				onOpenChange={setPromoOpen}
+				featureName="买入黑名单"
+			/>
 		</>
 	)
 }

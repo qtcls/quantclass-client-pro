@@ -29,6 +29,8 @@ export function KernalUpdateStatus() {
 		fuel_start: "数据更新中...",
 		fusion_updating: "正在更新选股内核...",
 		fusion_start: "选股中...",
+		aqua_updating: "正在更新选股内核...",
+		aqua_start: "选股中...",
 		done: "",
 	}
 

@@ -161,6 +161,7 @@ export const isPidRunning = (pid: string) => {
 const PID_LOCK_PATH = {
 	fuel: ["code", "data"],
 	fusion: ["real_trading", "data", "locker"],
+	aqua: ["real_trading", "data", "locker"],
 	rocket: ["real_trading", "rocket", "data"],
 	scm: ["code", "scm", "data"],
 }
@@ -254,6 +255,10 @@ export async function isKernalBusy(kernal: KernalType): Promise<boolean> {
 		case "fusion":
 			isRunning = await isKernalRunning("fusion")
 			isUpdating = await isKernalUpdating("fusion")
+			break
+		case "aqua":
+			isRunning = await isKernalRunning("aqua")
+			isUpdating = await isKernalUpdating("aqua")
 			break
 		case "rocket":
 			isRunning = await isKernalRunning("rocket", true) // -- rocket 仅在 Windows 下运行，且需要严格模式
@@ -367,7 +372,7 @@ export const killKernalByForce = async (
 
 export const killAllKernalByForce = async (
 	strictMode = false,
-	kernals: KernalType[] = ["fuel", "fusion", "rocket", "scm"],
+	kernals: KernalType[] = ["fuel", "fusion", "aqua", "rocket", "scm"],
 ) => {
 	logger.info(`[kill] ${kernals.join(", ")} ${strictMode}`)
 	for (const kernal of kernals) {
@@ -377,7 +382,7 @@ export const killAllKernalByForce = async (
 }
 
 export const killAllKernalByName = async (
-	kernals: KernalType[] = ["fuel", "fusion", "rocket", "scm"],
+	kernals: KernalType[] = ["fuel", "fusion", "aqua", "rocket", "scm"],
 ) => {
 	logger.info(`[kill] ${kernals.join(", ")}`)
 	const uniqueKernals = Array.from(new Set(kernals))

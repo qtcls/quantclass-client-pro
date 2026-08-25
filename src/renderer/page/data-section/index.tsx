@@ -1,3 +1,4 @@
+import { MemberPromoGate } from "@/renderer/components/member-promo"
 import { SectionPage } from "@/renderer/components/section-tabs"
 import Data from "@/renderer/page/data"
 import RealtimeData from "@/renderer/page/realtime-data"
@@ -16,7 +17,11 @@ const DataSectionPage: FC = () => {
 			{(activeTab: TabKey) => (
 				<>
 					{activeTab === "history" && <Data />}
-					{activeTab === "realtime" && <RealtimeData />}
+					{activeTab === "realtime" && (
+						<MemberPromoGate featureName="实时数据" className="h-full">
+							<RealtimeData />
+						</MemberPromoGate>
+					)}
 				</>
 			)}
 		</SectionPage>

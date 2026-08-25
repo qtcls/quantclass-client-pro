@@ -19,8 +19,8 @@ import {
 	killKernalByForce,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
-import { checkPermission } from "@/shared/lib/permission.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
+import { checkPermission, getSelectKernal } from "@/shared/lib/permission.js"
 import {
 	getLocalCalendarYmd,
 	isLocalYmdTradingDayInCalendar,
@@ -70,13 +70,7 @@ async function initializeSystem() {
 		const userInfo = await userStore.getUserAccount(true)
 
 		// 若未获取到或没有分享会/股票权限则 return
-		if (
-			!checkPermission(
-				userInfo?.permissions ?? [],
-				"isMember",
-				"isStock",
-			)
-		) {
+		if (!checkPermission(userInfo?.permissions ?? [], "isMember", "isStock")) {
 			return
 		}
 	} catch (error) {
@@ -160,9 +154,10 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 		// -- 检查是否设置自动更新数据，如果设置了，唤醒 Rocket
 		if (requireTrading) await wakeUpRocket(userAccount, mw)
 
+		const selectKernal = getSelectKernal(userAccount?.permissions ?? [])
 		if (
 			await isAnyKernalBusy(
-				allowConcurrentFuelTasks ? ["fusion"] : ["fusion", "fuel"],
+				allowConcurrentFuelTasks ? [selectKernal] : [selectKernal, "fuel"],
 			)
 		) {
 			logger.info("[scheduler] 内核正忙，跳过本轮调度")
@@ -210,10 +205,10 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 			)
 
 			logger.info(`[libraryType] 策略类型${libraryType}`)
-			if (await isKernalBusy("fusion")) {
-				logger.info("[fusion] 内核正忙，跳过本轮调度")
+			if (await isKernalBusy(selectKernal)) {
+				logger.info(`[${selectKernal}] 内核正忙，跳过本轮调度`)
 			} else if (!isScheduleSelectModule) {
-				logger.info("[fusion] 非定时选股时间，跳过本轮选股")
+				logger.info(`[${selectKernal}] 非定时选股时间，跳过本轮选股`)
 			} else {
 				await wakeUpFusion(userAccount, mw)
 			}
@@ -240,22 +235,20 @@ async function wakeUpFuel(mw) {
 }
 
 async function wakeUpFusion(userAccount: UserAccount, mw) {
+	const permissions = userAccount?.permissions ?? []
 	if (
-		!checkPermission(
-			userAccount?.permissions ?? [],
-			"isMember",
-			"isStock",
-		) ||
+		!checkPermission(permissions, "isMember", "isStock") ||
 		!platform.isWindows
 	) {
-		logger.info(`[fusion] 无分享会或股票权限，跳过fusion，${userAccount?.user}`)
+		logger.info(`[select] 无分享会或股票权限，跳过选股，${userAccount?.user}`)
 		return
 	}
+	const selectKernal = getSelectKernal(permissions)
 	try {
-		mw?.webContents.send("send-schedule-status", "fusion_start")
-		await execBin(["select", "trading"], "选股", "fusion")
+		mw?.webContents.send("send-schedule-status", `${selectKernal}_start`)
+		await execBin(["select", "trading"], "选股", selectKernal)
 	} catch (error) {
-		logger.info(`[fusion] runtime error(${error})`)
+		logger.info(`[${selectKernal}] runtime error(${error})`)
 	} finally {
 	}
 }
@@ -278,13 +271,7 @@ async function wakeUpRocket(userAccount: UserAccount, mw) {
 		return
 	}
 
-	if (
-		!checkPermission(
-			userAccount?.permissions ?? [],
-			"isMember",
-			"isStock",
-		)
-	) {
+	if (!checkPermission(userAccount?.permissions ?? [], "isMember", "isStock")) {
 		logger.info(`[trade] 无分享会或股票权限，跳过Rocket，${userAccount?.user}`)
 		return
 	}
@@ -386,8 +373,7 @@ async function shouldRunMinDataSchedule(): Promise<
 	if (calendar.length === 0) {
 		return {
 			run: false,
-			message:
-				"[min-data] 未读到 period_offset.csv 交易日历，跳过本轮",
+			message: "[min-data] 未读到 period_offset.csv 交易日历，跳过本轮",
 		}
 	}
 

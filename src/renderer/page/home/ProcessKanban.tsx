@@ -20,7 +20,8 @@ import { isWindows } from "@/renderer/constant"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
 import { userAtom } from "@/renderer/store/user"
-import { checkPermission } from "@/shared/lib/permission"
+import { checkPermission, getSelectKernal } from "@/shared/lib/permission"
+import type { KernalType } from "@/shared/types/kernal"
 import dayjs from "dayjs"
 import { useAtom, useAtomValue } from "jotai"
 import {
@@ -35,11 +36,8 @@ import { useMemo } from "react"
 
 export const ProcessKanban = () => {
 	const { permissions } = useAtomValue(userAtom)
-	const isMemberOrStock = checkPermission(
-		permissions,
-		"isMember",
-		"isStock",
-	)
+	const isMemberOrStock = checkPermission(permissions, "isMember", "isStock")
+	const selectKernal = getSelectKernal(permissions)
 	const [{ data }] = useAtom(monitorProcessesQueryAtom)
 
 	const { VITE_XBX_ENV } = import.meta.env
@@ -62,7 +60,7 @@ export const ProcessKanban = () => {
 			<div className="grid  gap-2">
 				<ProcessCard data={data} kernel="fuel" />
 				{canRealTrading && isMemberOrStock && (
-					<ProcessCard data={data} kernel="fusion" />
+					<ProcessCard data={data} kernel={selectKernal} />
 				)}
 				{canRealTrading && isMemberOrStock && (
 					<ProcessCard data={data} kernel="rocket" />
@@ -76,11 +74,11 @@ export const ProcessCard = ({
 	data,
 	kernel,
 }: {
-	kernel: "fuel" | "fusion" | "rocket" | "scm"
+	kernel: KernalType
 	data?: {
 		pid: number
 		action: string
-		kernel: "fuel" | "fusion" | "rocket" | "scm"
+		kernel: KernalType
 		createdAt: string
 	}[]
 }) => {
@@ -92,18 +90,21 @@ export const ProcessCard = ({
 	const keyMap = {
 		fuel: "数据模块",
 		fusion: "选股模块",
+		aqua: "选股模块",
 		rocket: "下单模块",
 		scm: "config 大师",
 	}
 	const actionMap = {
 		fuel: "运行中...",
 		fusion: "计算中...",
+		aqua: "计算中...",
 		rocket: "运行中...",
 		scm: "运行中...",
 	}
 	const timeMap = {
 		fuel: "上次更新时间",
 		fusion: "上次选股时间",
+		aqua: "上次选股时间",
 		rocket: "上次运行时间",
 		scm: "上次启动时间",
 	}
@@ -130,7 +131,8 @@ export const ProcessCard = ({
 	const isInitializing = useMemo(() => {
 		return (
 			(isUpdating && kernel === "fuel") ||
-			(isAutoRocket && (kernel === "fusion" || kernel === "rocket"))
+			(isAutoRocket &&
+				(kernel === "fusion" || kernel === "aqua" || kernel === "rocket"))
 		)
 	}, [isUpdating, isAutoRocket, kernel])
 

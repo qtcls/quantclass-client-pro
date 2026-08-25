@@ -17,9 +17,12 @@ import { cn } from "@/renderer/lib/utils"
 import { ProcessCard } from "@/renderer/page/home/ProcessKanban"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
+import { userAtom } from "@/renderer/store/user"
+import { getSelectKernal } from "@/shared/lib/permission"
+import type { KernalType } from "@/shared/types/kernal"
 import { useAtom, useAtomValue } from "jotai"
 
-export type KernelKey = "fuel" | "fusion" | "rocket" | "scm"
+export type KernelKey = KernalType
 
 export type KernelStatusLevel = "ok" | "warn" | "idle"
 
@@ -40,7 +43,10 @@ export function getKernelStatus(
 	if (isUpdating && kernel === "fuel") {
 		return { level: "warn", label: "更新中" }
 	}
-	if (isAutoRocket && (kernel === "fusion" || kernel === "rocket")) {
+	if (
+		isAutoRocket &&
+		(kernel === "fusion" || kernel === "aqua" || kernel === "rocket")
+	) {
 		return { level: "warn", label: "启动中" }
 	}
 	return { level: "idle", label: "未运行" }
@@ -62,7 +68,8 @@ const LEVEL_STYLES: Record<KernelStatusLevel, { text: string; dot: string }> = {
 }
 
 export function useResearchKernel(): KernelKey {
-	return "fusion"
+	const { permissions } = useAtomValue(userAtom)
+	return getSelectKernal(permissions)
 }
 
 export function ModuleKernelBadge({ kernel }: { kernel: KernelKey }) {

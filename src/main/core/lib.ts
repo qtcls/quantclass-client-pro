@@ -52,6 +52,7 @@ export async function getAppAndKernalVersions() {
 		const { version } = PACKAGE_INFO
 		const fuelVersion = await getKernelVersion("fuel")
 		const fusionVersion = await getKernelVersion("fusion")
+		const aquaVersion = await getKernelVersion("aqua")
 		const rocketVersion = await getKernelVersion("rocket")
 		const scmVersion = await getKernelVersion("scm")
 		const clientVersion = version
@@ -60,6 +61,7 @@ export async function getAppAndKernalVersions() {
 			fuelVersion,
 			clientVersion,
 			fusionVersion,
+			aquaVersion,
 			rocketVersion,
 			scmVersion,
 		}
@@ -70,6 +72,7 @@ export async function getAppAndKernalVersions() {
 			clientVersion: version,
 			fuelVersion: defaultVersion,
 			fusionVersion: defaultVersion,
+			aquaVersion: defaultVersion,
 			rocketVersion: defaultVersion,
 			scmVersion: defaultVersion,
 		}

@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { FEN_CLASS_URL } from "@/renderer/components/member-promo"
 import { isWindows } from "@/renderer/constant"
 import { userAtom } from "@/renderer/store/user"
 import { checkPermission } from "@/shared/lib/permission"
@@ -65,7 +66,7 @@ export function usePermissionCheck() {
 				action: {
 					label: "了解分享会",
 					onClick: () => {
-						openUrl("https://www.quantclass.cn/fen/class/fen-2025")
+						openUrl(FEN_CLASS_URL)
 					},
 				},
 			})
@@ -103,8 +104,7 @@ export function usePermissionCheck() {
 			!checkPermission(permissions, "isMember", "isStock")
 		) {
 			const message =
-				messages.requireMemberOrStock ??
-				"本功能需开通股票课程或策略分享会"
+				messages.requireMemberOrStock ?? "本功能需开通股票课程或策略分享会"
 			!skipToast && showToast(message, "memberOrStock")
 			return { isValid: false, message, type: "memberOrStock" }
 		}

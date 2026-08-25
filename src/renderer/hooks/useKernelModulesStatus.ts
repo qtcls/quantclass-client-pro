@@ -9,9 +9,9 @@
  */
 
 import {
-	getKernelStatus,
 	type KernelKey,
 	type KernelStatusLevel,
+	getKernelStatus,
 	useResearchKernel,
 } from "@/renderer/page/home/kernel-status"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
@@ -28,13 +28,12 @@ export interface KernelModuleItem {
 const MODULE_SHORT_LABELS: Record<KernelKey, string> = {
 	fuel: "数据",
 	fusion: "选股",
+	aqua: "选股",
 	rocket: "下单",
 	scm: "配置",
 }
 
-function getQueueChipStatus(
-	modules: KernelModuleItem[],
-): KernelStatusLevel {
+function getQueueChipStatus(modules: KernelModuleItem[]): KernelStatusLevel {
 	if (modules.some((m) => m.status.level === "ok")) return "ok"
 	if (modules.some((m) => m.status.level === "warn")) return "warn"
 	return "idle"

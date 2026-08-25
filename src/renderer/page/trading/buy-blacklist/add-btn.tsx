@@ -8,15 +8,19 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { MemberPromoDialog } from "@/renderer/components/member-promo"
 import { Button } from "@/renderer/components/ui/button"
 import { useMemo, useState } from "react"
 
-import { toast } from "sonner"
-import { validateStockCode } from "@/renderer/utils"
-import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
-import BuyBlacklistAddConfirm from "./confirm-add-dialog"
-import { ShieldBan, Trash2 } from "lucide-react"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
+import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
+import { userAtom } from "@/renderer/store/user"
+import { validateStockCode } from "@/renderer/utils"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtomValue } from "jotai"
+import { ShieldBan, Trash2 } from "lucide-react"
+import { toast } from "sonner"
+import BuyBlacklistAddConfirm from "./confirm-add-dialog"
 
 export default function BuyBlacklistAddBtn({
 	stockCode,
@@ -28,6 +32,9 @@ export default function BuyBlacklistAddBtn({
 		removeBlacklistItem,
 		isBlacklisted: isBlacklistedFn,
 	} = useBuyBlacklist()
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+	const [promoOpen, setPromoOpen] = useState(false)
 
 	const [reasonDialog, setReasonDialog] = useState(false)
 
@@ -35,16 +42,17 @@ export default function BuyBlacklistAddBtn({
 		return isBlacklistedFn(stockCode)
 	}, [isBlacklistedFn, stockCode])
 
-	// 验证股票代码并处理拉黑逻辑
 	const handleBlacklistStock = (stockCode: string) => {
-		// 检查是否已拉黑
 		if (isBlacklisted) {
+			if (!isMember) {
+				setPromoOpen(true)
+				return
+			}
 			removeBlacklistItem(stockCode)
 			toast.success(`已从黑名单中移除${stockCode}`)
 			return
 		}
 
-		// 验证股票代码格式
 		if (!validateStockCode(stockCode)) {
 			toast.error(
 				"请输入正确的股票代码格式（如：sz000001、sh600000、bj430047）",
@@ -52,7 +60,6 @@ export default function BuyBlacklistAddBtn({
 			return
 		}
 
-		// 打开原因输入对话框
 		setReasonDialog(true)
 	}
 
@@ -95,6 +102,11 @@ export default function BuyBlacklistAddBtn({
 					setReasonDialog(false)
 					toast.success(`拉黑${buyBlacklistItem.code}成功`)
 				}}
+			/>
+			<MemberPromoDialog
+				open={promoOpen}
+				onOpenChange={setPromoOpen}
+				featureName="买入黑名单"
 			/>
 		</>
 	)

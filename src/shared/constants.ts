@@ -6,7 +6,12 @@ export const POS_MGMT_STRATEGY_CONFIG = "pos_mgmt"
 export const NOTIFICATION_REPORT_CODE = 800
 
 // -- 通知来源
-export const NOTIFICATION_SOURCES = ["fuel", "rocket", "fusion"] as const
+export const NOTIFICATION_SOURCES = [
+	"fuel",
+	"rocket",
+	"fusion",
+	"aqua",
+] as const
 export type NotificationSource = (typeof NOTIFICATION_SOURCES)[number]
 
 // -- 通知级别

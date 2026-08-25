@@ -1,6 +1,11 @@
 import { cn } from "@/renderer/lib/utils"
 import React from "react"
 
+export const rainbowGradientClassName =
+	"bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/20 dark:via-purple-900/40 dark:to-pink-900/50"
+
+export const rainbowBorderClassName = "border-blue-300 dark:border-blue-700"
+
 interface AnimatedRainbowCardProps {
 	children?: React.ReactNode
 	className?: string
@@ -19,12 +24,14 @@ export function AnimatedRainbowCard({
 	return (
 		<div
 			className={cn(
-				"relative overflow-hidden bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/20 dark:via-purple-900/40 dark:to-pink-900/50 border border-blue-300 dark:border-blue-700 rounded-lg px-4 py-3",
+				"relative overflow-hidden border rounded-lg px-4 py-3",
+				rainbowGradientClassName,
+				rainbowBorderClassName,
 				className,
 			)}
 		>
 			{/* 动画闪光效果 */}
-			<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent w-1/3 h-full animate-[shimmer_2s_ease-in-out_infinite] transform -skew-x-12"></div>
+			<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent w-1/3 h-full animate-[shimmer_2s_ease-in-out_infinite] transform -skew-x-12" />
 
 			{/* 内容区域 */}
 			<div className="relative">

@@ -9,9 +9,11 @@
  */
 
 import { getJsonDataFromFile } from "@/main/core/dataList.js"
+import { userStore } from "@/main/lib/userStore.js"
 import store, { rStore } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { ROCKET_STATS_PATH, SELECT_STATS_PATH } from "@/main/vars.js"
+import { getSelectKernal } from "@/shared/lib/permission.js"
 import {
 	getFusionGroupSubRealMarketStrategyName,
 	getFusionTopRealMarketStrategyName,
@@ -290,7 +292,9 @@ async function generateSingleStrategyStatus(
 	}
 	const useOpenSell = realMarketConfig?.use_open_sell === "1"
 
-	const selectStats = await readStatsFromJson(date, "fusion", strategyName)
+	const userAccount = await userStore.getUserAccount()
+	const selectKernal = getSelectKernal(userAccount?.permissions ?? [])
+	const selectStats = await readStatsFromJson(date, selectKernal, strategyName)
 
 	// 读取当天的 rocket stats
 	const rocketStatsToday = await readStatsFromJson(date, "rocket", strategyName)

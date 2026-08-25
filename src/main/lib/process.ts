@@ -26,7 +26,8 @@ import {
 	killKernalByForce,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
-import { checkPermission } from "@/shared/lib/permission.js"
+import { checkPermission, getSelectKernal } from "@/shared/lib/permission.js"
+import type { KernalType } from "@/shared/types/kernal.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
 import Store from "electron-store"
@@ -44,7 +45,7 @@ export class ProcessManage {
 			action: string
 			createdAt: string
 			pid?: number
-			kernel: "fuel" | "rocket" | "fusion" | "scm"
+			kernel: KernalType
 		}
 	>
 
@@ -57,7 +58,7 @@ export class ProcessManage {
 		args: string[],
 		options: SpawnOptionsWithoutStdio,
 		action: string,
-		kernel: "fuel" | "rocket" | "fusion" | "scm" = "fuel",
+		kernel: KernalType = "fuel",
 	) {
 		const childProcess = spawn(command, args, options)
 
@@ -152,8 +153,8 @@ export class ProcessManage {
 			if (action.action === "自动更新所有数据") {
 				await killKernalByForce("fuel")
 			}
-			if (action.kernel === "fusion") {
-				await killKernalByForce("fusion")
+			if (action.kernel === "fusion" || action.kernel === "aqua") {
+				await killKernalByForce(action.kernel)
 			}
 			if (action.action === "启动 rocket") {
 				await killKernalByForce("rocket")
@@ -199,7 +200,7 @@ export const process_manager = new ProcessManage()
 export const execBin = async (
 	args: string[],
 	action: string,
-	kernel: "fuel" | "rocket" | "fusion" | "scm" = "fuel",
+	kernel: KernalType = "fuel",
 	extraEnv?: string | Record<string, string>,
 ) => {
 	try {
@@ -222,6 +223,15 @@ export const execBin = async (
 				logger.warn(`[exec-${kernel}] 无分享会或股票权限，不调用内核`)
 				return
 			}
+			if (kernel === "fusion" || kernel === "aqua") {
+				const selectKernal = getSelectKernal(userAccount?.permissions ?? [])
+				if (kernel !== selectKernal) {
+					logger.warn(
+						`[exec-${kernel}] 当前身份应使用 ${selectKernal} 内核，不调用`,
+					)
+					return
+				}
+			}
 		}
 
 		// -- 根据指定的内核选择相应的执行文件路径
@@ -241,12 +251,13 @@ export const execBin = async (
 
 		const fuelRunning = await isKernalRunning("fuel")
 		const fusionRunning = await isKernalRunning("fusion")
+		const aquaRunning = await isKernalRunning("aqua")
 		const rocketRunning = await isKernalRunning("rocket", true)
 		if (platform.isMacOS) exec(`chmod +x ${binPath}`)
 
 		logger.info(`[exec-${kernel}] 内核路径: ${binPath}`)
 		logger.info(
-			`[exec-${kernel}] fuel(${fuelRunning})、rocket(${rocketRunning})、fusion(${fusionRunning})`,
+			`[exec-${kernel}] fuel(${fuelRunning})、rocket(${rocketRunning})、fusion(${fusionRunning})、aqua(${aquaRunning})`,
 		)
 
 		// 仅阻止重复启动「自动更新所有数据」，允许历史数据与实时数据更新（min_data）同时执行
@@ -259,7 +270,10 @@ export const execBin = async (
 			logger.warn(`[exec-${kernel}] 自动更新所有数据仍在运行中，退出 execBin`)
 			return
 		}
-		if (fusionRunning && kernel === "fusion") {
+		if (
+			(fusionRunning || aquaRunning) &&
+			(kernel === "fusion" || kernel === "aqua")
+		) {
 			logger.warn(`[exec-${kernel}] 仍在运行中，退出 execBin`)
 			return
 		}
@@ -269,7 +283,7 @@ export const execBin = async (
 		}
 
 		if (
-			kernel === "fusion" &&
+			(kernel === "fusion" || kernel === "aqua") &&
 			action === "选股" &&
 			process_manager.hasProcessWithAction("选股")
 		) {
@@ -347,7 +361,7 @@ function handlePythonProcess<T = any>(
 	pythonProcess: ChildProcessWithoutNullStreams,
 	resolve: (value?: T) => void,
 	reject: (reason?: any) => void,
-	kernel: "fuel" | "rocket" | "fusion" | "scm",
+	kernel: KernalType,
 	action: string,
 ) {
 	const mainWindow = windowManager.getWindow()

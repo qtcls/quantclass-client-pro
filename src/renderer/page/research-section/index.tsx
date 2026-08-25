@@ -1,3 +1,4 @@
+import { MemberPromoGate } from "@/renderer/components/member-promo"
 import { SectionPage } from "@/renderer/components/section-tabs"
 import ResearchFrameworkSourcePage from "@/renderer/page/research/basic-code"
 import ResearchStrategyLibraryPage from "@/renderer/page/research/strategies"
@@ -14,10 +15,10 @@ const ResearchSectionPage: FC = () => {
 	return (
 		<SectionPage tabs={TABS} defaultTab="strategy_library">
 			{(activeTab: TabKey) => (
-				<>
+				<MemberPromoGate featureName="投研中心" className="h-full">
 					{activeTab === "strategy_library" && <ResearchStrategyLibraryPage />}
 					{activeTab === "framework_source" && <ResearchFrameworkSourcePage />}
-				</>
+				</MemberPromoGate>
 			)}
 		</SectionPage>
 	)

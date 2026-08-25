@@ -31,6 +31,8 @@ import {
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { ManualStockSelectDialog } from "@/renderer/page/strategy/manual-stock-select-dialog"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { CheckCircledIcon, InfoCircledIcon } from "@radix-ui/react-icons"
 import type { ColumnDef } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
@@ -51,6 +53,8 @@ export const useGenLibraryColumn = (
 	realMarketFallback?: "fusion-top",
 ): ColumnDef<SelectStgType>[] => {
 	const totalWeight = useAtomValue(totalWeightAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const { updateFusionStgInRow, fusion, updateFusion } = useFusionManager()
 	const { isAutoRocket } = useToggleAutoRealTrading()
 	const { selectStgList, updateSelectStg } = useStrategyManager()
@@ -437,41 +441,43 @@ export const useGenLibraryColumn = (
 										rowIndex={row.index}
 										fusionIndex={fusionIndex}
 									/>
-									<StrategyReplaceDialog
-										strategy={row.original as SelectStgType}
-										strategyType="select"
-										onReplace={(newStg) => {
-											if (fusionIndex < 0) {
-												updateSelectStg(row.index, newStg)
-											} else {
-												const stgInFusion = fusion[fusionIndex]
-												if (!stgInFusion) return
-												let updated: any
-												if (stgInFusion.type === "group") {
-													updated = {
-														...stgInFusion,
-														strategy_list: stgInFusion.strategy_list.map(
-															(s, i) => (i === row.index ? newStg : s),
-														),
-													}
-												} else if (stgInFusion.type === "pos") {
-													updated = {
-														...stgInFusion,
-														strategy_pool: stgInFusion.strategy_pool.map(
-															(s, i) => (i === row.index ? newStg : s),
-														),
-													}
+									{isMember && (
+										<StrategyReplaceDialog
+											strategy={row.original as SelectStgType}
+											strategyType="select"
+											onReplace={(newStg) => {
+												if (fusionIndex < 0) {
+													updateSelectStg(row.index, newStg)
 												} else {
-													updated = newStg
+													const stgInFusion = fusion[fusionIndex]
+													if (!stgInFusion) return
+													let updated: any
+													if (stgInFusion.type === "group") {
+														updated = {
+															...stgInFusion,
+															strategy_list: stgInFusion.strategy_list.map(
+																(s, i) => (i === row.index ? newStg : s),
+															),
+														}
+													} else if (stgInFusion.type === "pos") {
+														updated = {
+															...stgInFusion,
+															strategy_pool: stgInFusion.strategy_pool.map(
+																(s, i) => (i === row.index ? newStg : s),
+															),
+														}
+													} else {
+														updated = newStg
+													}
+													updateFusion(
+														fusion.map((item, i) =>
+															i === fusionIndex ? updated : item,
+														),
+													)
 												}
-												updateFusion(
-													fusion.map((item, i) =>
-														i === fusionIndex ? updated : item,
-													),
-												)
-											}
-										}}
-									/>
+											}}
+										/>
+									)}
 									{!isDisabled && (
 										<DeleteStrategy
 											strategy={row.original as SelectStgType}

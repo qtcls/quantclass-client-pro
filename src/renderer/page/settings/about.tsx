@@ -67,9 +67,13 @@ export function AboutPage({ className }: { className?: string }) {
 						。
 					</li>
 					<li>
-						<span className="font-bold">Fusion（选股内核）</span>
+						<span className="font-bold">Aqua / Fusion（选股内核）</span>
 						：基于最新数据检查是否已生成交易计划，并在需要时生成。运行时会在“选股日志”产生记录；运行时在Windows
 						任务管理器可见进程
+						<Badge className="font-mono" variant="outline">
+							aqua.exe
+						</Badge>
+						或
 						<Badge className="font-mono" variant="outline">
 							fusion.exe
 						</Badge>
@@ -94,7 +98,7 @@ export function AboutPage({ className }: { className?: string }) {
 					<li>
 						<span className="font-bold">频率与顺序</span>
 						：客户端<u className="text-primary">每分钟</u>依次唤醒 Rocket → Fuel
-						→ Fusion（单进程串行）。
+						→ Aqua / Fusion（单进程串行）。
 					</li>
 					<li>
 						<span className="font-bold">占用检测</span>
@@ -130,6 +134,10 @@ export function AboutPage({ className }: { className?: string }) {
 							fuel.exe
 						</Badge>{" "}
 						或{" "}
+						<Badge className="font-mono" variant="outline">
+							aqua.exe
+						</Badge>
+						{" / "}
 						<Badge className="font-mono" variant="outline">
 							fusion.exe
 						</Badge>{" "}

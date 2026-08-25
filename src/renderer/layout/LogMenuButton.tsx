@@ -22,7 +22,9 @@ import { isWindows } from "@/renderer/constant"
 import { useHotkeys } from "@/renderer/hooks/useHotkeys"
 import { useRealMarketConfig } from "@/renderer/hooks/useRealMarketConfig"
 import { isLogModalOpenAtom, isShowMonitorPanelAtom } from "@/renderer/store"
-import { useAtom } from "jotai"
+import { userAtom } from "@/renderer/store/user"
+import { getSelectKernal } from "@/shared/lib/permission"
+import { useAtom, useAtomValue } from "jotai"
 import {
 	Blocks,
 	DatabaseZap,
@@ -39,6 +41,8 @@ const { openUserDirectory, openDataDirectory, openDirectory } =
 
 export function LogMenuButton() {
 	const { realMarketConfig } = useRealMarketConfig()
+	const { permissions } = useAtomValue(userAtom)
+	const selectKernal = getSelectKernal(permissions)
 	const [isLogModalOpen, setIsLogModalOpen] = useAtom(isLogModalOpenAtom)
 	const [isShowMonitorPanel, setIsShowMonitorPanel] = useAtom(
 		isShowMonitorPanelAtom,
@@ -103,7 +107,7 @@ export function LogMenuButton() {
 						<SquareFunction />
 						选股日志
 						<Badge className="ml-auto font-mono" variant="secondary">
-							fusion
+							{selectKernal}
 						</Badge>
 					</DropdownMenuItem>
 					<DropdownMenuItem

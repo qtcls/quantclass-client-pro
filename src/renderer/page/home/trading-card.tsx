@@ -115,6 +115,39 @@ export function TradingCard() {
 							单账户 · 多组合即将上线
 						</span>
 					</span>
+					{isAutoRocket ? (
+						<ButtonTooltip
+							content={
+								selectScheduleTimes.length > 0
+									? "点击暂停定时实盘（只在指定时间运行）"
+									: "点击暂停自动实盘"
+							}
+						>
+							<button
+								type="button"
+								onClick={() => void handleToggleAutoRocket(false)}
+								className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 text-green-600 hover:bg-green-500/10 transition-colors"
+							>
+								<RefreshCw className="size-5 animate-spin" />
+							</button>
+						</ButtonTooltip>
+					) : (
+						<ButtonTooltip
+							content={
+								selectScheduleTimes.length > 0
+									? "启动定时实盘（只在指定时间运行）"
+									: "启动自动实盘"
+							}
+						>
+							<button
+								type="button"
+								onClick={handleTradeCtrlClick}
+								className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 text-foreground hover:bg-muted transition-colors"
+							>
+								<Play className="size-5 fill-current" />
+							</button>
+						</ButtonTooltip>
+					)}
 				</div>
 				<div className="px-4 py-3.5 flex-1 flex flex-col">
 					<div className="flex items-center gap-2.5 py-2">
@@ -176,41 +209,6 @@ export function TradingCard() {
 					<CalendarSync className="size-3.5" strokeWidth={1.9} />
 					运行计划设置
 				</button>
-				{isAutoRocket ? (
-					<ButtonTooltip
-						content={
-							selectScheduleTimes.length > 0
-								? "点击暂停定时实盘（只在指定时间运行）"
-								: "点击暂停自动实盘"
-						}
-					>
-						<button
-							type="button"
-							onClick={() => void handleToggleAutoRocket(false)}
-							className="flex items-center justify-center gap-2 w-full px-4 py-2.5 border-t border-border text-sm font-medium text-green-600 bg-green-500/5 hover:bg-green-500/10 transition-colors"
-						>
-							<RefreshCw className="size-3.5 animate-spin" />
-							{selectScheduleTimes.length > 0 ? "定时实盘中 · 点击暂停" : "实盘中 · 点击暂停"}
-						</button>
-					</ButtonTooltip>
-				) : (
-					<ButtonTooltip
-						content={
-							selectScheduleTimes.length > 0
-								? "启动定时实盘（只在指定时间运行）"
-								: "启动自动实盘"
-						}
-					>
-						<button
-							type="button"
-							onClick={handleTradeCtrlClick}
-							className="flex items-center justify-center gap-2 w-full px-4 py-2.5 border-t border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-						>
-							<Play className="size-3.5" />
-							启动自动实盘
-						</button>
-					</ButtonTooltip>
-				)}
 				<button
 					type="button"
 					onClick={() => navigate(TRADING_SECTION_ROUTE)}

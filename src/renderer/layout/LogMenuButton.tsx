@@ -103,7 +103,7 @@ export function LogMenuButton() {
 						<SquareFunction />
 						选股日志
 						<Badge className="ml-auto font-mono" variant="secondary">
-							aqua/zeus
+							fusion
 						</Badge>
 					</DropdownMenuItem>
 					<DropdownMenuItem

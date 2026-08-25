@@ -120,7 +120,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 	 * - 检查用户登录状态
 	 * - 唤醒 Rocket
 	 * - 唤醒 Fuel
-	 * - 唤醒 Aqua
+	 * - 唤醒 Fusion
 	 */
 	systemState.job = schedule.scheduleJob("* * * * *", async () => {
 		logger.info(">>>>>>>>>>>>>>>> scheduler start <<<<<<<<<<<<<<<<")
@@ -153,7 +153,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 
 		if (
 			await isAnyKernalBusy(
-				allowConcurrentFuelTasks ? ["aqua", "zeus"] : ["aqua", "fuel", "zeus"],
+				allowConcurrentFuelTasks ? ["fusion"] : ["fusion", "fuel"],
 			)
 		) {
 			logger.info("[scheduler] 内核正忙，跳过本轮调度")
@@ -185,7 +185,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 			}
 		}
 
-		// -- 当设置自动下单的时候，自动唤醒Aqua or Zeus
+		// -- 当设置自动下单的时候，自动唤醒Fusion
 		if (requireTrading) {
 			// -- 获取定时任务时间
 			const selectModuleTimes = (await _store.get(
@@ -201,25 +201,12 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 			)
 
 			logger.info(`[libraryType] 策略类型${libraryType}`)
-			switch (libraryType) {
-				case "pos":
-					if (await isKernalBusy("zeus")) {
-						logger.info("[zeus] 内核正忙，跳过本轮调度")
-					} else if (!isScheduleSelectModule) {
-						logger.info("[zeus] 非定时选股时间，跳过本轮选股")
-					} else {
-						await wakeUpZeus(userAccount, mw)
-					}
-					break
-				case "select":
-					if (await isKernalBusy("aqua")) {
-						logger.info("[aqua] 内核正忙，跳过本轮调度")
-					} else if (!isScheduleSelectModule) {
-						logger.info("[aqua] 非定时选股时间，跳过本轮选股")
-					} else {
-						await wakeUpAqua(userAccount, mw)
-					}
-					break
+			if (await isKernalBusy("fusion")) {
+				logger.info("[fusion] 内核正忙，跳过本轮调度")
+			} else if (!isScheduleSelectModule) {
+				logger.info("[fusion] 非定时选股时间，跳过本轮选股")
+			} else {
+				await wakeUpFusion(userAccount, mw)
 			}
 		} else {
 			logger.info("[scheduler] 未启用自动实盘或者非Windows系统，跳过本轮调度")
@@ -243,31 +230,16 @@ async function wakeUpFuel(mw) {
 	}
 }
 
-async function wakeUpAqua(userAccount: UserAccount, mw) {
+async function wakeUpFusion(userAccount: UserAccount, mw) {
 	if (!userAccount?.isMember || !platform.isWindows) {
-		logger.info(`[Aqua] 非分享会状态，跳过Aqua，${userAccount?.user}`)
+		logger.info(`[fusion] 非分享会状态，跳过fusion，${userAccount?.user}`)
 		return
 	}
 	try {
-		mw?.webContents.send("send-schedule-status", "aqua_start")
-		await execBin(["select", "trading"], "选股", "aqua")
+		mw?.webContents.send("send-schedule-status", "fusion_start")
+		await execBin(["select", "trading"], "选股", "fusion")
 	} catch (error) {
-		logger.info(`[aqua] runtime error(${error})`)
-	} finally {
-	}
-}
-
-async function wakeUpZeus(userAccount: UserAccount, mw) {
-	if (!userAccount?.isMember || !platform.isWindows) {
-		logger.info(`[zeus] 非分享会状态，跳过zeus，${userAccount?.user}`)
-		return
-	}
-	logger.info("[zeus] 正在调用zeus")
-	try {
-		mw?.webContents.send("send-schedule-status", "aqua_start")
-		await execBin(["select", "trading"], "选股", "zeus")
-	} catch (error) {
-		logger.info(`[aqua] runtime error(${error})`)
+		logger.info(`[fusion] runtime error(${error})`)
 	} finally {
 	}
 }

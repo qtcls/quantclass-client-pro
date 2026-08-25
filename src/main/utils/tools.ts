@@ -160,9 +160,9 @@ export const isPidRunning = (pid: string) => {
 
 const PID_LOCK_PATH = {
 	fuel: ["code", "data"],
-	aqua: ["real_trading", "data", "locker"],
+	fusion: ["real_trading", "data", "locker"],
 	rocket: ["real_trading", "rocket", "data"],
-	"config-master-stock": ["code", "config-master-stock", "data"],
+	scm: ["code", "scm", "data"],
 }
 
 export const isKernalRunning = async (
@@ -251,13 +251,9 @@ export async function isKernalBusy(kernal: KernalType): Promise<boolean> {
 	let isRunning = false
 	let isUpdating = false
 	switch (kernal) {
-		case "aqua":
-			isRunning = await isKernalRunning("aqua")
-			isUpdating = await isKernalUpdating("aqua")
-			break
-		case "zeus":
-			isRunning = await isKernalRunning("zeus")
-			isUpdating = await isKernalUpdating("zeus")
+		case "fusion":
+			isRunning = await isKernalRunning("fusion")
+			isUpdating = await isKernalUpdating("fusion")
 			break
 		case "rocket":
 			isRunning = await isKernalRunning("rocket", true) // -- rocket 仅在 Windows 下运行，且需要严格模式
@@ -267,9 +263,9 @@ export async function isKernalBusy(kernal: KernalType): Promise<boolean> {
 			isRunning = await isKernalRunning("fuel")
 			isUpdating = await isKernalUpdating("fuel")
 			break
-		case "config-master-stock":
-			isRunning = await isKernalRunning("config-master-stock", true)
-			isUpdating = await isKernalUpdating("config-master-stock")
+		case "scm":
+			isRunning = await isKernalRunning("scm", true)
+			isUpdating = await isKernalUpdating("scm")
 			break
 	}
 
@@ -292,7 +288,7 @@ export async function isKernalBusy(kernal: KernalType): Promise<boolean> {
  * @returns 这些核心中是否有一个核心正忙
  */
 export async function isAnyKernalBusy(
-	kernals = ["aqua", "fuel", "zeus"],
+	kernals = ["fusion", "fuel"],
 ): Promise<boolean> {
 	for (const kernal of kernals) {
 		if (await isKernalBusy(kernal as KernalType)) {
@@ -322,8 +318,8 @@ export const killKernalByForce = async (
 	kernal: KernalType,
 	strictMode = false,
 ) => {
-	// config 大师是常驻 FastAPI 服务，不写 .py.lock，直接按进程名强杀
-	if (kernal === "config-master-stock") {
+	// config 大师（scm）是常驻 FastAPI 服务，不写 .py.lock，直接按进程名强杀
+	if (kernal === "scm") {
 		await killKernalByName(kernal)
 		return
 	}
@@ -371,7 +367,7 @@ export const killKernalByForce = async (
 
 export const killAllKernalByForce = async (
 	strictMode = false,
-	kernals: KernalType[] = ["fuel", "aqua", "rocket", "zeus", "config-master-stock"],
+	kernals: KernalType[] = ["fuel", "fusion", "rocket", "scm"],
 ) => {
 	logger.info(`[kill] ${kernals.join(", ")} ${strictMode}`)
 	for (const kernal of kernals) {
@@ -381,7 +377,7 @@ export const killAllKernalByForce = async (
 }
 
 export const killAllKernalByName = async (
-	kernals: KernalType[] = ["fuel", "aqua", "rocket", "zeus", "config-master-stock"],
+	kernals: KernalType[] = ["fuel", "fusion", "rocket", "scm"],
 ) => {
 	logger.info(`[kill] ${kernals.join(", ")}`)
 	const uniqueKernals = Array.from(new Set(kernals))

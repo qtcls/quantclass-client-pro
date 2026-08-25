@@ -69,11 +69,16 @@ export const dataIPC = {
 			code: number
 			message: string
 		}>,
-	getMinDataTaskStats: (runDate?: string, runIndex?: number) =>
+	getMinDataTaskStats: (
+		runDate?: string,
+		runIndex?: number,
+		dataType?: "stock" | "etf" | "all",
+	) =>
 		ipcRenderer.invoke(
 			"get-min-data-task-stats",
 			runDate,
 			runIndex,
+			dataType,
 		) as Promise<{
 			runDate: string | null
 			runIndex: number | null
@@ -89,6 +94,7 @@ export const dataIPC = {
 		search?: string
 		page: number
 		pageSize: number
+		dataType?: "stock" | "etf" | "all"
 	}) =>
 		ipcRenderer.invoke("get-min-data-task-status", params) as Promise<{
 			datalist: Record<string, unknown>[]

@@ -44,11 +44,14 @@ import {
 } from "@/renderer/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/renderer/components/ui/tooltip"
 import { Badge } from "@/renderer/components/ui/badge"
+import { SelectTabs } from "@/renderer/components/select-tabs"
 import { cn } from "@/renderer/lib/utils"
 import { Loader2, Play, Search, Wifi, WifiLow, WifiOff } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 const { getMinDataTaskStats, getMinDataTaskStatus } = window.electronAPI
+
+type MinDataDataTypeFilter = "stock" | "etf" | "all"
 
 export interface TaskRow {
 	id: number
@@ -56,6 +59,7 @@ export interface TaskRow {
 	run_index: number
 	stock_code: string
 	stock_name?: string
+	data_type?: string
 	status: string
 	fetch_start_time?: string
 	fetch_end_time?: string
@@ -156,6 +160,17 @@ function formatSpeed(speed: number | null): string {
 	if (speed >= 1) return `${speed.toFixed(2)}只/s`
 	if (speed > 0) return `${(1 / speed).toFixed(2)}s/只`
 	return "?只/s"
+}
+
+const DATA_TYPE_MAP: Record<string, string> = {
+	stock: "个股",
+	etf: "ETF",
+}
+
+function DataTypeBadge({ dataType }: { dataType?: string }) {
+	if (!dataType) return <span className="text-muted-foreground">-</span>
+	const label = DATA_TYPE_MAP[dataType] ?? dataType
+	return <Badge variant="outline">{label}</Badge>
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -393,6 +408,8 @@ export function MinDataTaskTable({
 		total: 0,
 	})
 	const [selectedRunIndex, setSelectedRunIndex] = useState<number | null>(null)
+	const [dataTypeFilter, setDataTypeFilter] =
+		useState<MinDataDataTypeFilter>("all")
 	const [statusFilter, setStatusFilter] = useState<string | null>(null)
 	const [searchValue, setSearchValue] = useState("")
 	const [searchInput, setSearchInput] = useState("")
@@ -406,12 +423,13 @@ export function MinDataTaskTable({
 			const result = await getMinDataTaskStats(
 				undefined,
 				selectedRunIndex ?? undefined,
+				dataTypeFilter,
 			)
 			setStats(result as unknown as TaskStatsResult)
 		} catch (error) {
 			console.error("[realtime-data] 查询统计失败:", error)
 		}
-	}, [selectedRunIndex])
+	}, [selectedRunIndex, dataTypeFilter])
 
 	const fetchPage = useCallback(async () => {
 		try {
@@ -421,12 +439,20 @@ export function MinDataTaskTable({
 				search: searchValue || undefined,
 				page,
 				pageSize,
+				dataType: dataTypeFilter,
 			})
 			setPageData(result as unknown as TaskPageResult)
 		} catch (error) {
 			console.error("[realtime-data] 查询分页失败:", error)
 		}
-	}, [selectedRunIndex, statusFilter, searchValue, page, pageSize])
+	}, [
+		selectedRunIndex,
+		dataTypeFilter,
+		statusFilter,
+		searchValue,
+		page,
+		pageSize,
+	])
 
 	useEffect(() => {
 		fetchStats()
@@ -456,6 +482,11 @@ export function MinDataTaskTable({
 		}
 	}, [isExecuting, fetchStats, fetchPage])
 
+	const handleDataTypeFilterChange = (value: string) => {
+		setDataTypeFilter(value as MinDataDataTypeFilter)
+		setPage(1)
+	}
+
 	const handleStatusFilterChange = (status: string | null) => {
 		setStatusFilter(status)
 		setPage(1)
@@ -483,6 +514,8 @@ export function MinDataTaskTable({
 
 	const datalist = pageData.datalist as TaskRow[]
 	const totalPages = Math.ceil(pageData.total / pageSize) || 1
+	const hasTaskData = stats.total > 0
+	const showDataTypeFilter = hasTaskData || dataTypeFilter !== "all"
 
 	return (
 		<Card>
@@ -554,7 +587,7 @@ export function MinDataTaskTable({
 					</div>
 				)}
 
-				{stats.total > 0 && (
+				{hasTaskData && (
 					<TaskProgress
 						statusCounts={stats.statusCounts}
 						total={stats.total}
@@ -563,41 +596,61 @@ export function MinDataTaskTable({
 					/>
 				)}
 
-				{stats.total > 0 && (
-					<div className="flex items-center justify-between gap-4">
-						<StatusFilterBar
-							statusCounts={stats.statusCounts}
-							total={stats.total}
-							statusFilter={statusFilter}
-							onStatusFilterChange={handleStatusFilterChange}
-						/>
-						<div className="flex items-center gap-2 shrink-0">
-							<div className="relative">
-								<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-								<Input
-									placeholder="搜索股票代码"
-									value={searchInput}
-									onChange={(e) => setSearchInput(e.target.value)}
-									onKeyDown={handleSearchKeyDown}
-									className="pl-9 w-[180px] h-8"
-								/>
-							</div>
-							{searchValue && (
-								<Button
-									variant="ghost"
-									size="sm"
-									className="h-8 px-2"
-									onClick={handleClearSearch}
-								>
-									清除
-								</Button>
-							)}
+				{showDataTypeFilter && (
+					<div className="space-y-3">
+						<div className="flex items-center gap-2">
+							<span className="text-sm font-medium whitespace-nowrap">
+								数据类型
+							</span>
+							<SelectTabs
+								tabs={[
+									{ label: "全部", value: "all" },
+									{ label: "个股", value: "stock" },
+									{ label: "ETF", value: "etf" },
+								]}
+								defaultValue={dataTypeFilter}
+								onValueChange={handleDataTypeFilterChange}
+							/>
 						</div>
+						{hasTaskData && (
+							<div className="flex items-center justify-between gap-4">
+								<StatusFilterBar
+									statusCounts={stats.statusCounts}
+									total={stats.total}
+									statusFilter={statusFilter}
+									onStatusFilterChange={handleStatusFilterChange}
+								/>
+								<div className="flex items-center gap-2 shrink-0">
+									<div className="relative">
+										<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+										<Input
+											placeholder="搜索代码"
+											value={searchInput}
+											onChange={(e) => setSearchInput(e.target.value)}
+											onKeyDown={handleSearchKeyDown}
+											className="pl-9 w-[180px] h-8"
+										/>
+									</div>
+									{searchValue && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-8 px-2"
+											onClick={handleClearSearch}
+										>
+											清除
+										</Button>
+									)}
+								</div>
+							</div>
+						)}
 					</div>
 				)}
 
-				{stats.total === 0 ? (
-					<div className="py-8 text-center text-muted-foreground">暂无数据</div>
+				{!hasTaskData ? (
+					<div className="py-8 text-center text-muted-foreground">
+						{dataTypeFilter !== "all" ? "无匹配记录" : "暂无数据"}
+					</div>
 				) : datalist.length === 0 ? (
 					<div className="py-8 text-center text-muted-foreground">
 						无匹配记录
@@ -613,8 +666,13 @@ export function MinDataTaskTable({
 									)}
 								>
 									<TableRow>
+										{dataTypeFilter === "all" && (
+											<TableHead className="w-[72px] z-[1] bg-background border-b sticky top-0">
+												类型
+											</TableHead>
+										)}
 										<TableHead className="w-[120px] z-[1] bg-background border-b sticky top-0">
-											股票代码
+											代码
 										</TableHead>
 										<TableHead className="w-[80px] z-[1] bg-background border-b sticky top-0">
 											状态
@@ -636,6 +694,11 @@ export function MinDataTaskTable({
 								<TableBody>
 									{datalist.map((row) => (
 										<TableRow key={row.id}>
+											{dataTypeFilter === "all" && (
+												<TableCell>
+													<DataTypeBadge dataType={row.data_type} />
+												</TableCell>
+											)}
 											<TableCell className="font-mono">
 												{row.stock_code}
 											</TableCell>

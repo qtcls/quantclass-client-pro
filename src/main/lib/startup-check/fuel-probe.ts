@@ -15,6 +15,7 @@ import {
 } from "node:child_process"
 import fs from "node:fs"
 import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
 import { getKernalPath } from "@/main/utils/common.js"
 import logger from "@/main/utils/wiston.js"
 import { platform } from "@electron-toolkit/utils"
@@ -64,6 +65,7 @@ export async function runFuelProbe(
 		"real_market_config.use_open_sell",
 		"0",
 	) as string
+	const accessToken = await tokenStore.getAccessToken()
 
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
@@ -77,6 +79,7 @@ export async function runFuelProbe(
 		PYTHONIOENCODING: "utf8",
 		USE_OPEN_SELL: useOpenSell,
 		FUEL_TEMP_FILE_PATH: "",
+		FUEL_ACCESS_TOKEN: accessToken ?? "",
 	}
 
 	logger.info(

@@ -133,7 +133,7 @@ if (!gotTheLock) {
 		// -- 执行数据迁移
 		await runMigrations()
 
-		// -- FuelBinStat：今日 min_data_rounds 行 is_running 置 0（异常退出后状态修复）
+		// -- FuelBinStat：今日 min_data_rounds / min_data_etf_rounds 行 is_running 置 0（异常退出后状态修复）
 		await resetMinDataRoundsRunningForToday()
 
 		// -- 初始化实盘备份定时任务

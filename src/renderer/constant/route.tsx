@@ -106,13 +106,13 @@ export const ROUTES = [
 	{
 		key: STRATEGY_LIBRARY_PAGE,
 		icon: LibraryIcon,
-		label: "选股策略",
+		label: "策略库（选股）",
 		element: StrategyLibrary,
 	},
 	{
 		key: FUSION_STRATEGY_LIBRARY_PAGE,
 		icon: LibraryIcon,
-		label: "综合策略库",
+		label: "策略库",
 		element: FusionStrategyLibrary,
 	},
 	{

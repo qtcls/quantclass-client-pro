@@ -10,12 +10,16 @@
 
 import { RESEARCH_SECTION_ROUTE } from "@/renderer/constant"
 import { getResearchBasicCode, getResearchStrategies } from "@/renderer/request"
+import { versionsAtom } from "@/renderer/store/versions"
 import type { ResearchItem, ResearchVersion } from "@/renderer/types/research"
 import type { RepoApiType, RepoDownloadRecord } from "@/shared/types/repo"
 import { useQueries, useQuery } from "@tanstack/react-query"
+import { useAtomValue } from "jotai"
 import { ArrowRight, BookOpen } from "lucide-react"
 import { useMemo } from "react"
 import { useNavigate } from "react-router"
+
+const CONFIG_MASTER_KERNEL = "scm" as const
 
 function getVersionTimestamp(version: ResearchVersion): number {
 	if (!version.time) return 0
@@ -177,8 +181,36 @@ function useResearchCardStats() {
 		frameworkRemoteQueries.map((query) => query.data),
 	)
 
+	const versions = useAtomValue(versionsAtom)
+	const { data: appVersions, isLoading: isAppVersionsLoading } = useQuery({
+		queryKey: ["app-versions"],
+		queryFn: () => window.electronAPI.checkUpdate(true),
+		staleTime: 1000 * 60 * 5,
+		refetchOnWindowFocus: false,
+	})
+
+	const currentScmVersion = versions.scmVersion ?? "暂无内核"
+	const hasDownloadedScm = currentScmVersion !== "暂无内核"
+	const latestScmVersion = appVersions?.latest?.[CONFIG_MASTER_KERNEL]
+	const hasScmUpdate = Boolean(
+		hasDownloadedScm && latestScmVersion && latestScmVersion !== currentScmVersion,
+	)
+
+	const configMasterSubtitle = useMemo(() => {
+		if (isAppVersionsLoading) return "加载中..."
+		if (!hasDownloadedScm) return "暂未下载"
+		if (hasScmUpdate) return `${currentScmVersion} · 可更新`
+		return `${currentScmVersion} · 全部最新`
+	}, [
+		currentScmVersion,
+		hasDownloadedScm,
+		hasScmUpdate,
+		isAppVersionsLoading,
+	])
+
 	return {
 		isLoading,
+		configMasterSubtitle,
 		strategySubtitle: formatDownloadSubtitle(
 			strategyDownloadedCount,
 			strategyPendingUpdates,
@@ -196,7 +228,8 @@ function useResearchCardStats() {
 
 export function ResearchCard() {
 	const navigate = useNavigate()
-	const { strategySubtitle, frameworkSubtitle } = useResearchCardStats()
+	const { strategySubtitle, frameworkSubtitle, configMasterSubtitle } =
+		useResearchCardStats()
 
 	return (
 		<div className="bg-background border border-border rounded-xl overflow-hidden flex flex-col hover:border-foreground/30 transition-colors">
@@ -234,6 +267,19 @@ export function ResearchCard() {
 						<b className="text-sm font-semibold block">框架源码</b>
 						<span className="text-[10px] font-mono text-muted-foreground">
 							{frameworkSubtitle}
+						</span>
+					</span>
+				</div>
+				<div className="h-px bg-border" />
+				<div className="flex items-center gap-2.5 py-2">
+					<span
+						className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+						style={{ background: "#f59e0b" }}
+					/>
+					<span className="flex-1 min-w-0">
+						<b className="text-sm font-semibold block">config 大师</b>
+						<span className="text-[10px] font-mono text-muted-foreground">
+							{configMasterSubtitle}
 						</span>
 					</span>
 				</div>

@@ -1118,6 +1118,84 @@ export function SelectStgForm({
 																	)}
 																</div>
 
+																<div className="space-y-2">
+																	<div className="flex items-center gap-1">
+																		<Filter className="size-4 mr-1" />
+																		<span>过滤因子列表</span>
+																		<span className="text-xs">
+																			（暂不支持直接编辑）
+																		</span>
+																	</div>
+
+																	{stockTimingItem?.filter_list?.length > 0 ? (
+																		<>
+																			<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+																				<span>因子名称</span>
+																				<span>因子参数</span>
+																				<span>过滤条件</span>
+																				<span>排序方式</span>
+																			</div>
+																			<div className="space-y-2">
+																				{stockTimingItem?.filter_list?.map(
+																					(
+																						filter: [
+																							string,
+																							any,
+																							string,
+																							boolean | undefined,
+																						],
+																						idx: number,
+																					) => (
+																						<div
+																							key={idx}
+																							className="grid grid-cols-4 gap-2"
+																						>
+																							<FormControl>
+																								<InputUI
+																									value={filter[0]}
+																									className="text-muted-foreground text-xs"
+																									readOnly
+																								/>
+																							</FormControl>
+																							<FormControl>
+																								<InputUI
+																									value={JSON.stringify(filter[1])}
+																									className="text-muted-foreground text-xs font-mono"
+																									readOnly
+																								/>
+																							</FormControl>
+																							<FormControl>
+																								<InputUI
+																									value={filter[2]}
+																									className="text-muted-foreground text-xs"
+																									readOnly
+																								/>
+																							</FormControl>
+																							<FormControl>
+																								<InputUI
+																									value={
+																										filter[3] === undefined
+																											? "从小到大排序"
+																											: filter[3]
+																												? "从小到大排序"
+																												: "从大到小排序"
+																									}
+																									className="text-muted-foreground text-xs"
+																									readOnly
+																								/>
+																							</FormControl>
+																						</div>
+																					),
+																				)}
+																			</div>
+																		</>
+																	) : (
+																		<div className="text-muted-foreground ml-2 text-xs">
+																			暂无过滤因子，请先进行配置
+																		</div>
+																	)}
+																</div>
+
 																<Separator />
 
 																<div className="space-y-2">

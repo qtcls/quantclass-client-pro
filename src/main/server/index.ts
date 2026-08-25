@@ -40,7 +40,7 @@ server.get("/product-status", getProductStatus)
 
 server.post("/toast", reportToast)
 
-// 通知中心：内核（fuel/rocket/aqua/zeus）发起的统一通知入口
+// 通知中心：内核（fuel/rocket/fusion）发起的统一通知入口
 server.post("/notify", createNotification)
 
 // 心跳路由只在 Windows 下注册

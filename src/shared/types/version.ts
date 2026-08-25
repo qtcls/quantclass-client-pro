@@ -28,8 +28,7 @@ export interface AppVersions {
 	downloads: Record<string, string>
 	app: KernalVersionType
 	fuel: KernalVersionType[]
-	aqua: KernalVersionType[]
-	zeus: KernalVersionType[]
+	fusion: KernalVersionType[]
 	rocket: KernalVersionType[]
-	"config-master-stock": KernalVersionType[]
+	scm: KernalVersionType[]
 }

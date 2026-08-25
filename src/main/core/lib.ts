@@ -51,19 +51,17 @@ export async function getAppAndKernalVersions() {
 	try {
 		const { version } = PACKAGE_INFO
 		const fuelVersion = await getKernelVersion("fuel")
-		const aquaVersion = await getKernelVersion("aqua")
+		const fusionVersion = await getKernelVersion("fusion")
 		const rocketVersion = await getKernelVersion("rocket")
-		const zeusVersion = await getKernelVersion("zeus")
-		const configMasterStockVersion = await getKernelVersion("config-master-stock")
+		const scmVersion = await getKernelVersion("scm")
 		const clientVersion = version
 
 		return {
 			fuelVersion,
 			clientVersion,
-			aquaVersion,
-			zeusVersion,
+			fusionVersion,
 			rocketVersion,
-			configMasterStockVersion,
+			scmVersion,
 		}
 	} catch (error) {
 		const { version } = PACKAGE_INFO
@@ -71,10 +69,9 @@ export async function getAppAndKernalVersions() {
 		return {
 			clientVersion: version,
 			fuelVersion: defaultVersion,
-			aquaVersion: defaultVersion,
-			zeusVersion: defaultVersion,
+			fusionVersion: defaultVersion,
 			rocketVersion: defaultVersion,
-			configMasterStockVersion: defaultVersion,
+			scmVersion: defaultVersion,
 		}
 	}
 }

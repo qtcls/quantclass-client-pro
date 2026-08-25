@@ -95,4 +95,11 @@ export const minDataModeAtom = atomWithStorage<"fast" | "stable">(
 	undefined,
 	{ getOnInit: true },
 )
+
+export const showFinanceInfoAtom = atomWithStorage<boolean>(
+	"home.showFinanceInfo",
+	true,
+	undefined,
+	{ getOnInit: true },
+)
 export const unreadNotificationCountAtom = atom<number>(0)

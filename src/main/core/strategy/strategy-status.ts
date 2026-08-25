@@ -12,6 +12,10 @@ import { getJsonDataFromFile } from "@/main/core/dataList.js"
 import store, { rStore } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { ROCKET_STATS_PATH, SELECT_STATS_PATH } from "@/main/vars.js"
+import {
+	getFusionGroupSubRealMarketStrategyName,
+	getFusionTopRealMarketStrategyName,
+} from "@/shared/lib/real-market-strategy-name.js"
 import type {
 	StrategyStatus,
 	StrategyStatusStat,
@@ -20,7 +24,7 @@ import { StrategyStatusEnum } from "@/shared/types/strategy-status.js"
 import { sortBy } from "lodash-es"
 
 // 从 JSON 文件读取 stats 数据
-// kernel: 'fuel' | 'aqua' | 'zeus' | 'rocket'
+// kernel: 'fuel' | 'fusion' | 'rocket'
 async function readStatsFromJson(
 	date: string,
 	kernel: string,
@@ -86,20 +90,6 @@ async function readStatsFromJson(
 	} catch (error) {
 		return []
 	}
-}
-
-async function detectSelectKernel(date: string): Promise<"aqua" | "zeus"> {
-	const aquaPath = [...SELECT_STATS_PATH, `aqua-stats-${date}.json`]
-	const aquaData = await getJsonDataFromFile<{ stats?: any[] }>(
-		aquaPath,
-		"",
-		{},
-	)
-	if (aquaData.stats && Array.isArray(aquaData.stats)) {
-		return "aqua"
-	}
-
-	return "zeus"
 }
 
 /**
@@ -300,10 +290,7 @@ async function generateSingleStrategyStatus(
 	}
 	const useOpenSell = realMarketConfig?.use_open_sell === "1"
 
-	const selectKernel = await detectSelectKernel(date)
-
-	// const fuelStats = await readStatsFromJson(date, "fuel")
-	const selectStats = await readStatsFromJson(date, selectKernel, strategyName)
+	const selectStats = await readStatsFromJson(date, "fusion", strategyName)
 
 	// 读取当天的 rocket stats
 	const rocketStatsToday = await readStatsFromJson(date, "rocket", strategyName)
@@ -841,7 +828,9 @@ async function getStrategyStatusListForPos(
 
 		for (let index = 0; index < posMgmtStrategies.length; index++) {
 			const strategy = posMgmtStrategies[index]
-			const strategyName = `X${index + 1}-${strategy.name}`
+			const strategyName =
+				strategy.remark_name?.trim() ||
+				getFusionTopRealMarketStrategyName(index, strategy.name)
 
 			const type: "pos" | "group" | "select" =
 				strategy.strategy_pool && Array.isArray(strategy.strategy_pool)
@@ -915,9 +904,14 @@ async function getStrategyStatusListForPos(
 					const subStrategy = subStrategies[index0]
 
 					const dictKey =
-						subStrategies.length > 1
-							? `${strategyName}#${index0}.${subStrategy.name}`
-							: strategyName
+						subStrategy.remark_name?.trim() ||
+						getFusionGroupSubRealMarketStrategyName(
+							index,
+							strategy.name,
+							index0,
+							subStrategy.name,
+							subStrategies.length,
+						)
 
 					const strategyConfig = findStrategyConfigByName(dictKey)
 

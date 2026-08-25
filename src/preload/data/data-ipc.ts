@@ -30,6 +30,8 @@ import logger from "@/main/utils/wiston.js"
 import { getLocalDateYYYYMMDD } from "@/shared/lib/trading-day.js"
 import { ipcMain } from "electron"
 
+type MinDataDataTypeFilter = "stock" | "etf" | "all"
+
 async function handleLoadProductStatus() {
 	ipcMain.handle("load-product-status", async () => {
 		logger.info("load-product-status")
@@ -224,6 +226,17 @@ async function handleExecMinData() {
 	})
 }
 
+function appendMinDataTypeFilter(
+	dataType: MinDataDataTypeFilter | undefined,
+	conditions: string[],
+	values: (string | number)[],
+): void {
+	if (dataType && dataType !== "all") {
+		conditions.push("data_type = ?")
+		values.push(dataType)
+	}
+}
+
 async function handleDeleteMinDataToday() {
 	ipcMain.handle("delete-min-data-today", async () => {
 		const dbManager = DBManager.getInstance()
@@ -280,7 +293,12 @@ async function handleDeleteMinDataToday() {
 async function handleGetMinDataTaskStats() {
 	ipcMain.handle(
 		"get-min-data-task-stats",
-		async (_event, runDate?: string, runIndex?: number) => {
+		async (
+			_event,
+			runDate?: string,
+			runIndex?: number,
+			dataType: MinDataDataTypeFilter = "all",
+		) => {
 			const tableName = "min_data_update_task"
 
 			const dbManager = DBManager.getInstance()
@@ -298,11 +316,15 @@ async function handleGetMinDataTaskStats() {
 			const date = runDate ?? new Date().toISOString().slice(0, 10)
 
 			try {
+				const indexConditions = ["run_date = ?"]
+				const indexValues: (string | number)[] = [date]
+				appendMinDataTypeFilter(dataType, indexConditions, indexValues)
+
 				const indexRows = db
 					.prepare(
-						`SELECT DISTINCT run_index FROM ${tableName} WHERE run_date = ? ORDER BY run_index DESC`,
+						`SELECT DISTINCT run_index FROM ${tableName} WHERE ${indexConditions.join(" AND ")} ORDER BY run_index DESC`,
 					)
-					.all(date) as { run_index: number }[]
+					.all(...indexValues) as { run_index: number }[]
 				const availableRunIndexes = indexRows.map((r) => r.run_index)
 
 				let targetIndex: number
@@ -320,11 +342,15 @@ async function handleGetMinDataTaskStats() {
 					}
 				}
 
+				const statsConditions = ["run_date = ?", "run_index = ?"]
+				const statsValues: (string | number)[] = [date, targetIndex]
+				appendMinDataTypeFilter(dataType, statsConditions, statsValues)
+
 				const rows = db
 					.prepare(
-						`SELECT status, COUNT(*) as count FROM ${tableName} WHERE run_date = ? AND run_index = ? GROUP BY status`,
+						`SELECT status, COUNT(*) as count FROM ${tableName} WHERE ${statsConditions.join(" AND ")} GROUP BY status`,
 					)
-					.all(date, targetIndex) as { status: string; count: number }[]
+					.all(...statsValues) as { status: string; count: number }[]
 
 				const statusCounts: Record<string, number> = {}
 				let total = 0
@@ -367,9 +393,11 @@ async function handleGetMinDataTaskStatus() {
 				search?: string
 				page: number
 				pageSize: number
+				dataType?: MinDataDataTypeFilter
 			},
 		) => {
 			const tableName = "min_data_update_task"
+			const dataType = params.dataType ?? "all"
 
 			const dbManager = DBManager.getInstance()
 			const db = await dbManager.getConnection([tableName])
@@ -383,11 +411,15 @@ async function handleGetMinDataTaskStatus() {
 			const date = params.runDate ?? new Date().toISOString().slice(0, 10)
 
 			try {
+				const indexConditions = ["run_date = ?"]
+				const indexValues: (string | number)[] = [date]
+				appendMinDataTypeFilter(dataType, indexConditions, indexValues)
+
 				const indexRows = db
 					.prepare(
-						`SELECT DISTINCT run_index FROM ${tableName} WHERE run_date = ? ORDER BY run_index DESC`,
+						`SELECT DISTINCT run_index FROM ${tableName} WHERE ${indexConditions.join(" AND ")} ORDER BY run_index DESC`,
 					)
-					.all(date) as { run_index: number }[]
+					.all(...indexValues) as { run_index: number }[]
 
 				let targetIndex: number
 				if (params.runIndex !== undefined && params.runIndex !== null) {
@@ -400,6 +432,8 @@ async function handleGetMinDataTaskStatus() {
 
 				const conditions = ["run_date = ?", "run_index = ?"]
 				const values: (string | number)[] = [date, targetIndex]
+
+				appendMinDataTypeFilter(dataType, conditions, values)
 
 				if (params.status) {
 					conditions.push("status = ?")

@@ -19,16 +19,6 @@ import type {
 	StockTimingViewRow,
 } from "@/shared/types/stock-timing-view.js"
 
-async function detectViewSelectKernel(date: string): Promise<"aqua" | "zeus"> {
-	const aquaPath = [...SELECT_UI_VIEWS_PATH, `aqua-views-${date}.json`]
-	const aquaData = await getJsonDataFromFile<unknown>(aquaPath, "", null)
-	if (Array.isArray(aquaData)) {
-		return "aqua"
-	}
-
-	return "zeus"
-}
-
 const TIME_TO_SLOT: Record<string, StockTimingTimeSlot> = {
 	"09:30:00": "0930",
 	"10:30:00": "1030",
@@ -147,8 +137,7 @@ export function rowsToStockTimingMatrix(
 export async function getStockTimingViewMatrix(
 	date: string,
 ): Promise<StockTimingViewMatrix> {
-	const kernel = await detectViewSelectKernel(date)
-	const filePath = [...SELECT_UI_VIEWS_PATH, `${kernel}-views-${date}.json`]
+	const filePath = [...SELECT_UI_VIEWS_PATH, `fusion-views-${date}.json`]
 
 	const raw = await getJsonDataFromFile<StockTimingViewRow[]>(
 		filePath,

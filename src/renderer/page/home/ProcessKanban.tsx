@@ -19,7 +19,6 @@ import { H3 } from "@/renderer/components/ui/typography"
 import { isWindows } from "@/renderer/constant"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
-import { libraryTypeAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import dayjs from "dayjs"
 import { useAtom, useAtomValue } from "jotai"
@@ -36,7 +35,6 @@ import { useMemo } from "react"
 export const ProcessKanban = () => {
 	const { isMember } = useAtomValue(userAtom)
 	const [{ data }] = useAtom(monitorProcessesQueryAtom)
-	const libraryType = useAtomValue(libraryTypeAtom)
 
 	const { VITE_XBX_ENV } = import.meta.env
 
@@ -58,10 +56,7 @@ export const ProcessKanban = () => {
 			<div className="grid  gap-2">
 				<ProcessCard data={data} kernel="fuel" />
 				{canRealTrading && isMember && (
-					<ProcessCard
-						data={data}
-						kernel={libraryType === "pos" ? "zeus" : "aqua"}
-					/>
+					<ProcessCard data={data} kernel="fusion" />
 				)}
 				{canRealTrading && isMember && (
 					<ProcessCard data={data} kernel="rocket" />
@@ -75,11 +70,11 @@ export const ProcessCard = ({
 	data,
 	kernel,
 }: {
-	kernel: "fuel" | "aqua" | "rocket" | "zeus" | "config-master-stock"
+	kernel: "fuel" | "fusion" | "rocket" | "scm"
 	data?: {
 		pid: number
 		action: string
-		kernel: "fuel" | "aqua" | "rocket" | "zeus" | "config-master-stock"
+		kernel: "fuel" | "fusion" | "rocket" | "scm"
 		createdAt: string
 	}[]
 }) => {
@@ -90,22 +85,21 @@ export const ProcessCard = ({
 
 	const keyMap = {
 		fuel: "数据模块",
-		aqua: "选股模块",
-		zeus: "高级选股模块",
+		fusion: "选股模块",
 		rocket: "下单模块",
-		"config-master-stock": "config 大师",
+		scm: "config 大师",
 	}
 	const actionMap = {
 		fuel: "运行中...",
-		aqua: "计算中...",
+		fusion: "计算中...",
 		rocket: "运行中...",
-		"config-master-stock": "运行中...",
+		scm: "运行中...",
 	}
 	const timeMap = {
 		fuel: "上次更新时间",
-		aqua: "上次选股时间",
+		fusion: "上次选股时间",
 		rocket: "上次运行时间",
-		"config-master-stock": "上次启动时间",
+		scm: "上次启动时间",
 	}
 
 	// 获取是否正在运行
@@ -126,12 +120,11 @@ export const ProcessCard = ({
 		lastRunTimeRef.current = latestProcess.createdAt
 	}
 
-	// 获取是否启动fuel或者aqua或者rocket
+	// 获取是否启动fuel或者fusion或者rocket
 	const isInitializing = useMemo(() => {
 		return (
 			(isUpdating && kernel === "fuel") ||
-			(isAutoRocket &&
-				(kernel === "aqua" || kernel === "zeus" || kernel === "rocket"))
+			(isAutoRocket && (kernel === "fusion" || kernel === "rocket"))
 		)
 	}, [isUpdating, isAutoRocket, kernel])
 

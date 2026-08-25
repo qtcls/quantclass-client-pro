@@ -15,17 +15,18 @@ import { OverviewDateBadge } from "@/renderer/page/home/overview-date-badge"
 import { OverviewMetrics } from "@/renderer/page/home/overview-metrics"
 import { ResearchCard } from "@/renderer/page/home/research-card"
 import { TradingCard } from "@/renderer/page/home/trading-card"
+import { showFinanceInfoAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import { useAtom } from "jotai"
 import { Eye, EyeOff, RefreshCw } from "lucide-react"
-import { type FC, useEffect, useState } from "react"
+import { type FC, useEffect } from "react"
 import { ABOUT_CLIENT_VER, AboutPage } from "../settings/about"
 
 const { getStoreValue, setStoreValue, closeApp } = window.electronAPI
 
 const Home: FC = () => {
 	const useAlert = useAlertDialog()
-	const [showFinanceInfo, setShowFinanceInfo] = useState(true)
+	const [showFinanceInfo, setShowFinanceInfo] = useAtom(showFinanceInfoAtom)
 	const [{ isFetching: isRefreshingAccount, refetch: refetchAccount }] =
 		useAtom(loadAccountQueryAtom)
 

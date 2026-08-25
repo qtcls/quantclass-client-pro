@@ -23,12 +23,14 @@ interface MinDataExecConfirmDialogProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onConfirm: () => void
+	enableEtfMinData?: boolean
 }
 
 export function MinDataExecConfirmDialog({
 	open,
 	onOpenChange,
 	onConfirm,
+	enableEtfMinData = false,
 }: MinDataExecConfirmDialogProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -41,7 +43,8 @@ export function MinDataExecConfirmDialog({
 								即将手动获取准确 QMT 数据
 							</p>
 							<ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
-								<li>将拉取 5 分钟准确 QMT 数据</li>
+								<li>将拉取 5 分钟准确 QMT 数据（个股）</li>
+								{enableEtfMinData && <li>将同时拉取 ETF 5 分钟精确数据</li>}
 								<li>极速模式约需 1 分钟，稳定模式约需 3 分钟</li>
 							</ul>
 							<p className="text-muted-foreground">确定要现在执行吗？</p>

@@ -90,6 +90,7 @@ export function TradingConfigForm() {
 		"isMember",
 		"isStock",
 	)
+	const isMember = checkPermission(permissions, "isMember")
 	const [choosing, setChoosing] = useState(false)
 	const [realMarketConfig, setRealMarketConfig] = useAtom(
 		realMarketConfigSchemaAtom,
@@ -723,19 +724,20 @@ export function TradingConfigForm() {
 								</FormItem>
 							)}
 						/>
-						<FormItem className="space-y-2">
-							<Button
-								type="button"
-								size="sm"
-								variant="outline"
-								className="w-fit text-destructive hover:text-destructive"
-								disabled={!isMemberOrStock}
-								onClick={() => setFactorCacheConfirmOpen(true)}
-							>
-								<Trash2 className="mr-2 size-4" />
-								清除因子缓存
-							</Button>
-						</FormItem>
+						{isMember && (
+							<FormItem className="space-y-2">
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									className="w-fit text-destructive hover:text-destructive"
+									onClick={() => setFactorCacheConfirmOpen(true)}
+								>
+									<Trash2 className="mr-2 size-4" />
+									清除因子缓存
+								</Button>
+							</FormItem>
+						)}
 					</div>
 				</form>
 			</Form>

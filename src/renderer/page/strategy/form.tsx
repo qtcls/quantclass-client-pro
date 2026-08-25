@@ -169,12 +169,7 @@ export function SelectStgForm({
 			onSave({
 				...values,
 				select_num: Number(values.select_num),
-				rebalance_time: isMember
-					? values.rebalance_time || "close-open"
-					: "close-open",
-				offset_list: isMember ? values.offset_list : "0",
-				timing: isMember ? values.timing : undefined,
-				cross_sections: isMember ? values.cross_sections : undefined,
+				rebalance_time: values.rebalance_time || "close-open",
 				split_order_amount: Number(values.split_order_amount),
 			})
 			setSaving(false)
@@ -330,88 +325,86 @@ export function SelectStgForm({
 								</FormItem>
 							)}
 						/>
-						{isMember ? (
-							<>
-								<FormField
-									control={form.control}
-									name="offset_list"
-									render={({ field, formState }) => (
-										<FormItem>
-											<FormControl>
-												<Input
-													{...field}
-													isRequired
-													variant="bordered"
-													label={
-														<>
-															<span className="mr-1">offset_list</span>
-															<span className="text-xs">
-																多个数字用逗号分隔，如：0,1,2（不支持直接编辑）
-															</span>
-														</>
-													}
-													readOnly
-													errorMessage={formState.errors.offset_list?.message}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="scalein_targets"
-									render={({ field }) => (
-										<FormItem className="border-2 rounded-md px-3 py-2">
-											<div className="space-y-1 ">
-												<span className="text-xs">
-													分批进场目标仓位(offset间仓位分配) （不支持直接编辑）
-												</span>
-												{field.value && field.value?.length > 0 ? (
-													<ScaleinTargetsView
-														scaleinTargetsValue={field.value}
-													/>
-												) : (
-													<div className="text-sm">未配置</div>
-												)}
-											</div>
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="rebalance_time"
-									render={({ field }) => (
-										<FormItem className="flex flex-col">
-											<FormControl>
-												<Select
-													className="relative z-60"
-													{...field}
-													label={
-														<>
-															换仓时间
-															<span className="text-xs ml-1">
-																新手建议使用早盘换仓模式
-															</span>
-														</>
-													}
-													isRequired
-													variant="bordered"
-													selectedKeys={[field.value!]}
-													onChange={(e) => {
-														const new_value = e.target.value
-														if (!new_value) return
-														field.onChange(e)
-													}}
+						<FormField
+							control={form.control}
+							name="offset_list"
+							render={({ field, formState }) => (
+								<FormItem>
+									<FormControl>
+										<Input
+											{...field}
+											isRequired
+											variant="bordered"
+											label={
+												<>
+													<span className="mr-1">offset_list</span>
+													<span className="text-xs">
+														多个数字用逗号分隔，如：0,1,2（不支持直接编辑）
+													</span>
+												</>
+											}
+											readOnly
+											errorMessage={formState.errors.offset_list?.message}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="scalein_targets"
+							render={({ field }) => (
+								<FormItem className="border-2 rounded-md px-3 py-2">
+									<div className="space-y-1 ">
+										<span className="text-xs">
+											分批进场目标仓位(offset间仓位分配) （不支持直接编辑）
+										</span>
+										{field.value && field.value?.length > 0 ? (
+											<ScaleinTargetsView
+												scaleinTargetsValue={field.value}
+											/>
+										) : (
+											<div className="text-sm">未配置</div>
+										)}
+									</div>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="rebalance_time"
+							render={({ field }) => (
+								<FormItem className="flex flex-col">
+									<FormControl>
+										<Select
+											className="relative z-60"
+											{...field}
+											label={
+												<>
+													换仓时间
+													<span className="text-xs ml-1">
+														新手建议使用早盘换仓模式
+													</span>
+												</>
+											}
+											isRequired
+											variant="bordered"
+											selectedKeys={[field.value!]}
+											onChange={(e) => {
+												const new_value = e.target.value
+												if (!new_value) return
+												field.onChange(e)
+											}}
+										>
+											{getRebalanceOptions().map((item) => (
+												<SelectItem
+													key={item.key}
+													isDisabled={item.isDisabled}
 												>
-													{getRebalanceOptions().map((item) => (
-														<SelectItem
-															key={item.key}
-															isDisabled={item.isDisabled}
-														>
-															{item.label}
-														</SelectItem>
-													))}
-													{/* <SelectItem
+													{item.label}
+												</SelectItem>
+											))}
+											{/* <SelectItem
 												key="close-open"
 												isDisabled={name.includes("定风波")}
 											>
@@ -441,18 +434,11 @@ export function SelectStgForm({
 											<SelectItem key="0955-0955">
 												{"9点55换仓：盘后选股->开盘后09:55换仓(卖出后买入)"}
 											</SelectItem> */}
-												</Select>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-							</>
-						) : (
-							<MemberPromoBanner
-								featureName="换仓时间 / offset"
-								onLearnMore={() => openMemberPromo("换仓时间 / offset")}
-							/>
-						)}
+										</Select>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="factor_list"

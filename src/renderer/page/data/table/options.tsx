@@ -18,6 +18,7 @@ import DataSubscriptionTable from "@/renderer/page/data/subscription"
 import { isUpdatingAtom } from "@/renderer/store"
 import { showDataSubModalAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { Cross2Icon, ReloadIcon } from "@radix-ui/react-icons"
 import { useMutation } from "@tanstack/react-query"
 import type { Table } from "@tanstack/react-table"
@@ -57,7 +58,8 @@ export function DataTableActionOptions<TData>({
 	const [loading, setLoading] = useState(false)
 	const [isFetching] = useState(false)
 	const [isUpdatingPeriodOffset, setIsUpdatingPeriodOffset] = useState(false)
-	const { isLoggedIn } = useAtomValue(userAtom)
+	const { isLoggedIn, permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const isUpdating = useAtomValue(isUpdatingAtom) // 获取是否正在更新的状态
 	const [showDataSubModal, setShowDataSubModal] = useAtom(showDataSubModalAtom)
 	const isFiltered = table.getState().columnFilters.length > 0
@@ -129,34 +131,36 @@ export function DataTableActionOptions<TData>({
 					更新数据
 				</Button>
 
-				<Button
-					size="sm"
-					variant="outline"
-					className="h-8 text-foreground"
-					disabled={isUpdatingPeriodOffset || !isLoggedIn}
-					onClick={async () => {
-						setIsUpdatingPeriodOffset(true)
-						try {
-							const result = await deletePeriodOffset()
-							if (result.success) {
-								toast.success(result.message || "成功更新 period_offset.csv")
-							} else {
-								toast.error(result.message || "更新 period_offset.csv 失败")
+				{isMember && (
+					<Button
+						size="sm"
+						variant="outline"
+						className="h-8 text-foreground"
+						disabled={isUpdatingPeriodOffset || !isLoggedIn}
+						onClick={async () => {
+							setIsUpdatingPeriodOffset(true)
+							try {
+								const result = await deletePeriodOffset()
+								if (result.success) {
+									toast.success(result.message || "成功更新 period_offset.csv")
+								} else {
+									toast.error(result.message || "更新 period_offset.csv 失败")
+								}
+							} catch (error) {
+								toast.error("更新 period_offset.csv 失败")
+							} finally {
+								setIsUpdatingPeriodOffset(false)
 							}
-						} catch (error) {
-							toast.error("更新 period_offset.csv 失败")
-						} finally {
-							setIsUpdatingPeriodOffset(false)
-						}
-					}}
-				>
-					{isUpdatingPeriodOffset ? (
-						<RefreshCw size={14} className="mr-2 animate-spin" />
-					) : (
-						<FileText size={14} className="mr-2" />
-					)}
-					更新 period_offset
-				</Button>
+						}}
+					>
+						{isUpdatingPeriodOffset ? (
+							<RefreshCw size={14} className="mr-2 animate-spin" />
+						) : (
+							<FileText size={14} className="mr-2" />
+						)}
+						更新 period_offset
+					</Button>
+				)}
 			</div>
 
 			<DataTableFilterOptions<TData>

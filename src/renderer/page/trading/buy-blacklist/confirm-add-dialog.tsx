@@ -83,7 +83,7 @@ export default function BuyBlacklistAddConfirm({
 			}
 		}
 
-		if (!isMember) {
+		if (!isMember && blacklistType === "condition") {
 			setPromoOpen(true)
 			return
 		}
@@ -262,7 +262,7 @@ export default function BuyBlacklistAddConfirm({
 			<MemberPromoDialog
 				open={promoOpen}
 				onOpenChange={setPromoOpen}
-				featureName="买入黑名单"
+				featureName="条件不买入（涨跌幅限制）"
 			/>
 		</>
 	)

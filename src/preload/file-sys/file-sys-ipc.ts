@@ -13,12 +13,15 @@ import os from "node:os"
 import path from "node:path"
 import { getJsonDataFromFile } from "@/main/core/dataList.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
+import { userStore } from "@/main/lib/userStore.js"
 import { parsePythonConfig } from "@/main/pythonRunner.js"
 import store, { rStore } from "@/main/store/index.js"
 import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
+import { validateBasicSelectStockImport } from "@/shared/lib/basic-strategy-import.js"
+import { checkPermission } from "@/shared/lib/permission.js"
 import type { ManualStockSelectResultItem } from "@/shared/types/manual-stock-select.js"
 import { parse } from "csv-parse/sync"
 import {
@@ -235,6 +238,8 @@ async function importSelectStockHandler(): Promise<void> {
 			}
 			console.log("[import] config:", configFilePath)
 
+			let parsedStrategyList: unknown
+
 			// -- 读取并解析 config.py（通过内嵌 Python 解析）
 			try {
 				const result = await parsePythonConfig(configFilePath, [
@@ -246,6 +251,7 @@ async function importSelectStockHandler(): Promise<void> {
 					logger.error("[importLibraryDirHandler] 解析 strategy_list 失败")
 					return { success: false, error: "解析 strategy_list 失败" }
 				}
+				parsedStrategyList = result.strategy_list
 				configJsonStr = JSON.stringify(result.strategy_list, null, 2)
 				backtestName = result.backtest_name ?? "默认策略"
 				reTimingStr = result.re_timing ? JSON.stringify(result.re_timing) : null
@@ -253,6 +259,17 @@ async function importSelectStockHandler(): Promise<void> {
 			} catch (error) {
 				logger.error(`[import] 解析 config.py 文件失败: ${error}`)
 				return { success: false, error: "解析 config.py 文件失败" }
+			}
+
+			const userAccount = await userStore.getUserAccount()
+			const isMember = checkPermission(userAccount?.permissions ?? [], "isMember")
+
+			if (!isMember) {
+				const validation = validateBasicSelectStockImport(parsedStrategyList)
+				if (!validation.ok) {
+					logger.warn(`[import] 基础版策略字段校验失败: ${validation.error}`)
+					return { success: false, error: validation.error }
+				}
 			}
 
 			// -- 检查策略库和因子库文件夹是否存在

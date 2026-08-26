@@ -246,24 +246,26 @@ export function SelectStgForm({
 						className="flex flex-col gap-4 overflow-auto min-h-[250px] max-h-[550px] p-4"
 						style={{ height: "calc(100vh * 0.6)" }}
 					>
-						<FormField
-							control={form.control}
-							name="remark_name"
-							render={({ field }) => (
-								<FormItem>
-									<FormControl>
-										<Input
-											{...field}
-											value={field.value ?? ""}
-											label="策略标识"
-											variant="bordered"
-											placeholder="输入策略唯一标识"
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{isMember && (
+							<FormField
+								control={form.control}
+								name="remark_name"
+								render={({ field }) => (
+									<FormItem>
+										<FormControl>
+											<Input
+												{...field}
+												value={field.value ?? ""}
+												label="策略标识"
+												variant="bordered"
+												placeholder="输入策略唯一标识"
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="select_num"
@@ -299,7 +301,9 @@ export function SelectStgForm({
 											const new_value = e.target.value
 											if (!new_value) return
 
-											form.setValue("offset_list", "0")
+											if (isMember) {
+												form.setValue("offset_list", "0")
+											}
 											field.onChange(e)
 										}}
 										label="持仓周期"
@@ -325,51 +329,55 @@ export function SelectStgForm({
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="offset_list"
-							render={({ field, formState }) => (
-								<FormItem>
-									<FormControl>
-										<Input
-											{...field}
-											isRequired
-											variant="bordered"
-											label={
-												<>
-													<span className="mr-1">offset_list</span>
-													<span className="text-xs">
-														多个数字用逗号分隔，如：0,1,2（不支持直接编辑）
-													</span>
-												</>
-											}
-											readOnly
-											errorMessage={formState.errors.offset_list?.message}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="scalein_targets"
-							render={({ field }) => (
-								<FormItem className="border-2 rounded-md px-3 py-2">
-									<div className="space-y-1 ">
-										<span className="text-xs">
-											分批进场目标仓位(offset间仓位分配) （不支持直接编辑）
-										</span>
-										{field.value && field.value?.length > 0 ? (
-											<ScaleinTargetsView
-												scaleinTargetsValue={field.value}
+						{isMember && (
+							<FormField
+								control={form.control}
+								name="offset_list"
+								render={({ field, formState }) => (
+									<FormItem>
+										<FormControl>
+											<Input
+												{...field}
+												isRequired
+												variant="bordered"
+												label={
+													<>
+														<span className="mr-1">offset_list</span>
+														<span className="text-xs">
+															多个数字用逗号分隔，如：0,1,2（不支持直接编辑）
+														</span>
+													</>
+												}
+												readOnly
+												errorMessage={formState.errors.offset_list?.message}
 											/>
-										) : (
-											<div className="text-sm">未配置</div>
-										)}
-									</div>
-								</FormItem>
-							)}
-						/>
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+						)}
+						{isMember && (
+							<FormField
+								control={form.control}
+								name="scalein_targets"
+								render={({ field }) => (
+									<FormItem className="border-2 rounded-md px-3 py-2">
+										<div className="space-y-1 ">
+											<span className="text-xs">
+												分批进场目标仓位(offset间仓位分配) （不支持直接编辑）
+											</span>
+											{field.value && field.value?.length > 0 ? (
+												<ScaleinTargetsView
+													scaleinTargetsValue={field.value}
+												/>
+											) : (
+												<div className="text-sm">未配置</div>
+											)}
+										</div>
+									</FormItem>
+								)}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="rebalance_time"
@@ -579,78 +587,80 @@ export function SelectStgForm({
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="filter_list_post"
-							render={({ field }) => (
-								<FormItem className={cn("flex flex-col px-1")}>
-									<FormLabel className="flex items-center gap-1">
-										<Filter className="size-4 mr-1" />
-										后置过滤因子列表
-										<span className="text-xs">（暂不支持直接编辑）</span>
-									</FormLabel>
+						{isMember && (
+							<FormField
+								control={form.control}
+								name="filter_list_post"
+								render={({ field }) => (
+									<FormItem className={cn("flex flex-col px-1")}>
+										<FormLabel className="flex items-center gap-1">
+											<Filter className="size-4 mr-1" />
+											后置过滤因子列表
+											<span className="text-xs">（暂不支持直接编辑）</span>
+										</FormLabel>
 
-									<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
-										<span>因子名称</span>
-										<span>因子参数</span>
-										<span>过滤条件</span>
-										<span>排序方式</span>
-									</div>
-									<div className="space-y-2">
-										{field.value?.map(
-											(
-												filter: [
-													string, // 因子名称
-													any, // 因子参数
-													string, // 过滤条件
-													boolean | undefined, // 排序方式
-												],
-												index: number,
-											) => (
-												<div key={index} className="grid grid-cols-4 gap-2">
-													<FormControl>
-														<InputUI
-															value={filter[0]} // -- 因子名称
-															className="text-muted-foreground text-xs"
-															readOnly
-														/>
-													</FormControl>
-													<FormControl>
-														<InputUI
-															value={JSON.stringify(filter[1])} // -- 因子参数
-															className="text-muted-foreground text-xs font-mono"
-															readOnly
-														/>
-													</FormControl>
-													<FormControl>
-														<InputUI
-															value={filter[2]} // -- 过滤条件
-															className="text-muted-foreground text-xs"
-															readOnly
-														/>
-													</FormControl>
-													<FormControl>
-														<InputUI
-															value={
-																filter[3] === undefined
-																	? "从小到大排序"
-																	: filter[3]
+										<div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+											<span>因子名称</span>
+											<span>因子参数</span>
+											<span>过滤条件</span>
+											<span>排序方式</span>
+										</div>
+										<div className="space-y-2">
+											{field.value?.map(
+												(
+													filter: [
+														string, // 因子名称
+														any, // 因子参数
+														string, // 过滤条件
+														boolean | undefined, // 排序方式
+													],
+													index: number,
+												) => (
+													<div key={index} className="grid grid-cols-4 gap-2">
+														<FormControl>
+															<InputUI
+																value={filter[0]} // -- 因子名称
+																className="text-muted-foreground text-xs"
+																readOnly
+															/>
+														</FormControl>
+														<FormControl>
+															<InputUI
+																value={JSON.stringify(filter[1])} // -- 因子参数
+																className="text-muted-foreground text-xs font-mono"
+																readOnly
+															/>
+														</FormControl>
+														<FormControl>
+															<InputUI
+																value={filter[2]} // -- 过滤条件
+																className="text-muted-foreground text-xs"
+																readOnly
+															/>
+														</FormControl>
+														<FormControl>
+															<InputUI
+																value={
+																	filter[3] === undefined
 																		? "从小到大排序"
-																		: "从大到小排序"
-															} // -- 启用状态
-															className="text-muted-foreground text-xs"
-															readOnly
-														/>
-													</FormControl>
-												</div>
-											),
-										)}
-									</div>
+																		: filter[3]
+																			? "从小到大排序"
+																			: "从大到小排序"
+																} // -- 启用状态
+																className="text-muted-foreground text-xs"
+																readOnly
+															/>
+														</FormControl>
+													</div>
+												),
+											)}
+										</div>
 
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						{isMember ? (
 							<>
 								<hr />

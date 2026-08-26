@@ -77,6 +77,11 @@ export default function StgImportButton() {
 		mutationFn: async (configFilePath: string) =>
 			await importSelectStock(configFilePath),
 		onSuccess: async (data) => {
+			if (!data?.success) {
+				toast.error(data?.error ?? "导入失败")
+				return
+			}
+
 			const {
 				configJson: strategyListStr = "",
 				backtestName = "默认策略",

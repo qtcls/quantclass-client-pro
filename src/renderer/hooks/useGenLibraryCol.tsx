@@ -245,54 +245,68 @@ export const useGenLibraryColumn = (
 			size: 60,
 			enableResizing: false,
 		},
-		{
-			header: "OFFSET",
-			accessorKey: "offset_list",
-			// size: 120,
-			cell: ({ row }) => {
-				return (
-					<div className="whitespace-pre-wrap break-words truncate max-w-[260px] hover:bg-muted rounded-md p-1 cursor-pointer">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<div className="text-xs space-y-1">
-									<div className="truncate">
-										{(row.original as SelectStgType).offset_list &&
-										(row.original as SelectStgType).offset_list.length > 0
-											? (row.original as SelectStgType).offset_list.join(", ")
-											: "--"}
-									</div>
-									<div className="truncate">
-										{(row.original as SelectStgType)?.scalein_targets?.length
-											? (row.original as SelectStgType)?.scalein_targets?.join(
-													"/", // 使用箭头符号表示仓位分配
-												)
-											: "无"}
-									</div>
+		...(isMember
+			? [
+					{
+						header: "OFFSET",
+						accessorKey: "offset_list",
+						// size: 120,
+						cell: ({ row }) => {
+							return (
+								<div className="whitespace-pre-wrap break-words truncate max-w-[260px] hover:bg-muted rounded-md p-1 cursor-pointer">
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="text-xs space-y-1">
+												<div className="truncate">
+													{(row.original as SelectStgType).offset_list &&
+													(row.original as SelectStgType).offset_list.length > 0
+														? (row.original as SelectStgType).offset_list.join(
+																", ",
+															)
+														: "--"}
+												</div>
+												<div className="truncate">
+													{(row.original as SelectStgType)?.scalein_targets
+														?.length
+														? (
+																row.original as SelectStgType
+															)?.scalein_targets?.join(
+																"/", // 使用箭头符号表示仓位分配
+															)
+														: "无"}
+												</div>
+											</div>
+										</TooltipTrigger>
+										<TooltipContent>
+											<div className="text-xs space-y-1">
+												<div>
+													OFFSET：
+													{(row.original as SelectStgType)?.offset_list?.length
+														? (row.original as SelectStgType).offset_list.join(
+																", ",
+															)
+														: "--"}
+												</div>
+												<div>
+													分批进场目标仓位(offset间仓位分配)：
+													{(row.original as SelectStgType)?.scalein_targets
+														?.length
+														? (
+																row.original as SelectStgType
+															)?.scalein_targets?.join(
+																"→", // 使用箭头符号表示仓位分配
+															)
+														: "未配置"}
+												</div>
+											</div>
+										</TooltipContent>
+									</Tooltip>
 								</div>
-							</TooltipTrigger>
-							<TooltipContent>
-								<div className="text-xs space-y-1">
-									<div>
-										OFFSET：
-										{(row.original as SelectStgType)?.offset_list?.length
-											? (row.original as SelectStgType).offset_list.join(", ")
-											: "--"}
-									</div>
-									<div>
-										分批进场目标仓位(offset间仓位分配)：
-										{(row.original as SelectStgType)?.scalein_targets?.length
-											? (row.original as SelectStgType)?.scalein_targets?.join(
-													"→", // 使用箭头符号表示仓位分配
-												)
-											: "未配置"}
-									</div>
-								</div>
-							</TooltipContent>
-						</Tooltip>
-					</div>
-				)
-			},
-		},
+							)
+						},
+					},
+				]
+			: []),
 		{
 			accessorKey: "rebalance_time",
 			header: () => (

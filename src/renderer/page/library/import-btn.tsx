@@ -31,6 +31,7 @@ import { backtestConfigAtom, reTimingAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import type { SelectStgType } from "@/renderer/types/strategy"
 import { openRealTradingFolder } from "@/renderer/utils"
+import { BASIC_SELECT_STRATEGY_IMPORT_LIMIT } from "@/shared/lib/basic-strategy-import"
 import { checkPermission } from "@/shared/lib/permission"
 import { useMutation } from "@tanstack/react-query"
 import { useAtomValue, useSetAtom } from "jotai"
@@ -71,7 +72,8 @@ export default function StgImportButton() {
 	} = useStrategyManager()
 	const { permissions } = useAtomValue(userAtom)
 	const isMember = checkPermission(permissions, "isMember")
-	const isAtStrategyLimit = !isMember && selectStgList.length >= 3
+	const isAtStrategyLimit =
+		!isMember && selectStgList.length >= BASIC_SELECT_STRATEGY_IMPORT_LIMIT
 	const { mutateAsync: importLibraryDir, isPending } = useMutation({
 		mutationKey: ["import-library"],
 		mutationFn: async (configFilePath: string) =>
@@ -110,9 +112,12 @@ export default function StgImportButton() {
 				if (isMember) {
 					updateSelectStgList(strategyListWithCap0 as SelectStgType[])
 				} else {
-					const remaining = 3 - selectStgList.length
+					const remaining =
+						BASIC_SELECT_STRATEGY_IMPORT_LIMIT - selectStgList.length
 					if (remaining <= 0) {
-						toast.error("基础版最多导入 3 个策略")
+						toast.error(
+							`基础版最多导入 ${BASIC_SELECT_STRATEGY_IMPORT_LIMIT} 个策略`,
+						)
 						return
 					}
 					addSelectStgList(

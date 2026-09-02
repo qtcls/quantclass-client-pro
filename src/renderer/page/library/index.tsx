@@ -15,6 +15,7 @@ import { LibraryTable } from "@/renderer/page/library/table"
 import { backtestConfigAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import { checkPermission } from "@/shared/lib/permission"
+import { BASIC_SELECT_STRATEGY_IMPORT_LIMIT } from "@/shared/lib/basic-strategy-import"
 import { useUnmount } from "etc-hooks"
 import { useAtom, useAtomValue } from "jotai"
 import { Edit } from "lucide-react"
@@ -76,7 +77,9 @@ export default function StrategyLibrary() {
 				<p className="text-muted-foreground">
 					导入、查看、编辑各类策略。并设置策略的实盘资金占比
 					{!isMember && (
-						<span className="text-warning">（基础身份最多导入 3 个策略）</span>
+						<span className="text-warning">
+							（基础身份最多导入 {BASIC_SELECT_STRATEGY_IMPORT_LIMIT} 个策略）
+						</span>
 					)}
 				</p>
 			</div>

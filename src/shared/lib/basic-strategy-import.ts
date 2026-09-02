@@ -9,6 +9,8 @@
  */
 
 /** 基础版选股策略导入字段白名单 */
+export const BASIC_SELECT_STRATEGY_IMPORT_LIMIT = 2
+
 export const BASIC_SELECT_STRATEGY_ALLOWED_KEYS = [
 	"name",
 	"cap_weight",

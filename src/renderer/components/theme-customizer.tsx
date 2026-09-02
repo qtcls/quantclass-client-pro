@@ -13,9 +13,13 @@ import { useTheme } from "next-themes"
 import * as React from "react"
 import { useEffect } from "react"
 
+import { MemberPromoDialog } from "@/renderer/components/member-promo"
 import { useConfig } from "@/renderer/hooks/useConfig"
 import { cn } from "@/renderer/lib/utils"
 import "@renderer/mdx.css"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtomValue } from "jotai"
 
 import { ThemeWrapper } from "@/renderer/components/theme-wrapper"
 import {
@@ -36,13 +40,17 @@ import {
 	PopoverTrigger,
 } from "@/renderer/components/ui/popover"
 import { Skeleton } from "@/renderer/components/ui/skeleton"
+import {
+	rainbowBorderClassName,
+	rainbowGradientClassName,
+} from "@/renderer/components/ui/animated-rainbow-card"
 import { UndoIcon } from "@/renderer/icons/UndoIcon"
 import {
 	type BaseColor,
 	baseColors,
 } from "@/renderer/registry/registry-base-color"
 import { useUpdateEffect } from "etc-hooks"
-import { Palette } from "lucide-react"
+import { Palette, Sparkles } from "lucide-react"
 
 // -- 添加视图过渡动画样式
 const viewTransitionStyle = `
@@ -110,6 +118,9 @@ export function Customizer() {
 	const [mounted, setMounted] = React.useState(false)
 	const { setTheme: setMode, resolvedTheme: mode } = useTheme()
 	const [config, setConfig] = useConfig()
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+	const [promoOpen, setPromoOpen] = React.useState(false)
 	const [showRestartDialog, setShowRestartDialog] = React.useState(false)
 	const [pendingTheme, setPendingTheme] =
 		React.useState<BaseColor["name"]>("zinc")
@@ -140,6 +151,11 @@ export function Customizer() {
 
 	// -- 处理主题色切换
 	const handleThemeColorChange = (themeName: BaseColor["name"]) => {
+		if (!isMember) {
+			setPromoOpen(true)
+			return
+		}
+
 		setPendingTheme(themeName)
 		setShowRestartDialog(true)
 	}
@@ -228,7 +244,25 @@ export function Customizer() {
 						</div>
 					</div>
 					<div className="space-y-1.5">
-						<Label className="text-xs">主题色</Label>
+						<div className="flex items-center gap-2">
+							<Label className="text-xs">主题色</Label>
+							{!isMember && (
+								<span
+									className={cn(
+										"inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium",
+										"text-blue-900 dark:text-blue-200",
+										rainbowGradientClassName,
+										rainbowBorderClassName,
+									)}
+								>
+									<Sparkles
+										className="size-2.5 text-violet-500"
+										strokeWidth={1.75}
+									/>
+									分享会专属功能
+								</span>
+							)}
+						</div>
 						<div className="grid grid-cols-3 gap-2">
 							{baseColors.map((theme) => {
 								const isActive = config.theme === theme.name
@@ -256,7 +290,9 @@ export function Customizer() {
 												"mr-1 flex h-5 w-5 shrink-0 -translate-x-1 items-center justify-center rounded-full bg-[--theme-primary]",
 											)}
 										>
-											{isActive && <CheckIcon className="h-4 w-4 text-white" />}
+											{isActive && (
+												<CheckIcon className="h-4 w-4 text-white" />
+											)}
 										</span>
 										{theme.label}
 									</Button>
@@ -294,6 +330,12 @@ export function Customizer() {
 					</div> */}
 				</div>
 			</ThemeWrapper>
+
+			<MemberPromoDialog
+				open={promoOpen}
+				onOpenChange={setPromoOpen}
+				featureName="主题色"
+			/>
 
 			{/* 重启提示弹窗 */}
 			<AlertDialog open={showRestartDialog} onOpenChange={setShowRestartDialog}>

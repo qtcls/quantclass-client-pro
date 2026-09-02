@@ -18,6 +18,7 @@ import FusionStrategyLibrary from "@/renderer/page/library/fusion"
 import { userAtom } from "@/renderer/store/user"
 import { checkPermission } from "@/shared/lib/permission"
 import { useAtomValue } from "jotai"
+import { Lock, Sparkles } from "lucide-react"
 import { useState } from "react"
 
 type LibraryView = "fusion" | "select"
@@ -51,8 +52,28 @@ export default function StrategyLibraryHub() {
 							<SelectValue placeholder="请选择策略库" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="fusion">策略库</SelectItem>
-							<SelectItem value="select">策略库（选股）</SelectItem>
+							<SelectItem value="fusion" className="h-8 py-0">
+								{isMember ? (
+									"策略库"
+								) : (
+									<span className="flex h-full items-center gap-1.5">
+										<Sparkles
+											className="size-3 shrink-0 text-violet-500"
+											strokeWidth={2}
+										/>
+										<span className="bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text font-medium leading-none text-transparent dark:from-violet-300 dark:to-blue-300">
+											策略库
+										</span>
+										<span className="inline-flex items-center gap-0.5 rounded bg-violet-500/15 px-1 leading-none text-[10px] font-medium text-violet-700 dark:bg-violet-400/15 dark:text-violet-300">
+											分享会
+											<Lock className="size-2.5" strokeWidth={2.5} />
+										</span>
+									</span>
+								)}
+							</SelectItem>
+							<SelectItem value="select" className="h-8 py-0">
+								{isMember ? "策略库（选股）" : "策略库"}
+							</SelectItem>
 						</SelectContent>
 					</Select>
 				</div>

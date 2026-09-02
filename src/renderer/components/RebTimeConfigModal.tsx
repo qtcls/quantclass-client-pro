@@ -8,6 +8,11 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { FEN_CLASS_URL } from "@/renderer/components/member-promo"
+import {
+	rainbowBorderClassName,
+	rainbowGradientClassName,
+} from "@/renderer/components/ui/animated-rainbow-card"
 import { Button } from "@/renderer/components/ui/button"
 import {
 	Dialog,
@@ -20,6 +25,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/renderer/components/ui/tooltip"
+import { cn } from "@/renderer/lib/utils"
 import {
 	fusionAtom,
 	libraryTypeAtom,
@@ -27,6 +33,7 @@ import {
 	selectStgDictAtom,
 	selectStgListAtom,
 } from "@/renderer/store/storage"
+import { userAtom } from "@/renderer/store/user"
 import type {
 	PosStrategyType,
 	RebTimeConfig,
@@ -38,8 +45,9 @@ import {
 	saveStrategyList,
 	saveStrategyListFusion,
 } from "@/renderer/utils/strategy"
+import { checkPermission } from "@/shared/lib/permission"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { Clock, InfoIcon, RefreshCw } from "lucide-react"
+import { ArrowUpRight, Clock, InfoIcon, Lock, RefreshCw } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -51,6 +59,9 @@ interface RebTimeConfigModalProps {
 	onOpenChange: (open: boolean) => void
 }
 
+/** 基础版固定换仓时间槽位 */
+const BASIC_REBALANCE_TIMES = ["open", "close-open"] as const
+
 const formatTimeValue = (
 	time: { hour: number; minute: number; second?: number } | undefined,
 ): string => {
@@ -61,12 +72,88 @@ const formatTimeValue = (
 	return `${hour}:${minute}:${second}`
 }
 
+function RebTimeConfigInfoBanner({ isMember }: { isMember: boolean }) {
+	const { openUrl } = window.electronAPI
+
+	return (
+		<div className="space-y-3">
+			<div className="flex gap-3 rounded-lg border border-blue-500/25 bg-blue-500/[0.06] px-4 py-3 text-sm dark:border-blue-400/25 dark:bg-blue-500/10">
+				<InfoIcon className="size-4 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
+				<p className="min-w-0 flex-1 text-blue-900/90 leading-relaxed dark:text-blue-100/90">
+					在此统一配置同一 <span className="font-semibold">rebalance_time</span>{" "}
+					下各策略的换仓时间（卖出/买入时间）。下方每个区块对应一种换仓模式，其下列出的策略将共用该模式的换仓时间。
+				</p>
+			</div>
+
+			{!isMember && (
+				<div className="overflow-hidden rounded-lg border bg-card">
+					<div className="flex items-center justify-between gap-3 border-b px-4 py-2.5">
+						<p className="text-sm text-muted-foreground">
+							<span className="font-medium text-foreground">当前为基础版</span>
+							<span className="mx-1.5 text-border">·</span>
+							下方 2 个固定换仓时间
+						</p>
+						<button
+							type="button"
+							className="inline-flex shrink-0 items-center gap-0.5 text-xs font-medium text-blue-800 hover:text-blue-950 dark:text-blue-200 dark:hover:text-blue-100"
+							onClick={() => openUrl(FEN_CLASS_URL)}
+						>
+							了解分享会
+							<ArrowUpRight className="size-3" />
+						</button>
+					</div>
+
+					<div className="grid grid-cols-2">
+						<div className="flex min-h-[88px] flex-col justify-center gap-2 px-4 py-3">
+							<span className="text-xs font-medium text-muted-foreground">
+								基础版
+							</span>
+							<div className="flex flex-wrap items-center gap-1.5">
+								<code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+									open
+								</code>
+								<code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+									close-open
+								</code>
+							</div>
+							<span className="text-xs text-muted-foreground">固定 2 种</span>
+						</div>
+
+						<div
+							className={cn(
+								"flex min-h-[88px] flex-col justify-center gap-2 border-l px-4 py-3",
+								rainbowGradientClassName,
+								rainbowBorderClassName,
+							)}
+						>
+							<span className="inline-flex items-center gap-1 text-xs font-medium text-blue-900 dark:text-blue-200">
+								分享会
+								<Lock className="size-3" strokeWidth={2.25} />
+							</span>
+							<div className="flex items-baseline gap-1">
+								<span className="text-lg font-semibold leading-none tracking-tight text-blue-900 dark:text-blue-200">
+									50+
+								</span>
+								<span className="text-xs text-blue-800/80 dark:text-blue-300/80">
+									换仓时间点
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+		</div>
+	)
+}
+
 function RebTimeConfigBody() {
 	const [rebTimeConfig, setRebTimeConfig] = useAtom(rebTimeConfigAtom)
 	const setSelectStgDict = useSetAtom(selectStgDictAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
 	const fusion = useAtomValue(fusionAtom)
 	const selectStgList = useAtomValue(selectStgListAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const [regeneratingRebTime, setRegeneratingRebTime] = useState<string | null>(
 		null,
 	)
@@ -140,10 +227,29 @@ function RebTimeConfigBody() {
 		}
 	}
 
-	const rebTimeEntries = Object.entries(rebTimeConfig)
+	const rebTimeEntries = useMemo((): [string, RebTimeConfig][] => {
+		if (isMember) {
+			return Object.entries(rebTimeConfig)
+		}
+
+		return BASIC_REBALANCE_TIMES.map((rebTime) => {
+			const config = rebTimeConfig[rebTime]
+			if (config) return [rebTime, config]
+
+			return [
+				rebTime,
+				{
+					sell_time: undefined as unknown as RebTimeConfig["sell_time"],
+					buy_time: undefined as unknown as RebTimeConfig["buy_time"],
+					strategies: [],
+				},
+			]
+		})
+	}, [isMember, rebTimeConfig])
 
 	return (
 		<div className="space-y-4">
+			<RebTimeConfigInfoBanner isMember={isMember} />
 			{rebTimeEntries.length === 0 ? (
 				<div className="text-center py-8 text-muted-foreground">
 					<p>暂无换仓时间配置</p>
@@ -251,16 +357,6 @@ export default function RebTimeConfigModal({
 						换仓时间配置
 					</DialogTitle>
 				</DialogHeader>
-				<div className="flex gap-3 rounded-lg border border-blue-500/25 bg-blue-500/10 dark:border-blue-400/30 dark:bg-blue-500/15 px-4 py-3 text-sm">
-					<InfoIcon className="size-4 shrink-0 mt-1 text-blue-600 dark:text-blue-400" />
-					<p className="min-w-0 flex-1 text-blue-900/90 dark:text-blue-100/90 leading-relaxed">
-						在此统一配置同一{" "}
-						<span className="font-bold text-blue-900/90 dark:text-blue-100/90">
-							rebalance_time
-						</span>{" "}
-						下各策略的换仓时间（卖出/买入时间）。下方每个区块对应一种换仓模式，其下列出的策略将共用该模式的换仓时间。
-					</p>
-				</div>
 				<RebTimeConfigBody />
 			</DialogContent>
 		</Dialog>

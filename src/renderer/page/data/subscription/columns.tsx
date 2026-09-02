@@ -23,8 +23,6 @@ export const useGenSubscribeColumns = (): Array<
 
 	const isDisabled = useCallback(
 		(row: Row<ISubscribeListType>) => {
-			const isCoin = row.original.course_access?.includes("coin")
-			if (isCoin) return true
 			if (isMember) return false
 
 			const courseType = row.original.course_access?.[0]
@@ -50,9 +48,7 @@ export const useGenSubscribeColumns = (): Array<
 					),
 				cell: ({ row }) => {
 					const disabled = isDisabled(row)
-					const isCoin = row.original.course_access?.includes("coin")
-					// 无权限导致的禁用：选中则取消。B 圈仅禁用勾选，已订阅的不在此处清掉
-					if (disabled && row.getIsSelected() && !isCoin) {
+					if (disabled && row.getIsSelected()) {
 						row.toggleSelected(false)
 					}
 
@@ -109,9 +105,13 @@ export const useGenSubscribeColumns = (): Array<
 }
 
 export const transSubscribeData = (dataApiProductList: any[]) => {
-	// 按照course_access是否包含"分享会"进行分组排序
+	// 按照course_access是否包含"分享会"进行分组排序，不展示 B 圈数据
+	const filtered = dataApiProductList.filter(
+		(item) => !item.course_access?.includes("coin"),
+	)
+
 	return [
-		...dataApiProductList
+		...filtered
 			.filter((item) => !item.course_access?.includes("fen"))
 			.map((item) => ({
 				title: item.displayName,
@@ -119,7 +119,7 @@ export const transSubscribeData = (dataApiProductList: any[]) => {
 				course_access: item.course_access,
 			}))
 			.sort((a, b) => a.key.localeCompare(b.key)),
-		...dataApiProductList
+		...filtered
 			.filter((item) => item.course_access?.includes("fen"))
 			.map((item) => ({
 				title: item.displayName,

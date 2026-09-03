@@ -13,15 +13,20 @@ export type PermissionCondition =
 	| string[]
 	| { conditions: string[]; method: "OR" | "AND" }
 
+function normalizePermissions(permissions: string[] | undefined): string[] {
+	return Array.isArray(permissions) ? permissions : []
+}
+
 /**
  * 权限检查（OR 逻辑）
  * 参数之间是 OR 关系，数组内部是 AND 关系（可通过对象参数的 method 修改）
  */
 export function checkPermission(
-	permissions: string[],
+	permissions: string[] | undefined,
 	...conditions: PermissionCondition[]
 ): boolean {
-	return conditions.some((condition) => matchPermission(permissions, condition))
+	const perms = normalizePermissions(permissions)
+	return conditions.some((condition) => matchPermission(perms, condition))
 }
 
 /**
@@ -29,12 +34,11 @@ export function checkPermission(
  * 参数之间是 AND 关系，数组内部是 AND 关系（可通过对象参数的 method 修改）
  */
 export function checkAllPermissions(
-	permissions: string[],
+	permissions: string[] | undefined,
 	...conditions: PermissionCondition[]
 ): boolean {
-	return conditions.every((condition) =>
-		matchPermission(permissions, condition),
-	)
+	const perms = normalizePermissions(permissions)
+	return conditions.every((condition) => matchPermission(perms, condition))
 }
 
 function matchPermission(
@@ -59,6 +63,8 @@ function matchPermission(
 	return false
 }
 
-export function getSelectKernal(permissions: string[]): "fusion" | "aqua" {
+export function getSelectKernal(
+	permissions: string[] | undefined,
+): "fusion" | "aqua" {
 	return checkPermission(permissions, "isMember") ? "fusion" : "aqua"
 }

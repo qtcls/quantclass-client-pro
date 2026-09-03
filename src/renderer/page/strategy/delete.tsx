@@ -32,6 +32,9 @@ interface DeleteStrategyProps<T extends BaseStrategy> {
 	className?: string
 	onClick?: (e: React.MouseEvent) => boolean
 	onSuccess: () => void
+	hideTrigger?: boolean
+	open?: boolean
+	onOpenChange?: (open: boolean) => void
 }
 
 export function DeleteStrategy<T extends BaseStrategy>({
@@ -39,8 +42,13 @@ export function DeleteStrategy<T extends BaseStrategy>({
 	rowIndex,
 	onSuccess,
 	className,
+	hideTrigger = false,
+	open: controlledOpen,
+	onOpenChange: controlledOnOpenChange,
 }: DeleteStrategyProps<T>) {
-	const [showDialog, setShowDialog] = useState(false)
+	const [internalOpen, setInternalOpen] = useState(false)
+	const showDialog = controlledOpen ?? internalOpen
+	const setShowDialog = controlledOnOpenChange ?? setInternalOpen
 	const [confirmDelete, setConfirmDelete] = useState(false)
 	const { removeSelectStg } = useStrategyManager()
 
@@ -69,19 +77,21 @@ export function DeleteStrategy<T extends BaseStrategy>({
 
 	return (
 		<>
-			<Button
-				variant="ghost"
-				size="icon"
-				className={cn(
-					"absolute top-2 right-2 h-8 w-8 hover:text-destructive-foreground",
-					className,
-				)}
-				onClick={() => {
-					setShowDialog(true)
-				}}
-			>
-				<DeleteIcon className="h-4 w-4 stroke-destructive" />
-			</Button>
+			{!hideTrigger ? (
+				<Button
+					variant="ghost"
+					size="icon"
+					className={cn(
+						"absolute top-2 right-2 h-8 w-8 hover:text-destructive-foreground",
+						className,
+					)}
+					onClick={() => {
+						setShowDialog(true)
+					}}
+				>
+					<DeleteIcon className="h-4 w-4 stroke-destructive" />
+				</Button>
+			) : null}
 
 			<Dialog open={showDialog} onOpenChange={setShowDialog}>
 				<DialogContent className="p-4 max-w-md">

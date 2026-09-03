@@ -48,12 +48,16 @@ import {
 	ShieldCheck,
 	TriangleAlert,
 } from "lucide-react"
-import { useState } from "react"
+import { forwardRef, useImperativeHandle, useState } from "react"
 import { toast } from "sonner"
 import RebTimeConfigModal from "../../components/RebTimeConfigModal"
 import TradeCtrlBtn from "../../components/trade-ctrl-btn"
 
-export default function StgImportButton() {
+export interface StgImportHandle {
+	openImport: () => void
+}
+
+const StgImportButton = forwardRef<StgImportHandle>((_props, ref) => {
 	const { selectFile, setStoreValue, importSelectStock } = window.electronAPI
 
 	const [pending, setPending] = useState(false)
@@ -67,13 +71,19 @@ export default function StgImportButton() {
 	const {
 		resetSelectStgList,
 		addSelectStgList,
-		updateSelectStgList,
 		selectStgList,
 	} = useStrategyManager()
 	const { permissions } = useAtomValue(userAtom)
 	const isMember = checkPermission(permissions, "isMember")
 	const isAtStrategyLimit =
 		!isMember && selectStgList.length >= BASIC_SELECT_STRATEGY_IMPORT_LIMIT
+
+	useImperativeHandle(ref, () => ({
+		openImport: () => {
+			if (isAutoRocket || isAtStrategyLimit) return
+			setImportOpen(true)
+		},
+	}))
 	const { mutateAsync: importLibraryDir, isPending } = useMutation({
 		mutationKey: ["import-library"],
 		mutationFn: async (configFilePath: string) =>
@@ -109,20 +119,15 @@ export default function StgImportButton() {
 					...p,
 					backtest_name: backtestName,
 				}))
-				if (isMember) {
-					updateSelectStgList(strategyListWithCap0 as SelectStgType[])
-				} else {
+
+				if (!isMember) {
 					const remaining =
 						BASIC_SELECT_STRATEGY_IMPORT_LIMIT - selectStgList.length
-					if (remaining <= 0) {
-						toast.error(
-							`基础版最多导入 ${BASIC_SELECT_STRATEGY_IMPORT_LIMIT} 个策略`,
-						)
-						return
-					}
 					addSelectStgList(
 						(strategyListWithCap0 as SelectStgType[]).slice(0, remaining),
 					)
+				} else {
+					addSelectStgList(strategyListWithCap0 as SelectStgType[])
 				}
 			}
 			setImportOpen(false)
@@ -236,16 +241,13 @@ export default function StgImportButton() {
 						<ul className="list-inside space-y-2">
 							<li className="flex items-center">
 								<BadgePlus size={18} className="mr-2" /> 选中策略会{" "}
-								<span
-									className={
-										isMember
-											? "text-warning font-bold"
-											: "text-success font-bold"
-									}
-								>
-									{isMember ? "覆盖" : "增加"}
-								</span>
+								<span className="text-success font-bold">增加</span>
 								到当前策略库中
+								{!isMember && (
+									<span className="text-warning">
+										（基础版最多 {BASIC_SELECT_STRATEGY_IMPORT_LIMIT} 个）
+									</span>
+								)}
 							</li>
 							<li className="flex items-center">
 								<ShieldCheck size={18} className="mr-2" />
@@ -330,4 +332,8 @@ export default function StgImportButton() {
 			</AlertDialog>
 		</>
 	)
-}
+})
+
+StgImportButton.displayName = "StgImportButton"
+
+export default StgImportButton

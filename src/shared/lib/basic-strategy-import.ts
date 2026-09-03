@@ -20,6 +20,13 @@ export const BASIC_SELECT_STRATEGY_ALLOWED_KEYS = [
 	"rebalance_time",
 	"factor_list",
 	"filter_list",
+	// 个股日线择时
+	"code",
+	"code_type",
+	"timing",
+	// 轮动
+	"code_list",
+	"rotation",
 ] as const
 
 export type BasicSelectStrategyAllowedKey =
@@ -37,34 +44,27 @@ export type BasicSelectStockImportValidationResult =
 	| { ok: true }
 	| { ok: false; error: string }
 
-/** validtae 基础版选股策略导入 */
-export function validateBasicSelectStockImport(
-	strategyList: unknown,
+/** validate 基础版选股策略导入 */
+export function validateBasicSelectStrategy(
+	strategy: unknown,
 ): BasicSelectStockImportValidationResult {
-	if (!Array.isArray(strategyList)) {
-		return { ok: false, error: "导入失败：strategy_list 格式无效" }
+	if (
+		typeof strategy !== "object" ||
+		strategy === null ||
+		Array.isArray(strategy)
+	) {
+		return { ok: false, error: "导入失败：strategy 格式无效" }
 	}
 
-	for (let index = 0; index < strategyList.length; index++) {
-		const item = strategyList[index]
-		if (typeof item !== "object" || item === null || Array.isArray(item)) {
-			return {
-				ok: false,
-				error: `导入失败：第 ${index + 1} 条策略格式无效`,
-			}
-		}
-
-		const forbidden = getForbiddenBasicStrategyKeys(
-			item as Record<string, unknown>,
-		)
-		if (forbidden.length > 0) {
-			const name = (item as Record<string, unknown>).name
-			const label =
-				typeof name === "string" && name.trim() ? name : `#${index + 1}`
-			return {
-				ok: false,
-				error: `导入失败：策略「${label}」包含基础版不支持的字段：${forbidden.join("、")}`,
-			}
+	const forbidden = getForbiddenBasicStrategyKeys(
+		strategy as Record<string, unknown>,
+	)
+	if (forbidden.length > 0) {
+		const name = (strategy as Record<string, unknown>).name
+		const label = typeof name === "string" && name.trim() ? name : "策略"
+		return {
+			ok: false,
+			error: `导入失败：策略「${label}」包含基础版不支持的字段：${forbidden.join("、")}`,
 		}
 	}
 

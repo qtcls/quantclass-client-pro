@@ -20,7 +20,7 @@ import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
-import { validateBasicSelectStockImport } from "@/shared/lib/basic-strategy-import.js"
+import { validateBasicSelectStrategy } from "@/shared/lib/basic-strategy-import.js"
 import { checkPermission } from "@/shared/lib/permission.js"
 import type { ManualStockSelectResultItem } from "@/shared/types/manual-stock-select.js"
 import { parse } from "csv-parse/sync"
@@ -238,38 +238,71 @@ async function importSelectStockHandler(): Promise<void> {
 			}
 			console.log("[import] config:", configFilePath)
 
-			let parsedStrategyList: unknown
+			const userAccount = await userStore.getUserAccount()
+			const isMember = checkPermission(userAccount?.permissions ?? [], "isMember")
 
 			// -- 读取并解析 config.py（通过内嵌 Python 解析）
 			try {
 				const result = await parsePythonConfig(configFilePath, [
 					"strategy_list",
+					"strategy",
 					"backtest_name",
 					"re_timing",
 				])
-				if (!result.strategy_list) {
-					logger.error("[importLibraryDirHandler] 解析 strategy_list 失败")
-					return { success: false, error: "解析 strategy_list 失败" }
+
+				let strategyList: unknown[]
+				const strategy = result.strategy
+				const isStrategyDict =
+					typeof strategy === "object" &&
+					strategy !== null &&
+					!Array.isArray(strategy)
+
+				if (isMember) {
+					if (
+						Array.isArray(result.strategy_list) &&
+						result.strategy_list.length > 0
+					) {
+						strategyList = result.strategy_list
+					} else if (isStrategyDict) {
+						strategyList = [strategy]
+					} else {
+						logger.error(
+							"[importLibraryDirHandler] 解析 strategy_list / strategy 失败",
+						)
+						return {
+							success: false,
+							error: "解析 strategy_list / strategy 失败",
+						}
+					}
+				} else if (result.strategy_list != null) {
+					logger.error(
+						"[importLibraryDirHandler] 基础版不支持 strategy_list",
+					)
+					return {
+						success: false,
+						error: "导入失败：基础版请使用 strategy 格式，不支持 strategy_list",
+					}
+				} else if (isStrategyDict) {
+					const validation = validateBasicSelectStrategy(strategy)
+					if (!validation.ok) {
+						logger.warn(
+							`[import] 基础版策略字段校验失败: ${validation.error}`,
+						)
+						return { success: false, error: validation.error }
+					}
+					strategyList = [strategy]
+				} else {
+					logger.error("[importLibraryDirHandler] 解析 strategy 失败")
+					return { success: false, error: "解析 strategy 失败" }
 				}
-				parsedStrategyList = result.strategy_list
-				configJsonStr = JSON.stringify(result.strategy_list, null, 2)
+
+				configJsonStr = JSON.stringify(strategyList, null, 2)
 				backtestName = result.backtest_name ?? "默认策略"
 				reTimingStr = result.re_timing ? JSON.stringify(result.re_timing) : null
 				logger.info(`[import] 解析 config.py 文件成功，策略名：${backtestName}`)
 			} catch (error) {
 				logger.error(`[import] 解析 config.py 文件失败: ${error}`)
 				return { success: false, error: "解析 config.py 文件失败" }
-			}
-
-			const userAccount = await userStore.getUserAccount()
-			const isMember = checkPermission(userAccount?.permissions ?? [], "isMember")
-
-			if (!isMember) {
-				const validation = validateBasicSelectStockImport(parsedStrategyList)
-				if (!validation.ok) {
-					logger.warn(`[import] 基础版策略字段校验失败: ${validation.error}`)
-					return { success: false, error: validation.error }
-				}
 			}
 
 			// -- 检查策略库和因子库文件夹是否存在

@@ -14,6 +14,7 @@ import {
 } from "@/renderer/components/ui/select"
 import { useSettings } from "@/renderer/hooks/useSettings"
 import StrategyLibrary from "@/renderer/page/library"
+import BasicStrategyLibrary from "@/renderer/page/library/basic"
 import FusionStrategyLibrary from "@/renderer/page/library/fusion"
 import { userAtom } from "@/renderer/store/user"
 import { checkPermission } from "@/shared/lib/permission"
@@ -99,8 +100,10 @@ export default function StrategyLibraryHub() {
 					>
 						<FusionStrategyLibrary />
 					</MemberPromoGate>
-				) : (
+				) : isMember ? (
 					<StrategyLibrary />
+				) : (
+					<BasicStrategyLibrary />
 				)}
 			</div>
 			<BacktestDialog />

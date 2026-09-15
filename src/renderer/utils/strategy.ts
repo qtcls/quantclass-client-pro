@@ -139,7 +139,7 @@ function buildSelectStrategyPersistPayload(
 		const rebTime = strategy.rebalance_time ?? "close-open"
 		const strategyName =
 			strategy.remark_name?.trim() ||
-			getSelectRealMarketStrategyName(index, strategy.name)
+			getSelectRealMarketStrategyName(index, strategy)
 
 		addStrategyToRebTimeConfig(rebTimeConfig, rebTime, strategy)
 

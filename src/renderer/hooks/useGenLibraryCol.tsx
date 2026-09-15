@@ -26,6 +26,7 @@ import {
 	getFusionGroupSubRealMarketStrategyName,
 	getFusionTopRealMarketStrategyName,
 	getSelectRealMarketStrategyName,
+	resolveSelectStrategyName,
 } from "@/shared/lib/real-market-strategy-name"
 
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
@@ -197,13 +198,17 @@ export const useGenLibraryColumn = (
 							}
 							return getSelectRealMarketStrategyName(
 								row.index,
-								row.original.name,
+								row.original,
 							)
 						})()
 
 				const nameBlock = (
 					<StrategyNameDisplay
-						name={row.original.name}
+						name={
+							fusionIndex >= 0
+								? row.original.name
+								: resolveSelectStrategyName(row.original)
+						}
 						remarkName={row.original.remark_name}
 						fallbackRemarkName={fallbackRemarkName}
 					/>
@@ -437,7 +442,7 @@ export const useGenLibraryColumn = (
 								}
 								return getSelectRealMarketStrategyName(
 									row.index,
-									row.original.name,
+									row.original,
 								)
 							})()
 

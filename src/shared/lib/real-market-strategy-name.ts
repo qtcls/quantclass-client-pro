@@ -8,12 +8,39 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+export interface SelectStrategyNameSource {
+	name?: unknown
+	timing?: { name?: unknown } | null
+	rotation?: { name?: unknown } | null
+}
+
+function readStrategyNameField(value: unknown): string | undefined {
+	return typeof value === "string" && value.trim() ? value.trim() : undefined
+}
+
+/** 解析选股策略展示名；择时/轮动优先取 timing/rotation 内的 name */
+export function resolveSelectStrategyName(
+	strategy: SelectStrategyNameSource,
+): string {
+	const topName = readStrategyNameField(strategy.name)
+
+	if (strategy.rotation != null) {
+		return readStrategyNameField(strategy.rotation.name) ?? topName ?? "策略"
+	}
+
+	if (strategy.timing != null) {
+		return readStrategyNameField(strategy.timing.name) ?? topName ?? "策略"
+	}
+
+	return topName ?? "策略"
+}
+
 /** 选股模式：写入 real_market_25.json 的策略名 */
 export function getSelectRealMarketStrategyName(
 	index: number,
-	name: string,
+	strategy: SelectStrategyNameSource,
 ): string {
-	return `#${index}.${name}`
+	return `#${index}.${resolveSelectStrategyName(strategy)}`
 }
 
 /** 仓管模式顶层：写入 real_market_25.json 的策略名 */

@@ -32,6 +32,7 @@ import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { cn } from "@/renderer/lib/utils"
 import { DeleteStrategy } from "@/renderer/page/strategy/delete"
 import type { SelectStgType } from "@/renderer/types/strategy"
+import { resolveSelectStrategyName } from "@/shared/lib/real-market-strategy-name"
 import {
 	AlarmClockCheck,
 	BarChart3,
@@ -463,11 +464,7 @@ export function StrategyCard({
 		((basicStrategy.cap_weight ?? 0) * 100).toFixed(2),
 	)
 
-	const title =
-		basicStrategy.name?.trim() ||
-		basicStrategy.timing?.name?.trim() ||
-		basicStrategy.rotation?.name?.trim() ||
-		"策略"
+	const title = resolveSelectStrategyName(basicStrategy)
 	const rebalanceLabel = getRebalanceTimeLabel(
 		basicStrategy.rebalance_time ?? "close-open",
 	)

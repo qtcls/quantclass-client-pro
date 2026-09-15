@@ -4,7 +4,7 @@ import { type UseQueryOptions, useQuery } from "@tanstack/react-query"
 
 // 积分余额查询的通用配置
 const CREDIT_BALANCE_QUERY_CONFIG = {
-	// 远程 CRM 积分余额查询配置
+	// 远程积分余额查询配置
 	REMOTE: {
 		STALE_TIME: 1000 * 60 * 3, // 3分钟内数据被认为是新鲜的
 		REFETCH_INTERVAL: 1000 * 60 * 30, // 30分钟重新请求一次

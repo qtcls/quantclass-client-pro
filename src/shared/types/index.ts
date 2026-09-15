@@ -20,8 +20,9 @@ export type { KernalType } from "./kernal.js"
 // 用户相关类型
 export type {
 	CreditBalanceResponse,
-	CreditRecord,
-	CreditRecordsResponse,
+	CreditChangeType,
+	CreditLedger,
+	CreditLedgerResponse,
 	WebUserInfo,
 	UserAccount,
 	UserAccountInfo,

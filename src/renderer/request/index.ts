@@ -16,8 +16,8 @@ import type {
 } from "@/renderer/types/research"
 import type {
 	CreditBalanceResponse,
-	CreditRecord,
-	CreditRecordsResponse,
+	CreditChangeType,
+	CreditLedgerResponse,
 } from "@/shared/types"
 
 const { rendererLog } = window.electronAPI
@@ -107,23 +107,20 @@ export const getCreditBalance = async (): Promise<CreditBalanceResponse | null> 
 	}
 }
 
-export const getCreditRecords = async (params?: {
+export const getCreditLedger = async (params?: {
 	page?: number
-	page_size?: number
-}): Promise<CreditRecordsResponse | null> => {
+	size?: number
+	change_type?: CreditChangeType
+}): Promise<CreditLedgerResponse | null> => {
 	try {
-		const data = await get<
-			| CreditRecord[]
-			| { records?: CreditRecord[]; list?: CreditRecord[]; total?: number }
-		>(`${CRM_BASE_URL}/api/user/get/credit-records`, params)
-		if (Array.isArray(data)) {
-			return { records: data, total: data.length }
-		}
-		const records = data.records ?? data.list ?? []
-		return {
-			records,
-			total: data.total ?? records.length,
-		}
+		return await get<CreditLedgerResponse>(
+			`${CRM_BASE_URL}/api/user/get/credit-ledger`,
+			{
+				page: params?.page ?? 1,
+				size: params?.size ?? 20,
+				change_type: params?.change_type,
+			},
+		)
 	} catch (error) {
 		if (
 			error instanceof ApiError &&

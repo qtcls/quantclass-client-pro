@@ -49,18 +49,21 @@ export interface CreditBalanceResponse {
 	credit_balance: number
 }
 
-export interface CreditRecord {
-	id: number | string
+export type CreditChangeType = "consumption" | "gift" | "purchase"
+
+export interface CreditLedger {
 	amount: number
-	balance?: number
-	remark?: string
-	description?: string
-	type?: string
-	created_at: string
+	change_type: CreditChangeType | string
+	nickname: string
+	order_id: string
+	reason: string
+	uuid: string
 }
 
-export interface CreditRecordsResponse {
-	records: CreditRecord[]
+export interface CreditLedgerResponse {
+	ledgers: CreditLedger[]
+	page: number
+	size: number
 	total: number
 }
 

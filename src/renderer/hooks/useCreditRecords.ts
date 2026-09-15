@@ -1,5 +1,5 @@
-import { getCreditRecords } from "@/renderer/request"
-import type { CreditRecordsResponse } from "@/shared/types"
+import { getCreditLedger } from "@/renderer/request"
+import type { CreditLedgerResponse } from "@/shared/types"
 import { type UseQueryOptions, useQuery } from "@tanstack/react-query"
 
 const CREDIT_RECORDS_QUERY_CONFIG = {
@@ -10,7 +10,7 @@ const CREDIT_RECORDS_QUERY_CONFIG = {
 
 export const useCreditRecords = (
 	enabled = true,
-	options?: Partial<UseQueryOptions<CreditRecordsResponse | null, Error>>,
+	options?: Partial<UseQueryOptions<CreditLedgerResponse | null, Error>>,
 ) => {
 	const {
 		data: creditRecords,
@@ -18,10 +18,10 @@ export const useCreditRecords = (
 		isFetching: isFetchingCreditRecords,
 		refetch: refetchCreditRecords,
 	} = useQuery({
-		queryKey: ["credit-records"],
+		queryKey: ["credit-ledger"],
 		queryFn: async () => {
 			try {
-				return await getCreditRecords({ page: 1, page_size: 50 })
+				return await getCreditLedger({ page: 1, size: 50 })
 			} catch (error) {
 				console.error("查询积分流水失败:", error)
 				throw error

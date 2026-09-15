@@ -23,7 +23,7 @@ import {
 import { useCreditRecords } from "@/renderer/hooks/useCreditRecords"
 import { cn } from "@/renderer/lib/utils"
 import { userAtom } from "@/renderer/store/user"
-import type { CreditRecord } from "@/shared/types"
+import type { CreditLedger } from "@/shared/types"
 import { useAtomValue } from "jotai"
 import { RefreshCw, Wallet, Zap } from "lucide-react"
 import { useState } from "react"
@@ -44,29 +44,14 @@ const CREDIT_CONSUMPTION_RULES = [
 	},
 ] as const
 
-function formatRecordTime(value: string): string {
-	const date = new Date(value)
-	if (Number.isNaN(date.getTime())) return value
-	return date.toLocaleString("zh-CN", {
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-		hour12: false,
-	})
+const CHANGE_TYPE_LABELS: Record<string, string> = {
+	purchase: "购买",
+	consumption: "消耗",
+	gift: "赠送",
 }
 
-function getRecordType(record: CreditRecord): string {
-	if (record.type) return record.type
-	if (record.amount > 0) return "充值"
-	if (record.amount < 0) return "消耗"
-	return "其他"
-}
-
-function getRecordDescription(record: CreditRecord): string {
-	return record.remark || record.description || "--"
+function getLedgerType(ledger: CreditLedger): string {
+	return CHANGE_TYPE_LABELS[ledger.change_type] ?? ledger.change_type ?? "其他"
 }
 
 function formatRecordAmount(amount: number): string {
@@ -87,7 +72,7 @@ export default function CreditPage() {
 	const [isOpeningPaymentPortal, setIsOpeningPaymentPortal] = useState(false)
 
 	const isRefreshing = isFetchingCreditBalance || isFetchingCreditRecords
-	const records = creditRecords?.records ?? []
+	const ledgers = creditRecords?.ledgers ?? []
 
 	const handleRefreshBalance = async () => {
 		await refetchCreditBalance()
@@ -222,8 +207,7 @@ export default function CreditPage() {
 								<TableHead>类型</TableHead>
 								<TableHead>描述</TableHead>
 								<TableHead className="text-right">变动额度</TableHead>
-								<TableHead className="text-right">余额</TableHead>
-								<TableHead className="text-right">时间</TableHead>
+								<TableHead>订单号</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -236,41 +220,36 @@ export default function CreditPage() {
 										加载中...
 									</TableCell>
 								</TableRow>
-							) : records.length === 0 ? (
+							) : ledgers.length === 0 ? (
 								<TableRow>
 									<TableCell
 										colSpan={5}
 										className="h-28 text-center text-muted-foreground"
 									>
-										暂无交易记录
+										暂无积分记录
 									</TableCell>
 								</TableRow>
 							) : (
-								records.map((record) => (
-									<TableRow key={String(record.id)}>
+								ledgers.map((ledger) => (
+									<TableRow key={ledger.uuid}>
 										<TableCell>
-											<Badge variant="outline">{getRecordType(record)}</Badge>
+											<Badge variant="outline">{getLedgerType(ledger)}</Badge>
 										</TableCell>
-										<TableCell>{getRecordDescription(record)}</TableCell>
+										<TableCell>{ledger.reason || "--"}</TableCell>
 										<TableCell
 											className={cn(
 												"text-right font-medium",
-												record.amount > 0
+												ledger.amount > 0
 													? "text-emerald-600 dark:text-emerald-400"
-													: record.amount < 0
+													: ledger.amount < 0
 														? "text-red-600 dark:text-red-400"
 														: "",
 											)}
 										>
-											{formatRecordAmount(record.amount)}
+											{formatRecordAmount(ledger.amount)}
 										</TableCell>
-										<TableCell className="text-right">
-											{record.balance !== undefined
-												? record.balance.toLocaleString()
-												: "--"}
-										</TableCell>
-										<TableCell className="text-right whitespace-nowrap text-muted-foreground">
-											{formatRecordTime(record.created_at)}
+										<TableCell className="font-mono text-xs text-muted-foreground">
+											{ledger.order_id || "--"}
 										</TableCell>
 									</TableRow>
 								))

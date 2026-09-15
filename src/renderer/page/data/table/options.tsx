@@ -188,7 +188,7 @@ export function DataTableActionOptions<TData>({
 						variant="outline"
 						className="h-8 w-8 p-0 text-foreground"
 						disabled={!isLoggedIn || isFetchingCreditBalance}
-						title="刷新余额"
+						title="刷新积分余额"
 						onClick={async () => {
 							await refetchCreditBalance()
 							toast.success("余额已刷新")

@@ -19,7 +19,6 @@ import windowManager from "@/main/lib/WindowManager.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
 import { postUserMainAction } from "@/main/request/index.js"
 import store from "@/main/store/index.js"
-import { getRocketQmtMode } from "@/main/utils/common.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
 import type { AppVersions } from "@/shared/types/index.js"
@@ -35,26 +34,6 @@ import {
 const require = createRequire(import.meta.url)
 const AdmZip = require("adm-zip")
 const execFileAsync = promisify(execFile)
-
-async function flattenExtractedRocketDir(extractDir: string) {
-	const exeName = platform.isWindows ? "rocket.exe" : "rocket"
-	if (fs.existsSync(path.join(extractDir, exeName))) return
-
-	for (const name of ["rocket", "mini_qmt", "qmt"]) {
-		const nested = path.join(extractDir, name)
-		if (!fs.existsSync(path.join(nested, exeName))) continue
-
-		const files = await fs.promises.readdir(nested)
-		for (const file of files) {
-			await fs.promises.rename(
-				path.join(nested, file),
-				path.join(extractDir, file),
-			)
-		}
-		await fs.promises.rm(nested, { recursive: true, force: true })
-		return
-	}
-}
 
 const clientVersion = CLIENT_VERSION
 
@@ -160,11 +139,7 @@ export async function downloadKernal(
 
 	try {
 		const codeFolder = await store.getAllDataPath(["code"])
-		const kernalFolderPath =
-			kernal === "rocket"
-				? path.join(codeFolder, "rocket", await getRocketQmtMode())
-				: path.join(codeFolder, kernal)
-		const extractTarget = kernal === "rocket" ? kernalFolderPath : codeFolder
+		const kernalFolderPath = path.join(codeFolder, kernal)
 
 		if (!downloadUrl) {
 			logger.error(`[${kernal}] 下载链接为空`)
@@ -172,7 +147,7 @@ export async function downloadKernal(
 		}
 
 		logger.info(
-			`[${kernal}] 版本: ${version}，使用远程链接: ${downloadUrl}，保存路径: ${extractTarget}`,
+			`[${kernal}] 版本: ${version}，使用远程链接: ${downloadUrl}，保存路径: ${codeFolder}`,
 		)
 
 		const fileName = downloadUrl.split("/").pop() as string
@@ -211,13 +186,10 @@ export async function downloadKernal(
 		await writeFile(kernalZipPath, buffer)
 		logger.info(`[${kernal}] 内核文件已下载到 ${kernalZipPath}`)
 
-		// 删除老内核文件夹（rocket 只覆盖当前 QMT 模式目录）
+		// 删除老内核文件夹
 		try {
 			if (fs.existsSync(kernalFolderPath)) {
 				await fs.promises.rm(kernalFolderPath, { recursive: true, force: true })
-			}
-			if (kernal === "rocket") {
-				await fs.promises.mkdir(kernalFolderPath, { recursive: true })
 			}
 			logger.info(`[${kernal}] 删除原内核文件夹成功`)
 		} catch {
@@ -227,20 +199,16 @@ export async function downloadKernal(
 		// 解压zip文件，从2025年5月27日开始，所有内核采用onedir的打包方式，所以需要解压zip文件
 		// macOS 使用系统 unzip（保留可执行权限）；-q 避免文件列表撑爆默认 maxBuffer
 		if (platform.isMacOS) {
-			await execFileAsync("unzip", ["-oq", kernalZipPath, "-d", extractTarget], {
+			await execFileAsync("unzip", ["-oq", kernalZipPath, "-d", codeFolder], {
 				maxBuffer: 10 * 1024 * 1024,
 			})
 		} else {
 			const zip = new AdmZip(kernalZipPath)
-			zip.extractAllTo(extractTarget, true)
+			zip.extractAllTo(codeFolder, true)
 		}
 		await fs.promises.unlink(kernalZipPath) // 删除zip文件
 
-		if (kernal === "rocket") {
-			await flattenExtractedRocketDir(extractTarget)
-		}
-
-		logger.info(`[${kernal}] 内核文件已解压到 ${extractTarget}`)
+		logger.info(`[${kernal}] 内核文件已解压到 ${codeFolder}`)
 
 		// 更新版本信息文件，删除旧的版本文件
 		try {

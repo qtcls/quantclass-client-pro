@@ -56,6 +56,7 @@ export const useCreditBalance = (
 		retry: CREDIT_BALANCE_QUERY_CONFIG.REMOTE.RETRY,
 		retryDelay: CREDIT_BALANCE_QUERY_CONFIG.REMOTE.RETRY_DELAY,
 		refetchOnReconnect: true,
+		refetchOnWindowFocus: "always",
 		...options,
 	})
 

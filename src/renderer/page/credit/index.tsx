@@ -114,41 +114,43 @@ export default function CreditPage() {
 							<CardDescription>可用于数据更新等积分消耗任务</CardDescription>
 						</div>
 					</div>
+					<Button
+						size="sm"
+						disabled={!isLoggedIn || isOpeningPaymentPortal}
+						onClick={handleOpenPaymentPortal}
+					>
+						{isOpeningPaymentPortal ? (
+							<RefreshCw className="mr-2 size-4 animate-spin" />
+						) : (
+							<Wallet className="mr-2 size-4" />
+						)}
+						充值积分
+					</Button>
+				</CardHeader>
+				<CardContent>
 					<div className="flex items-center gap-2">
+						<div className="inline-flex items-center gap-2.5 rounded-full border bg-muted/40 px-5 py-2.5">
+							<span className="text-4xl font-bold tabular-nums leading-none tracking-tight">
+								{formatCreditBalance(creditBalance?.credit_balance)}
+							</span>
+							<span className="text-sm text-muted-foreground">积分</span>
+						</div>
 						<Button
 							variant="outline"
-							size="sm"
+							size="icon"
+							className="size-12 shrink-0 rounded-full shadow-none"
 							disabled={!isLoggedIn || isFetchingCreditBalance}
+							title="刷新余额"
 							onClick={handleRefreshBalance}
 						>
 							<RefreshCw
+								size={20}
 								className={cn(
-									"mr-2 size-4",
+									"text-muted-foreground",
 									isFetchingCreditBalance && "animate-spin",
 								)}
 							/>
-							刷新
 						</Button>
-						<Button
-							size="sm"
-							disabled={!isLoggedIn || isOpeningPaymentPortal}
-							onClick={handleOpenPaymentPortal}
-						>
-							{isOpeningPaymentPortal ? (
-								<RefreshCw className="mr-2 size-4 animate-spin" />
-							) : (
-								<Wallet className="mr-2 size-4" />
-							)}
-							充值积分
-						</Button>
-					</div>
-				</CardHeader>
-				<CardContent>
-					<div className="flex items-end gap-2">
-						<span className="text-5xl font-bold tracking-tight leading-none">
-							{formatCreditBalance(creditBalance?.credit_balance)}
-						</span>
-						<span className="mb-1 text-muted-foreground">积分</span>
 					</div>
 				</CardContent>
 			</Card>

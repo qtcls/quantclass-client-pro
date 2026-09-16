@@ -32,6 +32,7 @@ export const useCreditRecords = (
 		retry: CREDIT_RECORDS_QUERY_CONFIG.RETRY,
 		retryDelay: CREDIT_RECORDS_QUERY_CONFIG.RETRY_DELAY,
 		refetchOnReconnect: true,
+		refetchOnWindowFocus: "always",
 		...options,
 	})
 

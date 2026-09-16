@@ -190,6 +190,7 @@ function TimeMultiSelect({
 
 					return (
 						<button
+							type="button"
 							key={range.label}
 							onClick={() => handleRangeSelect(range)}
 							className={`px-2 py-1 text-xs rounded border transition ${

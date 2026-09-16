@@ -14,12 +14,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/renderer/components/ui/tabs"
 import { H2 } from "@/renderer/components/ui/typography"
 import {
 	usePositionStockInfoColumns,
+	usePositionStockSummaryInfoColumns,
 	usePositionStrategyInfoColumns,
 } from "@/renderer/page/position/columns"
-import {
+import type {
 	PositionStockInfoType,
+	PositionStockSummaryInfoType,
 	PositionStrategyInfoType,
 } from "@/renderer/page/position/types"
+import { filterVisibleStrategyPerformance } from "@/renderer/utils/strategy-performance"
 import { useQuery } from "@tanstack/react-query"
 import { RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -32,13 +35,14 @@ export default function PositionInfo() {
 
 	// 持仓信息列
 	const stockColumns = usePositionStockInfoColumns()
+	const stockSummaryColumns = usePositionStockSummaryInfoColumns()
 	const strategyColumns = usePositionStrategyInfoColumns()
 	const {
 		data: positions = { data: [], update_time: 0 },
 		isLoading: loading,
 		refetch,
 	} = useQuery({
-		queryKey: ["load-positions"],
+		queryKey: ["load-positions", filename],
 		queryFn: async () => await loadPositionJson(filename),
 		retry: false,
 		refetchInterval: 1000 * 90,
@@ -66,6 +70,7 @@ export default function PositionInfo() {
 							<TabsList>
 								<TabsTrigger value="策略表现">策略表现</TabsTrigger>
 								<TabsTrigger value="个股表现">个股表现</TabsTrigger>
+								<TabsTrigger value="个股汇总表现">个股汇总表现</TabsTrigger>
 							</TabsList>
 						</Tabs>
 						<div className="text-sm text-muted-foreground">
@@ -102,22 +107,20 @@ export default function PositionInfo() {
 				</div>
 				{filename === "策略表现" ? (
 					<DataTable<PositionStrategyInfoType, unknown>
-						// 过滤掉占用资金为0的策略，满足下面的条件的，是换仓前的策略
-						data={(positions.data || [])
-							.filter(
-								(item: PositionStrategyInfoType) =>
-									(item.理论占比 ?? 0) !== 0 ||
-									(item.实际占比 ?? 0) !== 0 ||
-									(item.策略仓位 ?? 0) !== 0 ||
-									(item.占用资金 ?? 0) !== 0 ||
-									(item.当日盈亏 ?? 0) !== 0 ||
-									(item.当日收益率 ?? 0) !== 0,
-							)
-							.sort(
-								(a: PositionStrategyInfoType, b: PositionStrategyInfoType) =>
-									(a.策略名称 ?? "").localeCompare(b.策略名称 ?? ""),
-							)}
+						data={filterVisibleStrategyPerformance(positions.data || [])}
 						columns={strategyColumns}
+						loading={loading}
+						refresh={() => {
+							refetch()
+						}}
+						pagination={false}
+						placeholder="查找所有列..."
+						_maxHeight="calc(100vh - 275px)"
+					/>
+				) : filename === "个股汇总表现" ? (
+					<DataTable<PositionStockSummaryInfoType, unknown>
+						data={positions.data || []}
+						columns={stockSummaryColumns}
 						loading={loading}
 						refresh={() => {
 							refetch()

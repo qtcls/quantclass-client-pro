@@ -16,10 +16,9 @@ import {
 } from "@/renderer/components/ui/card"
 import { H3 } from "@/renderer/components/ui/typography"
 // import { H3 } from "@/renderer/components/ui/typography"
-import { useRealTradingRole } from "@/renderer/hooks/useRealTradingRole"
+import { isWindows } from "@/renderer/constant"
 import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
-import { libraryTypeAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import dayjs from "dayjs"
 import { useAtom, useAtomValue } from "jotai"
@@ -34,30 +33,32 @@ import { useRef } from "react"
 import { useMemo } from "react"
 
 export const ProcessKanban = () => {
-	const { user } = useAtomValue(userAtom)
-	const hasRealTradingAccess = useRealTradingRole()
+	const { isMember } = useAtomValue(userAtom)
 	const [{ data }] = useAtom(monitorProcessesQueryAtom)
-	const libraryType = useAtomValue(libraryTypeAtom)
+
+	const { VITE_XBX_ENV } = import.meta.env
+
+	// 实盘交易权限检查
+	const canRealTrading =
+		VITE_XBX_ENV === "development" ||
+		(isMember && isWindows && VITE_XBX_ENV === "production")
 
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="flex flex-col gap-1 items-start">
+			<div className="flex flex-col gap-2 items-start">
 				<div className="flex items-center gap-2">
 					<MonitorPlay size={26} />
 					<H3>进程监控</H3>
 				</div>
-				<p className="text-sm text-muted-foreground">监控内核运行状态</p>
+				<p>监控内核运行状态</p>
 			</div>
 
 			<div className="grid  gap-2">
 				<ProcessCard data={data} kernel="fuel" />
-				{hasRealTradingAccess && user?.isMember && (
-					<ProcessCard
-						data={data}
-						kernel={libraryType === "pos" ? "zeus" : "aqua"}
-					/>
+				{canRealTrading && isMember && (
+					<ProcessCard data={data} kernel="fusion" />
 				)}
-				{hasRealTradingAccess && user?.isMember && (
+				{canRealTrading && isMember && (
 					<ProcessCard data={data} kernel="rocket" />
 				)}
 			</div>
@@ -69,11 +70,11 @@ export const ProcessCard = ({
 	data,
 	kernel,
 }: {
-	kernel: "fuel" | "aqua" | "rocket" | "zeus"
+	kernel: "fuel" | "fusion" | "rocket" | "scm"
 	data?: {
 		pid: number
 		action: string
-		kernel: "fuel" | "aqua" | "rocket" | "zeus"
+		kernel: "fuel" | "fusion" | "rocket" | "scm"
 		createdAt: string
 	}[]
 }) => {
@@ -84,19 +85,21 @@ export const ProcessCard = ({
 
 	const keyMap = {
 		fuel: "数据模块",
-		aqua: "选股模块",
-		zeus: "高级选股模块",
+		fusion: "选股模块",
 		rocket: "下单模块",
+		scm: "config 大师",
 	}
 	const actionMap = {
 		fuel: "运行中...",
-		aqua: "计算中...",
+		fusion: "计算中...",
 		rocket: "运行中...",
+		scm: "运行中...",
 	}
 	const timeMap = {
 		fuel: "上次更新时间",
-		aqua: "上次选股时间",
+		fusion: "上次选股时间",
 		rocket: "上次运行时间",
+		scm: "上次启动时间",
 	}
 
 	// 获取是否正在运行
@@ -117,12 +120,11 @@ export const ProcessCard = ({
 		lastRunTimeRef.current = latestProcess.createdAt
 	}
 
-	// 获取是否启动fuel或者aqua或者rocket
+	// 获取是否启动fuel或者fusion或者rocket
 	const isInitializing = useMemo(() => {
 		return (
 			(isUpdating && kernel === "fuel") ||
-			(isAutoRocket &&
-				(kernel === "aqua" || kernel === "zeus" || kernel === "rocket"))
+			(isAutoRocket && (kernel === "fusion" || kernel === "rocket"))
 		)
 	}, [isUpdating, isAutoRocket, kernel])
 
@@ -159,7 +161,7 @@ export const ProcessCard = ({
 				<span>未启用</span>
 			</div>
 		)
-	}, [isRunning, isInitializing, kernel, actionMap])
+	}, [isRunning, isInitializing, kernel])
 	return (
 		<Card className="relative">
 			<div className="absolute right-4 top-4 h-3 w-3">
@@ -167,13 +169,13 @@ export const ProcessCard = ({
 					<>
 						<div
 							className={`absolute h-full w-full rounded-full opacity-75 ${getStatusColor} animate-ping`}
-						></div>
+						/>
 						<div
 							className={`absolute h-full w-full rounded-full ${getStatusColor}`}
-						></div>
+						/>
 					</>
 				) : (
-					<div className={`h-full w-full rounded-full ${getStatusColor}`}></div>
+					<div className={`h-full w-full rounded-full ${getStatusColor}`} />
 				)}
 			</div>
 

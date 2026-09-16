@@ -126,20 +126,6 @@ export const getDataList = async (params: {
 	}
 }
 
-export const getSelectedStrategiesList = async () => {
-	return getJsonDataFromFile(
-		["real_trading", "all_strategy_list.json"],
-		"选股策略文件不存在或为空",
-	)
-}
-
-export const getTradingPlanList = async () => {
-	return getJsonDataFromFile(
-		["real_trading", "trade_info.json"],
-		"交易计划文件不存在或为空",
-	)
-}
-
 export const getBuyInfoList = async () => {
 	return getJsonDataFromFile(
 		["real_trading", "rocket", "data", "buy.json"],
@@ -151,5 +137,19 @@ export const getSellInfoList = async () => {
 	return getJsonDataFromFile(
 		["real_trading", "rocket", "data", "sell.json"],
 		"卖出信息文件不存在或为空",
+	)
+}
+
+export const getBuyTimingInfoList = async () => {
+	return getJsonDataFromFile(
+		["real_trading", "rocket", "data", "个股择时-买入计划.json"],
+		"个股择时买入计划文件不存在或为空",
+	)
+}
+
+export const getSellTimingInfoList = async () => {
+	return getJsonDataFromFile(
+		["real_trading", "rocket", "data", "个股择时-卖出计划.json"],
+		"个股择时卖出计划文件不存在或为空",
 	)
 }

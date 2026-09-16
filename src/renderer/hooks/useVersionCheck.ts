@@ -12,7 +12,6 @@ import { useAppVersions } from "@/renderer/hooks/useAppVersion"
 import { versionsAtom } from "@/renderer/store/versions"
 import { useAtomValue } from "jotai"
 import { useMemo } from "react"
-import { useSettings } from "./useSettings"
 
 /**
  * 检查版本是否有更新的hook
@@ -20,7 +19,6 @@ import { useSettings } from "./useSettings"
  */
 export const useVersionCheck = () => {
 	const { appVersions, isCheckingAppVersions } = useAppVersions()
-	const { isFusionMode } = useSettings()
 	const localVersions = useAtomValue(versionsAtom)
 
 	// 检查是否有客户端版本更新
@@ -38,23 +36,17 @@ export const useVersionCheck = () => {
 		if (!latestRemoteVersions || !localVersions) {
 			return {
 				fuel: false,
-				aqua: false,
-				zeus: false,
+				fusion: false,
 				rocket: false,
 			}
 		}
 
 		return {
 			fuel: latestRemoteVersions?.fuel !== localVersions.fuelVersion,
-			aqua: !isFusionMode
-				? latestRemoteVersions?.aqua !== localVersions.aquaVersion
-				: false,
-			zeus: isFusionMode
-				? latestRemoteVersions?.zeus !== localVersions.zeusVersion
-				: false,
+			fusion: latestRemoteVersions?.fusion !== localVersions.fusionVersion,
 			rocket: latestRemoteVersions?.rocket !== localVersions.rocketVersion,
 		}
-	}, [appVersions?.latest, localVersions, isFusionMode])
+	}, [appVersions?.latest, localVersions])
 
 	// 检查是否有任何更新
 	const hasAnyUpdate = useMemo(() => {
@@ -79,15 +71,9 @@ export const useVersionCheck = () => {
 			)
 		}
 
-		if (hasKernalUpdates.aqua && !isFusionMode) {
+		if (hasKernalUpdates.fusion) {
 			updates.push(
-				`选股内核: ${localVersions?.aquaVersion} → ${appVersions?.latest?.aqua}`,
-			)
-		}
-
-		if (hasKernalUpdates.zeus && isFusionMode) {
-			updates.push(
-				`高级选股内核: ${localVersions?.zeusVersion} → ${appVersions?.latest?.zeus}`,
+				`选股内核: ${localVersions?.fusionVersion} → ${appVersions?.latest?.fusion}`,
 			)
 		}
 
@@ -98,14 +84,7 @@ export const useVersionCheck = () => {
 		}
 
 		return updates.length > 0 ? updates.join("\n") : ""
-	}, [
-		hasAnyUpdate,
-		hasClientUpdate,
-		hasKernalUpdates,
-		localVersions,
-		appVersions,
-		isFusionMode,
-	])
+	}, [hasAnyUpdate, hasClientUpdate, hasKernalUpdates, localVersions, appVersions])
 
 	return {
 		hasClientUpdate,

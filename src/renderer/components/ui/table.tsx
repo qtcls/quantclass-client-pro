@@ -21,9 +21,8 @@ const Table = React.forwardRef<
 >(({ className, containerClassname, containerStyle, ...props }, ref) => (
 	<div
 		style={{
-			maxWidth: "calc(100vw - 14rem - 2em)", // 设置默认最大宽度
-			// maxHeight: "calc(100vh - 23.5em)", // 设置默认最大高度
-			...containerStyle, // 允许外部传入样式
+			maxWidth: "calc(100vw - 4rem - 2em)",
+			...containerStyle,
 		}}
 		className={cn("w-full", containerClassname)}
 	>

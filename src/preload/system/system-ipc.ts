@@ -12,12 +12,14 @@ import { getAppAndKernalVersions } from "@/main/core/lib.js"
 import { checkRemoteVersions, updateKernal } from "@/main/core/runpy.js"
 import windowManager from "@/main/lib/WindowManager.js"
 import { process_manager } from "@/main/lib/process.js"
-import { setupScheduler } from "@/main/lib/scheduler.js"
 import { killAllKernalByForce, killKernalByForce } from "@/main/utils/tools.js"
 import { log } from "@/main/utils/wiston.js"
 import type { KernalType } from "@/shared/types/index.js"
 import { electronApp, platform } from "@electron-toolkit/utils"
 import { app, ipcMain } from "electron"
+import nodeMachineId from "node-machine-id"
+
+const { machineIdSync } = nodeMachineId
 
 async function handleToggleFullscreen() {
 	ipcMain.handle("toggle-fullscreen", async (_event, key = "main") => {
@@ -77,6 +79,19 @@ function handleMonitorProcess() {
 	})
 }
 
+function handleCheckKernalRunning() {
+	ipcMain.handle(
+		"check-kernal-running",
+		async (
+			_event,
+			kernals: KernalType[] = ["rocket"],
+		) => {
+			const { isAnyKernalBusy } = await import("@/main/utils/tools.js")
+			return await isAnyKernalBusy(kernals)
+		},
+	)
+}
+
 function handleKillProcess() {
 	ipcMain.handle("kill-process", async (_event, pid: number) => {
 		return await process_manager.killProcess(pid)
@@ -96,12 +111,6 @@ function handleKillKernal() {
 			return await killKernalByForce(kernal, byForce)
 		},
 	)
-}
-
-function handleSetAutoUpdate() {
-	ipcMain.handle("set-auto-update", async (_event) => {
-		await setupScheduler()
-	})
 }
 
 function handleRendererLog() {
@@ -146,6 +155,12 @@ async function handleUpdateKernal(): Promise<void> {
 	)
 }
 
+function handleGetMachineId() {
+	ipcMain.handle("get-machine-id", () => {
+		return machineIdSync()
+	})
+}
+
 export const regSystemIPC = () => {
 	handleClose()
 	handleMinimize()
@@ -154,13 +169,14 @@ export const regSystemIPC = () => {
 	handleKillAllKernals()
 	handleKillKernal()
 	handleSetAutoLogin()
-	handleSetAutoUpdate()
 	fetchFullscreenState()
 	handleMonitorProcess()
+	handleCheckKernalRunning()
 	handleToggleFullscreen()
 	handleRestartApp()
 	handleGetAppAndKernalVersions()
 	handleUpdateKernal()
 	handleCheckUpdate()
+	handleGetMachineId()
 	console.log("[reg] system-ipc")
 }

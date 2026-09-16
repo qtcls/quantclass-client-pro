@@ -7,9 +7,8 @@
  * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
-
 import type { RealMarketConfigSchema } from "@/renderer/page/trading/config-form"
-import type { SelectStgType } from "@/renderer/types/strategy"
+import type { RebTimeConfig, SelectStgType } from "@/renderer/types/strategy"
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import type { z } from "zod"
@@ -78,6 +77,12 @@ export const selectStgListAtom = atomWithStorage<SelectStgType[]>(
 	{ getOnInit: true },
 )
 
+// 资金曲线再择时（选股模式下）
+export const reTimingAtom = atomWithStorage<{
+	name: string
+	params: any[]
+} | null>("reTiming", null, undefined, { getOnInit: true })
+
 // 选股策略信息，可以认为是dict版本的list，是list的另一种形态
 export const selectStgDictAtom = atomWithStorage<Record<string, any>>(
 	"selectStockStrategyInfo25",
@@ -91,9 +96,17 @@ export const fusionAtom = atomWithStorage<any[]>("fusion", [], undefined, {
 	getOnInit: true,
 })
 
+// 换仓时间配置，按 rebalance_time 分组
+export const rebTimeConfigAtom = atomWithStorage<Record<string, RebTimeConfig>>(
+	"rebTimeConfig",
+	{},
+	undefined,
+	{ getOnInit: true },
+)
+
 export const libraryTypeAtom = atomWithStorage<string>(
 	"libraryType",
-	"select",
+	"pos",
 	undefined,
 	{ getOnInit: true },
 )
@@ -114,10 +127,10 @@ export const accountKeyAtom = atomWithStorage<{
 // 0: 路人
 // 1: 基础课程学生
 // 2: 分享会学生
-export const accountRoleAtom = atomWithStorage<{
-	msg: string
-	role: 0 | 1 | 2
-}>("accountRole", { msg: "NONE", role: 0 }, undefined, { getOnInit: true })
+// export const accountRoleAtom = atomWithStorage<{
+// 	msg: string
+// 	role: 0 | 1 | 2
+// }>("accountRole", { msg: "NONE", role: 0 }, undefined, { getOnInit: true })
 
 export const isAutoLoginAtom = atomWithStorage<boolean>(
 	"isAutoLogin",
@@ -133,13 +146,6 @@ export const isAutoLoginAtom = atomWithStorage<boolean>(
 // 	{ getOnInit: true },
 // )
 
-// 用户身份标识数组
-export const userIdentityAtom = atomWithStorage<string[]>(
-	"userIdentity", // 存储的键名
-	[], // 默认值
-	undefined, // 可选的存储选项
-	{ getOnInit: true }, // 初始化时从存储中获取值
-)
 export const realMarketConfigSchemaAtom = atomWithStorage<
 	Partial<z.infer<typeof RealMarketConfigSchema>>
 >(
@@ -148,11 +154,15 @@ export const realMarketConfigSchemaAtom = atomWithStorage<
 		qmt_path: "",
 		account_id: "",
 		qmt_port: "58610",
+		qmt_mode: "mini_qmt",
+		ws_host: "",
+		ws_port: "",
 		message_robot_url: "",
 		filter_kcb: "1",
 		filter_cyb: "1",
 		filter_bj: "1",
 		performance_mode: "EQUAL",
+		use_open_sell: "0",
 		date_start: new Date(new Date().setFullYear(new Date().getFullYear() - 3)),
 	},
 	undefined,
@@ -162,6 +172,14 @@ export const realMarketConfigSchemaAtom = atomWithStorage<
 export const showMoneyAtom = atomWithStorage<boolean>(
 	"showMoney",
 	true,
+	undefined,
+	{ getOnInit: true },
+)
+
+// 中金是否已点击「我已知晓不再提示」
+export const ciccBseNoticeDismissedAtom = atomWithStorage<boolean>(
+	"ciccBseNoticeDismissed",
+	false,
 	undefined,
 	{ getOnInit: true },
 )

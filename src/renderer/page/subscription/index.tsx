@@ -15,7 +15,7 @@ import { strategyColumns } from "@/renderer/page/subscription/stg-column"
 import { strategyListQueryAtom } from "@/renderer/store/query"
 import { useMount } from "etc-hooks"
 import { useAtom } from "jotai"
-import { type FC } from "react"
+import type { FC } from "react"
 
 const { subscribeScheduleStatus } = window.electronAPI
 

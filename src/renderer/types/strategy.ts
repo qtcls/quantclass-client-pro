@@ -9,12 +9,18 @@
  */
 
 import type { SelectStgSchema } from "@/renderer/schemas/strategy"
+import type { TimeValue } from "react-aria"
 import type { z } from "zod"
 
 export type SelectStgType = z.infer<typeof SelectStgSchema> & {
 	type?: "select"
 	strategy_type: "select"
 }
+
+export type ReTimingType = {
+	name: string
+	params: any[]
+} | null
 
 // 以下是仓位策略管理的类型定义
 export type StgGroupType = {
@@ -23,6 +29,8 @@ export type StgGroupType = {
 	strategy_list: SelectStgType[]
 	cap_weight?: number
 	isFold: boolean
+	re_timing?: ReTimingType
+	remark_name?: string
 }
 
 export type PosStrategyType = {
@@ -37,4 +45,14 @@ export type PosStrategyType = {
 	strategy_pool: SelectStgType[] | StgGroupType[]
 	cap_weight: number
 	isFold: boolean
+	re_timing?: ReTimingType
+	split_order_amount?: number
+	remark_name?: string
+}
+
+// 换仓时间配置类型
+export interface RebTimeConfig {
+	sell_time: TimeValue
+	buy_time: TimeValue
+	strategies: (SelectStgType | PosStrategyType)[] // 使用此 rebalance_time 的策略列表
 }

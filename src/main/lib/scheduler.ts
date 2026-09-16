@@ -10,7 +10,8 @@
 
 import windowManager from "@/main/lib/WindowManager.js"
 import { execBin } from "@/main/lib/process.js"
-import { type UserState, userStore } from "@/main/lib/userStore.js"
+import { userStore } from "@/main/lib/userStore.js"
+import { loadTradingDaysFromPeriodOffsetCsv } from "@/main/utils/common.js"
 import {
 	isAnyKernalBusy,
 	isKernalBusy,
@@ -18,8 +19,12 @@ import {
 	killKernalByForce,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
-import { BASE_URL } from "@/main/vars.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
+import {
+	getLocalCalendarYmd,
+	isLocalYmdTradingDayInCalendar,
+} from "@/shared/lib/trading-day.js"
+import type { UserAccount } from "@/shared/types/user.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
 import isBetween from "dayjs/plugin/isBetween.js"
@@ -34,7 +39,10 @@ dayjs.extend(isBetween)
 interface SystemState {
 	isSetAutoUpdate: boolean
 	isSetAutoTrading: boolean
+	isSetAutoMinData: boolean
 	job: schedule.Job | null
+	minDataJob: schedule.Job | null
+	minDataMode: "fast" | "stable"
 	isOnline: boolean
 }
 
@@ -42,7 +50,10 @@ interface SystemState {
 const systemState: SystemState = {
 	isSetAutoUpdate: false,
 	isSetAutoTrading: false,
+	isSetAutoMinData: false,
 	job: null,
+	minDataJob: null,
+	minDataMode: "fast",
 	isOnline: true,
 }
 
@@ -54,30 +65,11 @@ async function initializeSystem() {
 		// -- 非 Windows 平台到此结束
 		if (!platform.isWindows) return
 
-		const apiKey = (await _store.get("settings.api_key", "")) as string
-		const hid = (await _store.get("settings.hid", "")) as string
+		// 强制更新用户信息
+		const userInfo = await userStore.getUserAccount(true)
 
-		if (!apiKey || !hid) return
-
-		// -- 检查状态，只有 status === 2 才更新其他内核
-		try {
-			if (!_store.has("status")) {
-				const headers = { "api-key": apiKey }
-				const params = new URLSearchParams({ uuid: hid })
-				const response = await fetch(`${BASE_URL}/api/data/status?${params}`, {
-					headers,
-				})
-				const res = (await response.json()) as { msg: string; role: 0 | 1 | 2 }
-				_store.set("status", res.role)
-				if (res.role !== 2) {
-					logger.info("最新状态：非法状态")
-					return
-				}
-			}
-		} catch (error) {
-			logger.error(`获取状态失败: ${error}`)
-			return
-		}
+		// 若未获取到或不是共享会会员则return
+		if (!userInfo?.isMember) return
 	} catch (error) {
 		logger.error(`系统初始化失败: ${error}`)
 		throw error // -- 向上抛出错误，让调用方处理
@@ -112,7 +104,7 @@ function getCurrent15m(): string {
 const setupScheduler = async (): Promise<schedule.Job> => {
 	// -- 重置已存在的调度任务
 	cancelScheduler()
-	const libraryType = (await _store.get(LIBRARY_TYPE, "select")) as string
+	const libraryType = (await _store.get(LIBRARY_TYPE, "pos")) as string
 	const mw = windowManager.getWindow()
 	try {
 		mw?.webContents.send("send-schedule-status", "init")
@@ -128,15 +120,16 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 	 * - 检查用户登录状态
 	 * - 唤醒 Rocket
 	 * - 唤醒 Fuel
-	 * - 唤醒 Aqua
+	 * - 唤醒 Fusion
 	 */
 	systemState.job = schedule.scheduleJob("* * * * *", async () => {
 		logger.info(">>>>>>>>>>>>>>>> scheduler start <<<<<<<<<<<<<<<<")
-		const userState = await userStore.getUserState() // -- 获取用户状态
+		const userAccount = await userStore.getUserAccount() // -- 获取用户状态
+		const allowConcurrentFuelTasks = isTradingTime()
 
 		mw?.webContents.send("send-schedule-status", "start")
 		logger.info(
-			`[scheduler] 自动数据: ${systemState.isSetAutoUpdate}, 自动下单: ${systemState.isSetAutoTrading}, 在线: ${systemState.isOnline}, 用户登录: ${userState?.isLoggedIn}`,
+			`[scheduler] 自动数据: ${systemState.isSetAutoUpdate}, 自动下单: ${systemState.isSetAutoTrading}, 在线: ${systemState.isOnline}, 用户登录: ${userAccount?.isLoggedIn}`,
 		)
 
 		// -- 检查网络状态
@@ -147,7 +140,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 		}
 
 		// -- 检查用户登录：未登录直接返回
-		if (!userState?.isLoggedIn) {
+		if (!userAccount?.isLoggedIn) {
 			logger.info("[user] 用户未登录，跳过本轮调度")
 			return
 		}
@@ -156,9 +149,13 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 		const requireTrading = systemState.isSetAutoTrading && platform.isWindows
 
 		// -- 检查是否设置自动更新数据，如果设置了，唤醒 Rocket
-		if (requireTrading) await wakeUpRocket(userState, mw)
+		if (requireTrading) await wakeUpRocket(userAccount, mw)
 
-		if (await isAnyKernalBusy()) {
+		if (
+			await isAnyKernalBusy(
+				allowConcurrentFuelTasks ? ["fusion"] : ["fusion", "fuel"],
+			)
+		) {
 			logger.info("[scheduler] 内核正忙，跳过本轮调度")
 			return
 		}
@@ -178,7 +175,8 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 			logger.info(
 				`[scheduler-fuel] 数据模块定时任务: ${dataModuleTimes}, 当前时间: ${current15m}, 是否更新: ${isScheduleDataModule}`,
 			)
-			if (await isKernalBusy("fuel")) {
+			const isFuelBusy = await isKernalBusy("fuel")
+			if (isFuelBusy && !allowConcurrentFuelTasks) {
 				logger.info("[fuel] 内核正忙，跳过本轮调度")
 			} else if (!isScheduleDataModule) {
 				logger.info("[fuel] 非定时更新数据时间，跳过本轮数据更新")
@@ -187,7 +185,7 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 			}
 		}
 
-		// -- 当设置自动下单的时候，自动唤醒Aqua or Zeus
+		// -- 当设置自动下单的时候，自动唤醒Fusion
 		if (requireTrading) {
 			// -- 获取定时任务时间
 			const selectModuleTimes = (await _store.get(
@@ -203,25 +201,12 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 			)
 
 			logger.info(`[libraryType] 策略类型${libraryType}`)
-			switch (libraryType) {
-				case "pos":
-					if (await isKernalBusy("zeus")) {
-						logger.info("[zeus] 内核正忙，跳过本轮调度")
-					} else if (!isScheduleSelectModule) {
-						logger.info("[zeus] 非定时选股时间，跳过本轮选股")
-					} else {
-						await wakeUpZeus(userState, mw)
-					}
-					break
-				case "select":
-					if (await isKernalBusy("aqua")) {
-						logger.info("[aqua] 内核正忙，跳过本轮调度")
-					} else if (!isScheduleSelectModule) {
-						logger.info("[aqua] 非定时选股时间，跳过本轮选股")
-					} else {
-						await wakeUpAqua(userState, mw)
-					}
-					break
+			if (await isKernalBusy("fusion")) {
+				logger.info("[fusion] 内核正忙，跳过本轮调度")
+			} else if (!isScheduleSelectModule) {
+				logger.info("[fusion] 非定时选股时间，跳过本轮选股")
+			} else {
+				await wakeUpFusion(userAccount, mw)
 			}
 		} else {
 			logger.info("[scheduler] 未启用自动实盘或者非Windows系统，跳过本轮调度")
@@ -245,37 +230,22 @@ async function wakeUpFuel(mw) {
 	}
 }
 
-async function wakeUpAqua(userState: UserState, mw) {
-	if (!userState?.user?.isMember || !platform.isWindows) {
-		logger.info(`[aqua] 非分享会状态，跳过Aqua，${userState?.user}`)
+async function wakeUpFusion(userAccount: UserAccount, mw) {
+	if (!userAccount?.isMember || !platform.isWindows) {
+		logger.info(`[fusion] 非分享会状态，跳过fusion，${userAccount?.user}`)
 		return
 	}
 	try {
-		mw?.webContents.send("send-schedule-status", "aqua_start")
-		await execBin(["select", "trading"], "选股", "aqua")
+		mw?.webContents.send("send-schedule-status", "fusion_start")
+		await execBin(["select", "trading"], "选股", "fusion")
 	} catch (error) {
-		logger.info(`[aqua] runtime error(${error})`)
-	} finally {
-	}
-}
-
-async function wakeUpZeus(userState: UserState, mw) {
-	if (!userState?.user?.isMember || !platform.isWindows) {
-		logger.info(`[aqua] 非分享会状态，跳过Aqua，${userState?.user}`)
-		return
-	}
-	logger.info("[zeus] 正在调用zeus")
-	try {
-		mw?.webContents.send("send-schedule-status", "aqua_start")
-		await execBin(["select", "trading"], "选股", "zeus")
-	} catch (error) {
-		logger.info(`[aqua] runtime error(${error})`)
+		logger.info(`[fusion] runtime error(${error})`)
 	} finally {
 	}
 }
 
 // -- 处理实盘交易逻辑
-async function wakeUpRocket(userState: UserState, mw) {
+async function wakeUpRocket(userAccount: UserAccount, mw) {
 	// TODO: 启动之前，要检查以下QMT的设置是否OK
 	// -- 非 Windows 或非会员用户跳过实盘逻辑
 	if (!platform.isWindows) {
@@ -292,14 +262,10 @@ async function wakeUpRocket(userState: UserState, mw) {
 		return
 	}
 
-	if (!userState?.user?.isMember) {
-		logger.info(`[trade] 非分享会状态，跳过Rocket，${userState?.user}`)
+	if (!userAccount?.isMember) {
+		logger.info(`[trade] 非分享会状态，跳过Rocket，${userAccount?.user}`)
 		return
 	}
-
-	// -- 获取状态???
-	const status = (await _store.get("status", 0)) as 0 | 1 | 2
-	if (status !== 2) return
 
 	// -- 交易条件检查
 	const shouldWakeUp = isTradingTime()
@@ -374,4 +340,142 @@ const setAutoTrading = (isOn: boolean) => {
 	}
 }
 
-export { setAutoUpdate, setAutoTrading, setupScheduler, systemState }
+// ============================================================================
+// 实时数据（min data）定时任务
+// ============================================================================
+
+function isMinDataIntradayWindow(now = dayjs()): boolean {
+	const timeInMinutes = now.hour() * 60 + now.minute()
+	const isMorning =
+		timeInMinutes >= 9 * 60 + 16 && timeInMinutes <= 11 * 60 + 26
+	const isAfternoon =
+		timeInMinutes >= 13 * 60 + 1 && timeInMinutes <= 15 * 60 + 1
+	return isMorning || isAfternoon
+}
+
+async function shouldRunMinDataSchedule(): Promise<
+	{ run: true } | { run: false; message: string }
+> {
+	if (!isMinDataIntradayWindow()) {
+		return { run: false, message: "[min-data] 非交易时段，跳过本轮" }
+	}
+
+	const calendar = await loadTradingDaysFromPeriodOffsetCsv()
+	if (calendar.length === 0) {
+		return {
+			run: false,
+			message:
+				"[min-data] 未读到 period_offset.csv 交易日历，跳过本轮",
+		}
+	}
+
+	const ymd = getLocalCalendarYmd(new Date())
+	if (!isLocalYmdTradingDayInCalendar(calendar, ymd)) {
+		return {
+			run: false,
+			message: `[min-data] 今日 ${ymd} 非交易日，跳过本轮`,
+		}
+	}
+
+	return { run: true }
+}
+
+const cancelMinDataScheduler = () => {
+	if (systemState.minDataJob !== null) {
+		systemState.minDataJob.cancel()
+		systemState.minDataJob = null
+	}
+}
+
+async function wakeUpMinData() {
+	const mw = windowManager.getWindow()
+
+	const scheduleCheck = await shouldRunMinDataSchedule()
+	if (!scheduleCheck.run) {
+		logger.info(scheduleCheck.message)
+		return
+	}
+
+	const userAccount = await userStore.getUserAccount()
+	const allowConcurrentFuelTasks = isTradingTime()
+
+	if (!systemState.isOnline) {
+		logger.info("[min-data] 网络离线，跳过本轮")
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "skipped",
+			reason: "offline",
+		})
+		return
+	}
+
+	if (!userAccount?.isLoggedIn) {
+		logger.info("[min-data] 用户未登录，跳过本轮")
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "skipped",
+			reason: "unauthorized",
+		})
+		return
+	}
+
+	const isFuelBusy = await isKernalBusy("fuel")
+	if (isFuelBusy && !allowConcurrentFuelTasks) {
+		logger.info("[min-data] Fuel 内核正忙，跳过本轮")
+		mw?.webContents.send("min-data-schedule-status", {
+			type: "skipped",
+			reason: "busy",
+		})
+		return
+	}
+
+	mw?.webContents.send("min-data-schedule-status", {
+		type: "executing",
+		task: "accurate",
+	})
+	try {
+		const args =
+			systemState.minDataMode === "stable"
+				? ["min_data", "thread"]
+				: ["min_data"]
+		const action = `定时获取准确QMT数据-${systemState.minDataMode === "stable" ? "稳定" : "极速"}模式`
+		await execBin(args, action)
+		logger.info("[min-data] 准确数据获取完成")
+	} catch (error) {
+		logger.error(`[min-data] 准确数据获取失败: ${error}`)
+	}
+
+	mw?.webContents.send("min-data-schedule-status", { type: "done" })
+}
+
+const setupMinDataScheduler = () => {
+	cancelMinDataScheduler()
+	// 每日触发，具体是否执行由 period_offset.csv 交易日历判断
+	systemState.minDataJob = schedule.scheduleJob("1/5 * * * *", wakeUpMinData)
+	logger.info(`[min-data] 定时任务已启动，模式: ${systemState.minDataMode}`)
+}
+
+const setAutoMinData = (options: {
+	isOn: boolean
+	mode?: "fast" | "stable"
+}) => {
+	systemState.isSetAutoMinData = options.isOn
+	if (options.mode !== undefined) systemState.minDataMode = options.mode
+
+	logger.info(
+		`[min-data] 自动更新: ${systemState.isSetAutoMinData}, 模式: ${systemState.minDataMode}`,
+	)
+
+	if (!options.isOn) {
+		cancelMinDataScheduler()
+		return
+	}
+
+	setupMinDataScheduler()
+}
+
+export {
+	setAutoUpdate,
+	setAutoTrading,
+	setAutoMinData,
+	setupScheduler,
+	systemState,
+}

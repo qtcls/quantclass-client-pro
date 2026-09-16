@@ -11,6 +11,7 @@
 import { DATA_TAB_NAME } from "@/renderer/constant"
 import dayjs from "dayjs"
 import { atom } from "jotai"
+import { atomWithStorage } from "jotai/utils"
 interface RecordType {
 	key: string
 	title: string
@@ -26,15 +27,21 @@ export const isUpdatingAtom = atom(false)
 export const isAutoRocketAtom = atom(false)
 
 export const fuelOutPutAtom = atom(
-	`<div class="w-full text-center">---------------------${String(
+	`<div class="w-full text-center">-----${String(
 		dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
-	)}---------------------</div> \n`,
+	)}-----</div> \n`,
+)
+
+export const selectStockOutputAtom = atom(
+	`<div class="w-full text-center">------${String(
+		dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
+	)}-----</div> \n`,
 )
 
 export const realMarketOutputAtom = atom(
-	`<div class="w-full text-center">---------------------${String(
+	`<div class="w-full text-center">-----${String(
 		dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
-	)}---------------------</div> \n`,
+	)}-----</div> \n`,
 )
 
 export const csvFileNameAtom = atom("最新选股结果")
@@ -61,6 +68,8 @@ export const hasNetworkAtom = atom<boolean>(true)
 
 export const isShowMonitorPanelAtom = atom<boolean>(false)
 
+export const isLogModalOpenAtom = atom<boolean>(false)
+
 export const actionDialogAtom = atom<boolean>(false)
 
 export const activeTabAtom = atom<string>(DATA_TAB_NAME)
@@ -74,3 +83,23 @@ export const errAlertAtom = atom<boolean>(false)
 export const terminalTabAtom = atom<string>("fuel")
 
 export const realConfigEditModalAtom = atom<boolean>(false) // 实盘配置页面的modal
+
+// 存储每个任务的 step loader 显示状态，key 是任务名称
+export const stepLoaderMapAtom = atom<Record<string, boolean>>({})
+
+// 实时数据自动更新
+export const isMinDataUpdatingAtom = atom(false)
+export const minDataModeAtom = atomWithStorage<"fast" | "stable">(
+	"minDataMode",
+	"fast",
+	undefined,
+	{ getOnInit: true },
+)
+
+export const showFinanceInfoAtom = atomWithStorage<boolean>(
+	"home.showFinanceInfo",
+	true,
+	undefined,
+	{ getOnInit: true },
+)
+export const unreadNotificationCountAtom = atom<number>(0)

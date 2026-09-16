@@ -8,16 +8,20 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
+import { useBacktestDialog } from "@/renderer/components/backtest-dialog"
 import { Button } from "@/renderer/components/ui/button"
 import { DataTable } from "@/renderer/components/ui/data-table"
 import { DataTableToolbar } from "@/renderer/components/ui/data-table-toolbar"
-import { BACKTEST_PAGE, REAL_MARKET_CONFIG_PAGE } from "@/renderer/constant"
+import { TRADING_SECTION_ROUTE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import StgImportButton from "@/renderer/page/library/import-btn"
+import { reTimingAtom } from "@/renderer/store/storage"
 
 import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
-import { SelectStgType } from "@/renderer/types/strategy"
+import type { SelectStgType } from "@/renderer/types/strategy"
+import { useAtomValue } from "jotai"
 import {
 	AlignVerticalSpaceAround,
 	PencilRuler,
@@ -30,6 +34,8 @@ import { toast } from "sonner"
 export const LibraryTable = forwardRef((_, _ref) => {
 	const { selectStgList, updateSelectStgList } = useStrategyManager()
 	const { isAutoRocket } = useToggleAutoRealTrading()
+	const { openBacktest } = useBacktestDialog()
+	const reTiming = useAtomValue(reTimingAtom)
 	const navigate = useNavigate()
 
 	const columns = useGenLibraryColumn(() => {})
@@ -48,6 +54,8 @@ export const LibraryTable = forwardRef((_, _ref) => {
 					</DataTableToolbar>
 				)}
 			/>
+
+			<ReTimingDisplay reTiming={reTiming} />
 			<div className="flex items-center justify-between gap-2">
 				<Button
 					size="sm"
@@ -58,8 +66,8 @@ export const LibraryTable = forwardRef((_, _ref) => {
 							toast.warning("请先导入策略")
 							return
 						}
-						const avgCapWeight = parseFloat(
-							(100 / selectStgList.length).toFixed(6),
+						const avgCapWeight = Number.parseFloat(
+							(1 / selectStgList.length).toFixed(7),
 						)
 						const strategies = selectStgList.map((s: SelectStgType) => ({
 							...s,
@@ -68,7 +76,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 
 						updateSelectStgList(strategies)
 
-						toast.success(`平均分配权重，每个策略为${avgCapWeight}%`)
+						toast.success(`平均分配权重，每个策略为${avgCapWeight * 100}%`)
 					}}
 				>
 					<AlignVerticalSpaceAround className="size-4 mr-2" />
@@ -80,7 +88,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 						variant="outline"
 						disabled={isAutoRocket}
 						className="h-8 lg:flex"
-						onClick={() => navigate(BACKTEST_PAGE)}
+						onClick={openBacktest}
 					>
 						<PencilRuler className="size-4 mr-2" />
 						前往回测
@@ -90,7 +98,7 @@ export const LibraryTable = forwardRef((_, _ref) => {
 						size="sm"
 						variant="outline"
 						className="h-8 lg:flex"
-						onClick={() => navigate(REAL_MARKET_CONFIG_PAGE)}
+						onClick={() => navigate(`${TRADING_SECTION_ROUTE}?tab=real_trading`)}
 					>
 						<TvMinimalPlay className="size-4 mr-2" />
 						前往实盘

@@ -9,8 +9,9 @@
  */
 
 import { is } from "@electron-toolkit/utils"
-import { BrowserWindow } from "electron"
+import { BrowserWindow, shell } from "electron"
 import { fileURLToPath } from "node:url"
+import { BASE_URL } from "../vars.js"
 import {
 	WINDOW_HEIGHT,
 	WINDOW_MIN_HEIGHT,
@@ -55,6 +56,39 @@ class WindowManager {
 				}
 			},
 		)
+
+		// -- 接管 window.open：登录页走内嵌子窗口（安全配置），其余外链用系统浏览器打开
+		this.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+			let backendOrigin = ""
+			try {
+				backendOrigin = new URL(BASE_URL).origin
+			} catch {
+				backendOrigin = ""
+			}
+
+			if (
+				backendOrigin &&
+				url.startsWith(`${backendOrigin}/user/login-page`)
+			) {
+				return {
+					action: "allow",
+					overrideBrowserWindowOptions: {
+						width: 480,
+						height: 640,
+						autoHideMenuBar: true,
+						title: "微信扫码登录",
+						webPreferences: {
+							nodeIntegration: false,
+							contextIsolation: true,
+							sandbox: true,
+						},
+					},
+				}
+			}
+
+			shell.openExternal(url)
+			return { action: "deny" }
+		})
 
 		this.windows.set("main", this.mainWindow)
 		return this.mainWindow

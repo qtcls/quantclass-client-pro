@@ -17,8 +17,7 @@ const { rendererLog } = window.electronAPI
 export const useExtraWorkStatus = () => {
 	const { mutateAsync } = useMutation({
 		mutationKey: ["extra-work-status"],
-		mutationFn: ({ apiKey, uuid }: { apiKey: string; uuid: string }) =>
-			getExtraWorkStatus(apiKey, uuid),
+		mutationFn: () => getExtraWorkStatus(),
 		onError: (error) => {
 			rendererLog(
 				"error",

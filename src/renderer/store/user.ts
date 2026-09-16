@@ -8,32 +8,21 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import {
-	accountRoleUpdateAtom,
-	statusQueryAtom,
-} from "@/renderer/hooks/useClassStatusInterval"
-import {
-	collectUserInfo,
-	generatePermissionSet,
-} from "@/renderer/hooks/useIdentityArray"
-import { syncUserState } from "@/renderer/ipc/userInfo"
-import {
-	accountKeyAtom,
-	accountRoleAtom,
-	isLoginAtom,
-	userIdentityAtom,
-} from "@/renderer/store/storage"
-import type { UserState } from "@/renderer/types"
-import { atom } from "jotai"
-import { atomEffect } from "jotai-effect"
-import { atomWithQuery } from "jotai-tanstack-query"
-import { RESET, atomWithStorage } from "jotai/utils"
+const { getUserAccount, syncWebUserInfo, setTokens } = window.electronAPI
+import { accountKeyAtom } from "@/renderer/store/storage"
+import type {
+	AccessTokenJwtPayload,
+	UserAccount,
+} from "@/shared/types"
+import { useAtomValue, useSetAtom } from "jotai"
+import { atomWithStorage } from "jotai/utils"
+import { jwtDecode } from "jwt-decode"
 import md5 from "md5"
-import { toast } from "sonner"
+import { useCallback } from "react"
+import { settingsAtom } from "./electron"
 import { postUserActionMutationAtom } from "./mutation"
-const { VITE_BASE_URL } = import.meta.env
 
-const { rendererLog, setStoreValue } = window.electronAPI
+const { rendererLog } = window.electronAPI
 
 export function uuidV4() {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -82,197 +71,77 @@ export const timestampSignAtom = atomWithStorage<string>(
 )
 
 // -- 用户状态
-export const userAtom = atomWithStorage<UserState>(
+export const userAtom = atomWithStorage<UserAccount>(
 	"user-storage",
 	{
-		token: "",
 		user: null,
 		isLoggedIn: false,
+		isMember: false,
+		isStock: false,
+		isCrypto: false,
+		isBlock: false,
+		roles: {
+			fen: { label: "", disabled: true },
+			coin: { label: "", disabled: true },
+			stock: { label: "", disabled: true },
+			block: { label: "", disabled: true },
+		},
+		permissions: [],
 	},
 	undefined,
 	{ getOnInit: true },
 )
 
-export const userAuthAtom = atomWithQuery<UserState & { success: boolean }>(
-	(get) => {
-		const { isLoggedIn } = get(userAtom)
-		const enabled = get(isLoginAtom)
-		const newTimestampSign = generateTimestampSign()
-		return {
-			retry: false,
-			refetchInterval: 3 * 1000,
-			enabled,
-			queryKey: [
-				"user-auth",
-				get(nonceAtom),
-				get(macAddressAtom),
-				newTimestampSign, // 使用新的 timestamp_sign
-			],
-			queryFn: async ({ queryKey: [, nonce, client_id, timestamp_sign] }) => {
-				if (isLoggedIn) return null
-				try {
-					// 发起请求
-					const res = await fetch(`${VITE_BASE_URL}/user/client/authorized`, {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							nonce,
-							client_id,
-							timestamp_sign,
-						}),
-					})
-					// 如果请求失败，记录错误并返回 null
-					if (!res.ok) {
-						return null
-					}
-					// 请求成功，返回解析后的 JSON 数据
-					return await res.json()
-				} catch (error) {
-					return null
-				}
-			},
-		}
-	},
-)
+// -- 登录成功后的统一处理：由子窗口 postMessage 回传 tokens 后触发
+export function useAuthSuccessHandler() {
+	const { isLoggedIn } = useAtomValue(userAtom)
+	const setUser = useSetAtom(userAtom)
+	const setAccountKey = useSetAtom(accountKeyAtom)
+	const setSettings = useSetAtom(settingsAtom)
+	const { mutateAsync } = useAtomValue(postUserActionMutationAtom)
 
-export const userInfoTtlAtom = atom<number>(0)
+	return useCallback(
+		async (tokens: { access_token: string; refresh_token: string }) => {
+			if (!tokens?.access_token || !tokens?.refresh_token) return
 
-export const useInfoAtom = atomWithQuery<UserState & { success: boolean }>(
-	() => {
-		return {
-			retry: false,
-			queryKey: ["user-info"],
-			queryFn: async () => {
-				const token = localStorage.getItem("user-storage")
-				if (!token) return null
-				const parsedToken = JSON.parse(token)
-				const tokenData = parsedToken.token
-				const res = await fetch(`${VITE_BASE_URL}/user/info`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: tokenData,
-					},
-					body: JSON.stringify({}),
-				})
+			const payload = jwtDecode<AccessTokenJwtPayload>(tokens.access_token)
+			if (!payload?.user) return
 
-				if (!res.ok) return null
-				return await res.json()
-			},
-		}
-	},
-)
+			setTokens({
+				access_token: tokens.access_token,
+				refresh_token: tokens.refresh_token,
+			})
 
-// -- 账户角色检查
-export const checkAccountRoleAtom = atomWithQuery<
-	{ msg: string; role: 0 | 1 | 2 },
-	{ apiKey: string; uuid: string }
->((get) => {
-	const { apiKey, uuid } = get(accountKeyAtom)
-	return {
-		queryKey: ["check-account-role"],
-		queryFn: async () => {
-			const headers = { "api-key": apiKey }
-			const params = new URLSearchParams({ uuid })
-			const response = await fetch(
-				`${VITE_BASE_URL}/api/data/status?${params}`,
-				{
-					headers,
-				},
-			)
+			// 同步用户状态到主进程
+			syncWebUserInfo({
+				user: payload.user,
+				isLoggedIn: true,
+			})
 
-			if (!response.ok) {
-				return { msg: "ERROR", role: 0 }
+			// 从主进程读取用户状态（确保主进程数据主导）
+			const WebUserInfoFromMain = await getUserAccount()
+			if (!WebUserInfoFromMain) return
+
+			setUser(WebUserInfoFromMain)
+
+			if (!isLoggedIn) {
+				await mutateAsync("登录")
 			}
 
-			return response.json()
+			if (WebUserInfoFromMain.user) {
+				setAccountKey({
+					uuid: WebUserInfoFromMain.user.uuid,
+					apiKey: WebUserInfoFromMain.user.apiKey,
+				})
+				setSettings((prev) => ({
+					...prev,
+					hid: WebUserInfoFromMain.user?.uuid ?? "",
+					api_key: WebUserInfoFromMain.user?.apiKey ?? "",
+				}))
+			}
+
+			rendererLog("info", "[user] 用户信息已从主进程同步到渲染进程")
 		},
-	}
-})
-
-export const checkAccountRoleEffectAtom = atomEffect((get, set) => {
-	const { data, isError } = get(checkAccountRoleAtom)
-	const { isLoggedIn } = get(userAtom)
-	if (isError && isLoggedIn) {
-		set(accountRoleAtom, RESET)
-		rendererLog("error", "UserDropMenu-用户状态请求失败失败!!!")
-		toast.dismiss()
-		toast.warning("网络异常，网络恢复后请重启客户端以及重新登录 !!!", {
-			duration: 10 * 1000,
-		})
-		setStoreValue("status", 0)
-	}
-
-	if (data && data.msg === "SUCCESS") {
-		set(accountRoleAtom, data)
-		setStoreValue("status", data.role)
-	}
-})
-
-// -- 用户状态更新与缓存同步
-export const userAuthEffectAtom = atomEffect((get, set) => {
-	;(async () => {
-		const { isLoggedIn } = get(userAtom)
-		const { data } = get(userAuthAtom)
-		const { mutateAsync } = get(postUserActionMutationAtom)
-
-		if (!data) return // 如果数据不存在，直接返回
-
-		if (!data?.success) return // 如果请求失败，直接返回
-
-		// 基础用户信息设置
-		set(userAtom, {
-			token: data.token,
-			user: data.user,
-			isLoggedIn: true,
-		})
-
-		// 账户密钥设置
-		set(accountKeyAtom, {
-			uuid: data.user?.uuid!,
-			apiKey: data.user?.apiKey!,
-		})
-
-		// 如果用户未登录，执行登录请求
-		if (!isLoggedIn) {
-			await mutateAsync("登录")
-		}
-
-		// 手动触发 accountRoleUpdateAtom
-		const { data: roleData } = get(statusQueryAtom)
-		if (roleData) {
-			set(accountRoleUpdateAtom, roleData)
-		}
-
-		// 同步用户状态到主进程
-		await syncUserState({
-			user: {
-				id: data.user?.id ?? "",
-				uuid: data.user?.uuid ?? "",
-				apiKey: data.user?.apiKey ?? "",
-				headimgurl: data.user?.headimgurl ?? "",
-				isMember: data.user?.isMember ?? false,
-				nickname: data.user?.nickname ?? "",
-				approval: data.user?.approval ?? {
-					block: false,
-					crypto: false,
-					stock: false,
-				},
-				membershipInfo: data.user?.membershipInfo ?? [],
-				groupInfo: data.user?.groupInfo ?? [],
-			},
-			isLoggedIn: true,
-		})
-
-		// 存储用户身份标识
-		set(userIdentityAtom, generatePermissionSet(collectUserInfo(data.user)))
-
-		// 设置本地存储值
-		data.user?.uuid && setStoreValue("settings.hid", data.user?.uuid)
-		data.user?.apiKey && setStoreValue("settings.api_key", data.user?.apiKey)
-		//   console.log(data.user?.apiKey,'更新后的apikey');
-
-		// 提示用户数据已同步
-		//   console.log("用户信息已同步");
-	})()
-})
+		[isLoggedIn, mutateAsync, setAccountKey, setSettings, setUser],
+	)
+}

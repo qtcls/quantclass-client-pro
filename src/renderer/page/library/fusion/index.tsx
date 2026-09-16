@@ -1,3 +1,9 @@
+import {
+	FactorListDialog,
+	ParamsDialog,
+} from "@/renderer/components/FactorParamsDialog"
+import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
+import RebTimeConfigModal from "@/renderer/components/RebTimeConfigModal"
 /**
  * quantclass-client
  * Copyright (c) 2025 量化小讲堂
@@ -7,43 +13,65 @@
  * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
-
+import { StrategyNameDisplay } from "@/renderer/components/strategy-name-display"
 import { Badge } from "@/renderer/components/ui/badge"
+import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { DataTable } from "@/renderer/components/ui/data-table"
-import { Separator } from "@/renderer/components/ui/separator"
-import ImportStrategyButton from "@/renderer/page/library/fusion/import-btn"
-
-import { useFusionManager } from "@/renderer/hooks/useFusionManager"
-import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
-import { cn } from "@/renderer/lib/utils"
-import { SelectStgType, StgGroupType } from "@/renderer/types/strategy"
-import { NumberInput } from "@heroui/number-input"
-import { Plus, Trash2 } from "lucide-react"
-import { useState } from "react"
-import { toast } from "sonner"
-import { RatioIntro } from "../../FAQ/ratioIntro"
-import { Button } from "@/renderer/components/ui/button"
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@/renderer/components/ui/popover"
-import { ChangeLibrary } from "@/renderer/components/change-library"
+import { Separator } from "@/renderer/components/ui/separator"
+import { useFusionManager } from "@/renderer/hooks/useFusionManager"
+import { useGenLibraryColumn } from "@/renderer/hooks/useGenLibraryCol"
+import { cn } from "@/renderer/lib/utils"
+import ImportStrategyButton from "@/renderer/page/library/fusion/import-btn"
+import PosStrategyEditDialog from "@/renderer/page/strategy/pos-edit-dialog"
+import StrategyReplaceDialog from "@/renderer/page/strategy/replace-dialog"
+import type {
+	PosStrategyType,
+	SelectStgType,
+	StgGroupType,
+} from "@/renderer/types/strategy"
+import { getFusionTopRealMarketStrategyName } from "@/shared/lib/real-market-strategy-name"
+import { NumberInput } from "@heroui/number-input"
+import { Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { RatioIntro } from "../../FAQ/ratioIntro"
 
 // 独立的策略表格组件
 interface StrategyTableProps {
 	data: SelectStgType[]
 	strategyIndex: number
 	showCapWeight: boolean
+	/** 为 true 时不渲染操作列（pos 类型下 strategy_pool） */
+	hideOperationColumn?: boolean
+	/** 仓管 group 名称，用于子策略 real_market 默认标识 */
+	parentGroupName?: string
+	/** 仓管顶层单策略表格使用 X 前缀默认标识 */
+	realMarketFallback?: "fusion-top"
 }
 
 const StrategyTable = ({
 	data,
 	strategyIndex,
 	showCapWeight,
+	hideOperationColumn = false,
+	parentGroupName,
+	realMarketFallback,
 }: StrategyTableProps) => {
-	const columns = useGenLibraryColumn(() => {}, true, strategyIndex)
+	const columns = useGenLibraryColumn(
+		() => {},
+		true,
+		strategyIndex,
+		data,
+		hideOperationColumn,
+		parentGroupName,
+		realMarketFallback,
+	)
 
 	let tempCapWeight = 0
 	if (data) {
@@ -52,7 +80,7 @@ const StrategyTable = ({
 			subStrategy.cap_weight = subStrategy.cap_weight ?? 1
 			return sum + subStrategy.cap_weight
 		}, 0)
-		tempCapWeight = Math.round((allCapWeight / 1000) * 1000)
+		tempCapWeight = Math.round(allCapWeight * 100)
 	}
 
 	const tempColumns = columns.map((col: any) => {
@@ -100,6 +128,21 @@ const FusionStrategyLibrary = () => {
 		[key: number]: boolean
 	}>({})
 
+	const [factorListDialogState, setFactorListDialogState] = useState<{
+		open: boolean
+		factorList?: Array<[string, boolean, any, string | number | null]>
+	}>({
+		open: false,
+	})
+	const [paramsDialogState, setParamsDialogState] = useState<{
+		open: boolean
+		params?: Record<string, any>
+	}>({
+		open: false,
+	})
+
+	const [rebTimeConfigModalOpen, setRebTimeConfigModalOpen] = useState(false)
+
 	// 渲染通用结构
 	const renderCommonStructure = (
 		strategyIndex: number,
@@ -131,7 +174,7 @@ const FusionStrategyLibrary = () => {
 						<ButtonTooltip content={<div>{strategyGroup.name}资金占比</div>}>
 							<div>
 								<NumberInput
-									value={strategyGroup.cap_weight}
+									value={Number((strategyGroup.cap_weight * 100).toFixed(2))}
 									size="sm"
 									// disabled={isAutoRocket}
 									aria-label={`输入${strategyGroup.name}资金占比`}
@@ -153,17 +196,17 @@ const FusionStrategyLibrary = () => {
 											if (index === strategyIndex) {
 												return {
 													...group,
-													cap_weight: val || 0,
+													cap_weight: (val || 0) / 100, //保存时转换为小数（除以 100）
 												}
 											}
 											return group
 										})
-										// 检查所有 cap_weight 的总和是否超过 100
+										// 检查所有 cap_weight 的总和是否超过 1
 										const totalCapWeight = updatedFusion.reduce(
 											(sum, group) => sum + (group.cap_weight ?? 0),
 											0,
 										)
-										if (totalCapWeight > 100) {
+										if (totalCapWeight > 1) {
 											toast.error("资金占比总和不能超过 100%")
 											return
 										}
@@ -176,11 +219,41 @@ const FusionStrategyLibrary = () => {
 							</div>
 						</ButtonTooltip>
 
-						<div className="text-foreground text-xl font-semibold tracking-tight first:mt-0">
-							{strategyGroup.name}
-						</div>
+						<StrategyNameDisplay
+							name={strategyGroup.name}
+							remarkName={strategyGroup.remark_name}
+							fallbackRemarkName={
+								strategyGroup.remark_name?.trim()
+									? undefined
+									: getFusionTopRealMarketStrategyName(
+											strategyIndex,
+											strategyGroup.name,
+										)
+							}
+							nameClassName="text-xl font-semibold tracking-tight"
+						/>
 					</div>
 					<div className="flex items-center gap-2">
+						{strategyGroup.type === "pos" && (
+							<>
+								<PosStrategyEditDialog
+									posStrategy={strategyGroup as PosStrategyType}
+									fusionIndex={strategyIndex}
+								/>
+								<StrategyReplaceDialog
+									strategy={strategyGroup as PosStrategyType}
+									strategyType="pos"
+									buttonClassName="rounded-full size-6"
+									onReplace={(newStg) => {
+										updateFusion(
+											fusion.map((item, i) =>
+												i === strategyIndex ? newStg : item,
+											),
+										)
+									}}
+								/>
+							</>
+						)}
 						<Popover
 							open={isDeletePopoverOpen}
 							onOpenChange={setIsDeletePopoverOpen}
@@ -257,7 +330,6 @@ const FusionStrategyLibrary = () => {
 
 	return (
 		<div className="w-full h-full space-y-4 py-4">
-			<ChangeLibrary currentLibraryType="pos" />
 			<ImportStrategyButton />
 			{fusion.map((strategyGroup, strategyIndex) => {
 				// 使用 isFoldState 来获取和更新每个 strategyGroup 的 isFold 状态
@@ -272,7 +344,14 @@ const FusionStrategyLibrary = () => {
 				let renderContent: () => JSX.Element
 
 				switch (strategyGroup.type) {
-					case "group":
+					case "group": {
+						const groupRebTimes = Array.from(
+							new Set(
+								strategyGroup.strategy_list.map(
+									(item: any) => item.rebalance_time,
+								),
+							),
+						) as string[]
 						renderContent = () => (
 							<div className="space-y-2">
 								<div className="flex items-center gap-2">
@@ -301,15 +380,12 @@ const FusionStrategyLibrary = () => {
 										).join("、")}
 									</Badge>
 
-									<Badge variant="outline">
-										换仓时间：
-										{Array.from(
-											new Set(
-												strategyGroup.strategy_list.map(
-													(item: any) => item.rebalance_time,
-												),
-											),
-										).join(",")}
+									<Badge
+										variant="outline"
+										className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+										onClick={() => setRebTimeConfigModalOpen(true)}
+									>
+										换仓时间：{groupRebTimes.join(",")}
 									</Badge>
 									<span className="text-sm">
 										共{strategyGroup.strategy_list.length}个选股策略
@@ -320,11 +396,14 @@ const FusionStrategyLibrary = () => {
 									data={strategyGroup.strategy_list}
 									strategyIndex={strategyIndex}
 									showCapWeight={true}
+									parentGroupName={strategyGroup.name}
 								/>
+								<ReTimingDisplay reTiming={strategyGroup.re_timing} />
 							</div>
 						)
 						break
-					case "pos":
+					}
+					case "pos": {
 						const { strategy_pool } = strategyGroup
 						const isList = strategy_pool.some(
 							(v: SelectStgType | StgGroupType) => v.type === "group",
@@ -340,7 +419,11 @@ const FusionStrategyLibrary = () => {
 										Offset：{(strategyGroup.offset_list ?? []).join(",")}
 									</Badge>
 
-									<Badge variant="outline">
+									<Badge
+										variant="outline"
+										className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+										onClick={() => setRebTimeConfigModalOpen(true)}
+									>
 										换仓时间：{strategyGroup.rebalance_time}
 									</Badge>
 
@@ -352,25 +435,50 @@ const FusionStrategyLibrary = () => {
 
 									{strategyGroup.factor_list &&
 										strategyGroup.factor_list.length > 0 && (
-											<span className="text-sm font-mono">
-												{JSON.stringify(strategyGroup.factor_list)}
-											</span>
+											<Badge
+												variant="outline"
+												className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+												onClick={() => {
+													setFactorListDialogState({
+														open: true,
+														factorList: strategyGroup.factor_list,
+													})
+												}}
+											>
+												factor list ({strategyGroup.factor_list.length})
+											</Badge>
 										)}
-									<span className="text-sm font-mono">
-										{JSON.stringify(strategyGroup.params)}
-									</span>
+									{strategyGroup.params &&
+										Object.keys(strategyGroup.params).length > 0 && (
+											<Badge
+												variant="outline"
+												className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+												onClick={() => {
+													setParamsDialogState({
+														open: true,
+														params: strategyGroup.params,
+													})
+												}}
+											>
+												params ({Object.keys(strategyGroup.params).length})
+											</Badge>
+										)}
 								</div>
 								<Separator />
 								{isList ? (
 									strategy_pool.map((poolItem: any, index: number) => (
 										<div key={index}>
-											<div className="text-ml font-bold dark:text-gray-50">
-												{poolItem.name}
-											</div>
+											<StrategyNameDisplay
+												name={poolItem.name}
+												remarkName={poolItem.remark_name}
+												className="mb-1"
+												nameClassName="text-base font-bold dark:text-gray-50"
+											/>
 											<StrategyTable
 												data={poolItem.strategy_list}
 												strategyIndex={strategyIndex}
 												showCapWeight={true}
+												hideOperationColumn={true}
 											/>
 										</div>
 									))
@@ -379,12 +487,14 @@ const FusionStrategyLibrary = () => {
 										data={strategy_pool as SelectStgType[]}
 										strategyIndex={strategyIndex}
 										showCapWeight={false}
+										hideOperationColumn={true}
 									/>
 								)}
+								<ReTimingDisplay reTiming={strategyGroup.re_timing} />
 							</div>
 						)
 						break
-
+					}
 					default:
 						renderContent = () => (
 							<div className="space-y-2">
@@ -396,7 +506,11 @@ const FusionStrategyLibrary = () => {
 									<Badge variant="outline">
 										Offset：{(strategyGroup.offset_list ?? []).join(",")}
 									</Badge>
-									<Badge variant="outline">
+									<Badge
+										variant="outline"
+										className="cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+										onClick={() => setRebTimeConfigModalOpen(true)}
+									>
 										换仓时间：{strategyGroup.rebalance_time}
 									</Badge>
 								</div>
@@ -405,6 +519,7 @@ const FusionStrategyLibrary = () => {
 									data={[strategyGroup as SelectStgType]}
 									strategyIndex={strategyIndex}
 									showCapWeight={false}
+									realMarketFallback="fusion-top"
 								/>
 							</div>
 						)
@@ -420,7 +535,29 @@ const FusionStrategyLibrary = () => {
 			})}
 			<hr />
 			<RatioIntro />
-			<div className="h-5"></div>
+			<div className="h-5" />
+			{factorListDialogState.factorList && (
+				<FactorListDialog
+					open={factorListDialogState.open}
+					onOpenChange={(open) => {
+						setFactorListDialogState((prev) => ({ ...prev, open }))
+					}}
+					factorList={factorListDialogState.factorList}
+				/>
+			)}
+			{paramsDialogState.params && (
+				<ParamsDialog
+					open={paramsDialogState.open}
+					onOpenChange={(open) => {
+						setParamsDialogState((prev) => ({ ...prev, open }))
+					}}
+					params={paramsDialogState.params}
+				/>
+			)}
+			<RebTimeConfigModal
+				open={rebTimeConfigModalOpen}
+				onOpenChange={setRebTimeConfigModalOpen}
+			/>
 		</div>
 	)
 }

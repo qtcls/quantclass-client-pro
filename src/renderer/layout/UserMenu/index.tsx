@@ -15,190 +15,189 @@ import {
 } from "@/renderer/components/ui/avatar"
 import { Button } from "@/renderer/components/ui/button"
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/renderer/components/ui/dialog"
-import {
 	DropdownMenu,
 	DropdownMenuTrigger,
 } from "@/renderer/components/ui/dropdown-menu"
-import { SidebarMenuButton } from "@/renderer/components/ui/sidebar"
-import { usePermission } from "@/renderer/hooks/useIdentityArray"
 import { UserMenuContent } from "@/renderer/layout/UserMenu/UserMenuContent"
+import { useOpenLoginWindow } from "@/renderer/layout/hooks/useOpenLoginWindow"
+import { cn } from "@/renderer/lib/utils"
 import { getStatusExpires } from "@/renderer/request"
 import { isLoginAtom, statusExpiresAtom } from "@/renderer/store/storage"
-import {
-	checkAccountRoleEffectAtom,
-	generateTimestampSign,
-	macAddressAtom,
-	nonceAtom,
-	timestampSignAtom,
-	userAtom,
-	userAuthAtom,
-	userAuthEffectAtom,
-	uuidV4,
-} from "@/renderer/store/user"
-import { ReloadIcon } from "@radix-ui/react-icons"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { ChevronsUpDown } from "lucide-react"
-import { QRCodeSVG } from "qrcode.react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { userAtom } from "@/renderer/store/user"
+import { useAtom, useSetAtom } from "jotai"
+import { ChevronsUpDown, UserRound } from "lucide-react"
+import { useEffect } from "react"
 
-const { VITE_BASE_URL } = import.meta.env
+interface UserMenuProps {
+	variant?: "header" | "rail" | "logo"
+}
 
-export const UserMenu = () => {
-	const { checkPermission } = usePermission()
-	const [nonce, setNonce] = useAtom(nonceAtom)
-	const [{ user, isLoggedIn }] = useAtom(userAtom)
-	const clientId = useAtomValue(macAddressAtom)
-	const setTimestampSign = useSetAtom(timestampSignAtom)
+export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
+	const [{ user, isLoggedIn, isMember }] = useAtom(userAtom)
 	const setStatusExpires = useSetAtom(statusExpiresAtom)
 	const setIsLogin = useSetAtom(isLoginAtom)
+	const { requestLogin, canOpenLogin } = useOpenLoginWindow()
 
-	// -- Mutation
-	const [{ data: authResponse }] = useAtom(userAuthAtom)
-
-	// -- Effect Atom
-	useAtom(userAuthEffectAtom)
-	useAtom(checkAccountRoleEffectAtom)
-
-	// -- Dialog 状态
-	const [open, setOpen] = useState(false)
-	const [loginUrl, setLoginUrl] = useState("")
-	const [qrcodeInvalid, setQrcodeInvalid] = useState(false)
 	useEffect(() => {
-		if (isLoggedIn) {
-			setOpen(false)
-		}
-	}, [isLoggedIn])
-	// -- 处理认证响应
-	useEffect(() => {
-		const handleAuthResponse = async () => {
-			if (!authResponse || !user?.apiKey || !user?.uuid || !isLoggedIn) return
-
-			// const { role } = (await checkAccountRole()).data ?? { role: 0 }
-
-			// -- 如果角色不是分享会，则设置状态过期时间
-			if (!checkPermission(["FEN"])) {
-				const res = await getStatusExpires(user.apiKey, user.uuid)
-				if (res.code === 200) {
-					setStatusExpires(res.data.valid_to)
-				}
-
-				// const extraWorkStatus = await getExtraWorkStatus(user.apiKey, user.uuid)
-				// setExtraWorkStatus(extraWorkStatus.data)
-				// setStoreValue("extra-work-status", extraWorkStatus.data)
+		if (!isLoggedIn) return
+		setIsLogin(false)
+		if (isMember) return
+		;(async () => {
+			const res = await getStatusExpires()
+			if (res.code === 200) {
+				setStatusExpires(res.data.valid_to)
 			}
-			setOpen(false)
-		}
-
-		handleAuthResponse()
-	}, [user?.apiKey, user?.uuid])
-
-	// -- 获取操作 URL
-	const actionUrl = useMemo(() => {
-		return `${VITE_BASE_URL}/user/authorize?client_id=${clientId}&nonce=${nonce}&action=&ignore=0&r=${Math.random()}`
-	}, [clientId, nonce])
-
-	// -- 初始化登录
-	const initLogin = useCallback(() => {
-		setNonce(uuidV4())
-		setTimestampSign(generateTimestampSign())
-		setLoginUrl(actionUrl)
-		setQrcodeInvalid(false)
-		setTimeout(() => {
-			setOpen(true)
-		}, 300)
-		setTimeout(
-			() => {
-				setQrcodeInvalid(true)
-			},
-			5 * 60 * 1000,
-		)
-	}, [clientId])
+		})()
+	}, [isLoggedIn, isMember, setIsLogin, setStatusExpires])
 
 	const onLoginClick = () => {
-		if (!isLoggedIn && clientId && clientId.length > 0) {
-			initLogin()
+		if (!isLoggedIn && canOpenLogin) requestLogin()
+	}
+
+	const logoAvatar = isLoggedIn ? (
+		<Avatar className="size-9 rounded-[9px] border border-border">
+			<AvatarImage
+				src={user?.headimgurl}
+				alt={user?.nickname}
+				className="rounded-[9px]"
+			/>
+			<AvatarFallback className="rounded-[9px] bg-muted">
+				<UserRound className="size-[18px]" strokeWidth={1.8} />
+			</AvatarFallback>
+		</Avatar>
+	) : (
+		<span className="size-9 rounded-[9px] border border-dashed border-muted-foreground/35 bg-muted/50 grid place-items-center text-muted-foreground transition-colors group-hover:border-foreground/25 group-hover:bg-muted/80 group-hover:text-foreground">
+			<UserRound className="size-[18px]" strokeWidth={1.8} />
+		</span>
+	)
+
+	if (variant === "logo") {
+		const logoTrigger = (
+			<button
+				type="button"
+				className={cn(
+					"relative w-12 py-1.5 flex flex-col items-center justify-center rounded-[10px] cursor-pointer transition-colors",
+					"text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				)}
+				aria-label={isLoggedIn ? "账户" : "登录"}
+			>
+				{logoAvatar}
+			</button>
+		)
+
+		if (!isLoggedIn) {
+			return (
+				<div className="relative flex flex-col items-center w-12">
+					<button
+						type="button"
+						className={cn(
+							"group relative w-12 py-1.5 flex flex-col items-center justify-center gap-1 rounded-[10px] cursor-pointer transition-colors",
+							"text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+						)}
+						aria-label="登录"
+						onClick={onLoginClick}
+					>
+						{logoAvatar}
+						<span className="text-[10px] leading-none font-medium">登录</span>
+					</button>
+				</div>
+			)
 		}
+
+		return (
+			<div className="relative flex flex-col items-center w-12">
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>{logoTrigger}</DropdownMenuTrigger>
+					<UserMenuContent user={user} side="right" align="end" />
+				</DropdownMenu>
+			</div>
+		)
+	}
+
+	const userMenuButtonClass = cn(
+		"h-12 w-auto justify-start gap-2 px-2 font-normal",
+	)
+
+	if (variant === "rail") {
+		const railTrigger = (
+			<button
+				type="button"
+				className={cn(
+					"relative w-12 border-0 bg-transparent rounded-[10px] cursor-pointer transition-colors",
+					"text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+					"py-2.5 flex items-center justify-center",
+				)}
+				aria-label={isLoggedIn ? "账户" : "登录"}
+			>
+				<Avatar className="size-[21px] rounded-md">
+					<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
+					<AvatarFallback className="rounded-md text-[9px]">CN</AvatarFallback>
+				</Avatar>
+			</button>
+		)
+
+		if (!isLoggedIn) {
+			return (
+				<button
+					type="button"
+					className={cn(
+						"relative w-12 border-0 bg-transparent rounded-[10px] cursor-pointer transition-colors",
+						"text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+						"py-2.5 flex items-center justify-center",
+					)}
+					aria-label="登录"
+					onClick={onLoginClick}
+				>
+					<Avatar className="size-[21px] rounded-md">
+						<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
+						<AvatarFallback className="rounded-md text-[9px]">
+							CN
+						</AvatarFallback>
+					</Avatar>
+				</button>
+			)
+		}
+
+		return (
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>{railTrigger}</DropdownMenuTrigger>
+				<UserMenuContent user={user} side="right" align="end" />
+			</DropdownMenu>
+		)
 	}
 
 	return (
-		<>
-			<DropdownMenu>
-				{isLoggedIn ? (
-					<DropdownMenuTrigger asChild>
-						<SidebarMenuButton size="lg">
-							<Avatar className="h-8 w-8 rounded-lg">
-								<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
-								<AvatarFallback className="rounded-lg">CN</AvatarFallback>
-							</Avatar>
-							<div className="grid flex-1 text-left text-sm leading-tight">
-								<span className="truncate font-semibold">{user?.nickname}</span>
-							</div>
-							<ChevronsUpDown className="ml-auto size-4" />
-						</SidebarMenuButton>
-					</DropdownMenuTrigger>
-				) : (
-					<SidebarMenuButton
-						size="lg"
-						onClick={() => {
-							onLoginClick()
-							setIsLogin(true)
-						}}
-					>
+		<DropdownMenu>
+			{isLoggedIn ? (
+				<DropdownMenuTrigger asChild>
+					<Button variant="ghost" className={userMenuButtonClass}>
 						<Avatar className="h-8 w-8 rounded-lg">
 							<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
 							<AvatarFallback className="rounded-lg">CN</AvatarFallback>
 						</Avatar>
 						<div className="grid flex-1 text-left text-sm leading-tight">
-							<span className="truncate font-semibold">点击登录</span>
+							<span className="truncate font-semibold">{user?.nickname}</span>
 						</div>
-					</SidebarMenuButton>
-				)}
-
-				<UserMenuContent user={user} />
-			</DropdownMenu>
-
-			<Dialog
-				open={open}
-				onOpenChange={(isOpen) => {
-					setOpen(isOpen)
-					if (!isOpen) {
-						setIsLogin(false)
-					}
-				}}
-			>
-				<DialogContent className="max-w-sm">
-					<DialogHeader>
-						<DialogTitle>微信扫码登录</DialogTitle>
-					</DialogHeader>
-					<div className="flex items-center justify-center py-8">
-						<div className="text-center">
-							<div className="inline-block relative border p-3 border-primary bg-white rounded-lg">
-								{loginUrl && (
-									<QRCodeSVG size={220} level="H" value={actionUrl} />
-								)}
-								{qrcodeInvalid && (
-									<Button
-										variant="outline"
-										className="absolute inset-0 w-full h-full bg-black/50 backdrop-blur-sm hover:bg-black/60 focus:ring-2 focus:ring-offset-2 focus:ring-black"
-										onClick={() => initLogin()}
-									>
-										<div className="text-white">
-											<ReloadIcon className="w-8 h-8 mx-auto mb-2" />
-											<div>二维码失效</div>
-											<div>请点击刷新</div>
-										</div>
-									</Button>
-								)}
-							</div>
-						</div>
+						<ChevronsUpDown className="ml-auto size-4" />
+					</Button>
+				</DropdownMenuTrigger>
+			) : (
+				<Button
+					variant="ghost"
+					className={userMenuButtonClass}
+					onClick={onLoginClick}
+				>
+					<Avatar className="h-8 w-8 rounded-lg">
+						<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
+						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
+					</Avatar>
+					<div className="grid flex-1 text-left text-sm leading-tight">
+						<span className="truncate font-semibold">点击登录</span>
 					</div>
-				</DialogContent>
-			</Dialog>
-		</>
+				</Button>
+			)}
+
+			<UserMenuContent user={user} />
+		</DropdownMenu>
 	)
 }

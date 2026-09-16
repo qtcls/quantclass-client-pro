@@ -20,12 +20,11 @@ import {
 import { usePermissionCheck, useToggleAutoRealTrading } from "@/renderer/hooks"
 import { backtestExecTimeAtom } from "@/renderer/store/backtest"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
-import { libraryTypeAtom } from "@/renderer/store/storage"
 import { Separator } from "@radix-ui/react-separator"
 import { useMutation } from "@tanstack/react-query"
 import dayjs from "dayjs"
 import duration from "dayjs/plugin/duration"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { LoaderPinwheel, PlayIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -38,8 +37,8 @@ dayjs.extend(duration)
 
 export const BacktestControls = () => {
 	const [{ data }] = useAtom(monitorProcessesQueryAtom)
-	const isRunning = data?.some((item) => item.kernel === "aqua")
-	const { check } = usePermissionCheck()
+	const isRunning = data?.some((item) => item.kernel === "fusion")
+	const { checkWithToast } = usePermissionCheck()
 
 	const setBacktestExecTime = useSetAtom(backtestExecTimeAtom)
 	const [open, setOpen] = useState(false)
@@ -47,7 +46,6 @@ export const BacktestControls = () => {
 	const { execFuelWithEnv, getStoreValue, createTerminalWindow } =
 		window.electronAPI
 	const { refresh } = useBacktestResult()
-	const libraryType = useAtomValue(libraryTypeAtom)
 	const [_, setSelectModuleTimes] = useState<string[]>([])
 
 	const { mutateAsync: backtest, isPending: loading } = useMutation({
@@ -57,9 +55,8 @@ export const BacktestControls = () => {
 				startTime: dayjs().format("MM-DD HH:mm:ss"),
 				endTime: dayjs().format("MM-DD HH:mm:ss"),
 			})
-			const kernel = libraryType === "pos" ? "zeus" : "aqua"
-			console.log("开始回测", libraryType, kernel)
-			await execFuelWithEnv(["select"], "策略回测", kernel)
+			console.log("开始回测", "fusion")
+			await execFuelWithEnv(["select"], "策略回测", "fusion")
 			setBacktestExecTime(
 				(prev: {
 					startTime: string
@@ -102,6 +99,7 @@ export const BacktestControls = () => {
 
 	const { isAutoRocket } = useToggleAutoRealTrading()
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		getStoreValue("schedule.selectModule", []).then((selectModuleTimes) => {
 			setSelectModuleTimes(selectModuleTimes as string[])
@@ -118,7 +116,7 @@ export const BacktestControls = () => {
 						e.stopPropagation()
 						// -- 权限检查
 						if (
-							!check({
+							!checkWithToast({
 								requireMember: true,
 								windowsOnly: true,
 							}).isValid
@@ -136,7 +134,7 @@ export const BacktestControls = () => {
 					e.stopPropagation()
 					// -- 权限检查
 					if (
-						!check({
+						!checkWithToast({
 							requireMember: true,
 							windowsOnly: true,
 						}).isValid

@@ -20,8 +20,10 @@ export const systemIPC = {
 		ipcRenderer.invoke("kill-kernal", kernal, byForce),
 
 	// 全屏控制
-	handleToggleFullscreen: () => ipcRenderer.invoke("toggle-fullscreen"),
-	fetchFullscreenState: () => ipcRenderer.invoke("fetch-fullscreen-state"),
+	handleToggleFullscreen: (key = "main") =>
+		ipcRenderer.invoke("toggle-fullscreen", key),
+	fetchFullscreenState: (key?: string) =>
+		ipcRenderer.invoke("fetch-fullscreen-state", key),
 
 	// 窗口控制 - 从renderer/ipc/system.ts迁移
 	createTerminalWindow: () => ipcRenderer.invoke("create-terminal-window"),
@@ -33,8 +35,6 @@ export const systemIPC = {
 	// 系统配置
 	setAutoLaunch: (auto: boolean) =>
 		ipcRenderer.invoke("set-is-auto-login", auto),
-	setAutoUpdate: () => ipcRenderer.invoke("set-auto-update"),
-
 	// 版本管理
 	checkUpdate: (now = true) => ipcRenderer.invoke("check-update", now),
 	updateKernal: (name: KernalType, targetVersion?: string) =>
@@ -44,7 +44,9 @@ export const systemIPC = {
 
 	// 系统信息
 	getMacAddress: () => ipcRenderer.invoke("get-mac-address"),
-
-	// 服务控制
-	startServer: () => ipcRenderer.invoke("start-server"),
+	getMachineId: () => ipcRenderer.invoke("get-machine-id") as Promise<string>,
+	// 检查内核是否运行
+	checkKernalRunning: (
+		kernals: KernalType[] = ["rocket"],
+	) => ipcRenderer.invoke("check-kernal-running", kernals) as Promise<boolean>,
 }

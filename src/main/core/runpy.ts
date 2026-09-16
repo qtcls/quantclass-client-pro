@@ -8,14 +8,18 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { execFile } from "node:child_process"
 import fs from "node:fs"
 import { writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import path from "node:path"
+import { promisify } from "node:util"
 import { getKernelVersion } from "@/main/core/lib.js"
 import windowManager from "@/main/lib/WindowManager.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
 import { postUserMainAction } from "@/main/request/index.js"
 import store from "@/main/store/index.js"
+import { getRocketQmtMode } from "@/main/utils/common.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
 import type { AppVersions } from "@/shared/types/index.js"
@@ -30,6 +34,27 @@ import {
 
 const require = createRequire(import.meta.url)
 const AdmZip = require("adm-zip")
+const execFileAsync = promisify(execFile)
+
+async function flattenExtractedRocketDir(extractDir: string) {
+	const exeName = platform.isWindows ? "rocket.exe" : "rocket"
+	if (fs.existsSync(path.join(extractDir, exeName))) return
+
+	for (const name of ["rocket", "mini_qmt", "qmt"]) {
+		const nested = path.join(extractDir, name)
+		if (!fs.existsSync(path.join(nested, exeName))) continue
+
+		const files = await fs.promises.readdir(nested)
+		for (const file of files) {
+			await fs.promises.rename(
+				path.join(nested, file),
+				path.join(extractDir, file),
+			)
+		}
+		await fs.promises.rm(nested, { recursive: true, force: true })
+		return
+	}
+}
 
 const clientVersion = CLIENT_VERSION
 
@@ -119,7 +144,7 @@ export async function checkRemoteVersions(now = true): Promise<AppVersions> {
  * @returns
  */
 export async function downloadKernal(
-	kernal: "fuel" | "aqua" | "rocket" | "zeus",
+	kernal: "fuel" | "fusion" | "rocket" | "scm",
 	version: string,
 	downloadUrl: string,
 ) {
@@ -135,7 +160,11 @@ export async function downloadKernal(
 
 	try {
 		const codeFolder = await store.getAllDataPath(["code"])
-		const kernalFolderPath = path.join(codeFolder, kernal)
+		const kernalFolderPath =
+			kernal === "rocket"
+				? path.join(codeFolder, "rocket", await getRocketQmtMode())
+				: path.join(codeFolder, kernal)
+		const extractTarget = kernal === "rocket" ? kernalFolderPath : codeFolder
 
 		if (!downloadUrl) {
 			logger.error(`[${kernal}] 下载链接为空`)
@@ -143,7 +172,7 @@ export async function downloadKernal(
 		}
 
 		logger.info(
-			`[${kernal}] 版本: ${version}，使用远程链接: ${downloadUrl}，保存路径: ${codeFolder}`,
+			`[${kernal}] 版本: ${version}，使用远程链接: ${downloadUrl}，保存路径: ${extractTarget}`,
 		)
 
 		const fileName = downloadUrl.split("/").pop() as string
@@ -182,10 +211,13 @@ export async function downloadKernal(
 		await writeFile(kernalZipPath, buffer)
 		logger.info(`[${kernal}] 内核文件已下载到 ${kernalZipPath}`)
 
-		// 删除老内核文件夹
+		// 删除老内核文件夹（rocket 只覆盖当前 QMT 模式目录）
 		try {
 			if (fs.existsSync(kernalFolderPath)) {
 				await fs.promises.rm(kernalFolderPath, { recursive: true, force: true })
+			}
+			if (kernal === "rocket") {
+				await fs.promises.mkdir(kernalFolderPath, { recursive: true })
 			}
 			logger.info(`[${kernal}] 删除原内核文件夹成功`)
 		} catch {
@@ -193,11 +225,22 @@ export async function downloadKernal(
 		}
 
 		// 解压zip文件，从2025年5月27日开始，所有内核采用onedir的打包方式，所以需要解压zip文件
-		const zip = new AdmZip(kernalZipPath)
-		zip.extractAllTo(codeFolder, true)
+		// macOS 使用系统 unzip（保留可执行权限）；-q 避免文件列表撑爆默认 maxBuffer
+		if (platform.isMacOS) {
+			await execFileAsync("unzip", ["-oq", kernalZipPath, "-d", extractTarget], {
+				maxBuffer: 10 * 1024 * 1024,
+			})
+		} else {
+			const zip = new AdmZip(kernalZipPath)
+			zip.extractAllTo(extractTarget, true)
+		}
 		await fs.promises.unlink(kernalZipPath) // 删除zip文件
 
-		logger.info(`[${kernal}] 内核文件已解压到 ${codeFolder}`)
+		if (kernal === "rocket") {
+			await flattenExtractedRocketDir(extractTarget)
+		}
+
+		logger.info(`[${kernal}] 内核文件已解压到 ${extractTarget}`)
 
 		// 更新版本信息文件，删除旧的版本文件
 		try {
@@ -228,11 +271,8 @@ export async function downloadKernal(
 
 		// -- 下载成功后发送埋点请求
 		try {
-			const api_key = await store.getSetting("api_key", "")
-			const uuid = await store.getSetting("hid", "")
-			if (api_key && uuid) {
-				await postUserMainAction(api_key, {
-					uuid,
+			if (tokenStore.hasBothTokensInMemory()) {
+				await postUserMainAction({
 					role: "client",
 					action: `下载 ${kernal} 内核成功: ${version}`,
 				})
@@ -251,7 +291,7 @@ export async function downloadKernal(
 }
 
 export async function updateKernal(
-	kernal: "aqua" | "rocket" | "zeus" | "fuel",
+	kernal: "fusion" | "rocket" | "fuel" | "scm",
 	targetVersion?: string,
 ) {
 	const winKernals = ["rocket"]

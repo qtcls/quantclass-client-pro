@@ -15,26 +15,40 @@ import { CONFIG } from "@/main/config.js"
 import { setupErrorHandlers } from "@/main/error-handlers.js"
 import { default as windowManager } from "@/main/lib/WindowManager.js"
 import { createWindow } from "@/main/lib/createWindow.js"
-import { createTray } from "@/main/lib/tray.js"
 // import setupUpdater from "@/main/lib/updater.js"
+import DBManager from "@/main/lib/db-manager.js"
+import { resetMinDataRoundsRunningForToday } from "@/main/lib/min-data-rounds-startup.js"
+import { refreshRealTradingBackupSchedule } from "@/main/lib/real-trading-backup.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
+import { createTray } from "@/main/lib/tray.js"
+import { runMigrations } from "@/main/migration/runner.js"
 import server from "@/main/server/index.js"
 import { cleanupDB } from "@/main/server/middleware/db.js"
 import {
 	cleanLockFiles,
 	killAllKernalByForce,
+	killAllKernalByName,
 	startServerOnAvailablePort,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import { regAuthIPC } from "@/preload/auth/auth-ipc.js"
 import { regCoreIPC } from "@/preload/core/core-ipc.js"
 import { regDataIPC } from "@/preload/data/data-ipc.js"
 import { regFileSysIPC } from "@/preload/file-sys/file-sys-ipc.js"
+import { regKernelLogIPC } from "@/preload/kernel-log/kernel-log-ipc.js"
+import { regMigrationIPC } from "@/preload/migration/migration-ipc.js"
+import { regNotificationIPC } from "@/preload/notification/notification-ipc.js"
+import { regRealTradingBackupIPC } from "@/preload/real-trading-backup/real-trading-backup-ipc.js"
+import { regRepoIPC } from "@/preload/repo/repo-ipc.js"
+import { regStartupCheckIPC } from "@/preload/startup-check/startup-check-ipc.js"
 import { regStoreIPC } from "@/preload/store/store-ipc.js"
+import { regStrategyIPC } from "@/preload/strategy/strategy-ipc.js"
 import { regSystemIPC } from "@/preload/system/system-ipc.js"
+import { regUserIPC } from "@/preload/user/user-ipc.js"
 import { regWindowsIPC } from "@/preload/windows/windows-ipc.js"
 import { is, platform } from "@electron-toolkit/utils"
 import { type Tray, app, ipcMain, powerMonitor, shell } from "electron"
 import log from "electron-log/main.js"
-import { userStore } from "./lib/userStore.js"
 import store from "./store/index.js"
 
 // -- 初始化日志记录器
@@ -96,13 +110,34 @@ if (!gotTheLock) {
 
 	// -- 应用准备就绪事件
 	app.on("ready", async () => {
+		// -- 启动时从磁盘解密 refresh_token 到内存
+		await tokenStore.init()
+
 		// -- 先注册所有 IPC，避免渲染进程在窗口加载早期调用时未注册
+		regAuthIPC()
 		regCoreIPC()
 		regStoreIPC()
 		regSystemIPC()
 		regFileSysIPC()
+		regKernelLogIPC()
 		regDataIPC()
+		regStrategyIPC()
 		regWindowsIPC()
+		regUserIPC()
+		regMigrationIPC()
+		regNotificationIPC()
+		regRealTradingBackupIPC()
+		regRepoIPC()
+		regStartupCheckIPC()
+
+		// -- 执行数据迁移
+		await runMigrations()
+
+		// -- FuelBinStat：今日 min_data_rounds / min_data_etf_rounds 行 is_running 置 0（异常退出后状态修复）
+		await resetMinDataRoundsRunningForToday()
+
+		// -- 初始化实盘备份定时任务
+		refreshRealTradingBackupSchedule()
 
 		// -- 创建主窗口与终端窗口
 		await createWindow()
@@ -114,13 +149,7 @@ if (!gotTheLock) {
 		})
 
 		const all_data_path = await store.getSetting("all_data_path", "")
-		if (!all_data_path) {
-			ipcMain.handle("start-server", async () => {
-				const port = await startServerOnAvailablePort(8787, server)
-				store.setValue("server_port", port)
-				log.info(`服务器在端口 ${port} 上启动`)
-			})
-		} else {
+		if (all_data_path) {
 			const port = await startServerOnAvailablePort(8787, server)
 			store.setValue("server_port", port)
 			log.info(`服务器在端口 ${port} 上启动`)
@@ -161,23 +190,6 @@ if (!gotTheLock) {
 		setupAppLifecycle(tray)
 
 		is.dev && mainWindow?.webContents.openDevTools()
-
-		// -- 监听用户信息同步
-		ipcMain.on("sync-user-state", async (_event, userState) => {
-			logger.info("[user] 信息已同步")
-			await userStore.setUserState(userState)
-		})
-
-		// -- 监听获取用户信息请求
-		ipcMain.handle("get-user-state", async () => {
-			return await userStore.getUserState()
-		})
-
-		// -- 监听清除用户信息请求
-		ipcMain.on("clear-user-state", async () => {
-			logger.info("[user] 信息已清除")
-			await userStore.clearUserState()
-		})
 	})
 
 	// -- 当应用程序激活时
@@ -218,13 +230,15 @@ if (!gotTheLock) {
 		logger.info("[main] 应用正在退出，进行最终清理...")
 		// 兜底kill一遍
 		// 执行退出时的清理工作
+
+		DBManager.getInstance().close()
 	})
 
 	// 当退出流程全部完成后触发
 	app.on("quit", async (_, exitCode) => {
 		// 在这里添加你的清理或保存操作
 		await cleanLockFiles()
-		await killAllKernalByForce(true)
+		await killAllKernalByName()
 		logger.info(`应用已退出，退出码：${exitCode}`)
 	})
 }

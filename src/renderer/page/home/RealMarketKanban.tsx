@@ -1,3 +1,4 @@
+import StockTimingView from "@/renderer/components/StockTimingView"
 /**
  * quantclass-client
  * Copyright (c) 2025 量化小讲堂
@@ -7,11 +8,9 @@
  * Change Date: 2028-08-22 | Change License: GPL-3.0-or-later
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
-
-import { FinPieChart } from "@/renderer/components/FinPieChart"
+import StatusTimeline from "@/renderer/components/StrategyStatusTimeLine"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
-import { Card, CardContent } from "@/renderer/components/ui/card"
 import {
 	Dialog,
 	DialogContent,
@@ -24,17 +23,20 @@ import { H3 } from "@/renderer/components/ui/typography"
 // import { POSITION_INFO_PAGE } from "@/renderer/constant"
 import { usePermissionCheck } from "@/renderer/hooks"
 import { useHandleTimeTask } from "@/renderer/hooks"
+import { useMinDataSchedule } from "@/renderer/hooks"
 import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 import BuyBlacklist from "@/renderer/page/trading/buy-blacklist"
-import { isUpdatingAtom } from "@/renderer/store"
+import { isMinDataUpdatingAtom, isUpdatingAtom } from "@/renderer/store"
 // import { realTradingTabAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import {
 	accountKeyAtom,
-	libraryTypeAtom,
+	realMarketConfigSchemaAtom,
+	// libraryTypeAtom,
 	showMoneyAtom,
 	totalWeightAtom,
 } from "@/renderer/store/storage"
+import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { useAtom, useAtomValue } from "jotai"
 import { Eye, EyeOff, Library, Play, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -46,25 +48,36 @@ const { getStoreValue } = window.electronAPI
 export const RealMarketKanban = () => {
 	// const navigate = useNavigate()
 	const [confirmStartAutoUpdate, setConfirmStartAutoTrading] = useState(false)
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const [showMoney, setShowMoney] = useAtom(showMoneyAtom)
 	const totalWeight = useAtomValue(totalWeightAtom)
 	const isUpdating = useAtomValue(isUpdatingAtom)
+	const isMinDataUpdating = useAtomValue(isMinDataUpdatingAtom)
 	const { apiKey, uuid } = useAtomValue(accountKeyAtom)
 	// const navigate = useNavigate()
 	// const [_, setActiveTab] = useAtom(activeTabAtom)
 
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
 	const handleTimeTask = useHandleTimeTask()
+	const { startMinDataSchedule } = useMinDataSchedule()
 	const [, setSelectModuleTimes] = useState<string[]>([])
 	// const setActiveTab = useSetAtom(realTradingTabAtom)
 
 	const [{ data, refetch }] = useAtom(loadAccountQueryAtom)
-	const libraryType = useAtomValue(libraryTypeAtom)
+	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
+	const accountId = realMarketConfig?.account_id ?? ""
+	const brokerName = getBrokerNameByAccountId(accountId)
+	const brokerOrAccountLabel = brokerName || accountId.trim()
+	// const libraryType = useAtomValue(libraryTypeAtom)
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		if (
-			check({ requireMember: true, windowsOnly: true, skipToast: true }).isValid
+			checkWithToast({
+				requireMember: true,
+				windowsOnly: true,
+				skipToast: true,
+			}).isValid
 		) {
 			refetch().then(() => {
 				console.log("loadAccountQueryAtom success")
@@ -72,6 +85,7 @@ export const RealMarketKanban = () => {
 		}
 	}, [])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		if (apiKey === "" && uuid === "" && isAutoRocket) {
 			handleToggleAutoRocket(false).then(() => {
@@ -80,6 +94,7 @@ export const RealMarketKanban = () => {
 		}
 	}, [apiKey, uuid])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		getStoreValue("schedule.selectModule", []).then((selectModuleTimes) => {
 			setSelectModuleTimes(selectModuleTimes as string[])
@@ -122,7 +137,7 @@ export const RealMarketKanban = () => {
 						onClick={() => {
 							// -- 权限检查
 							if (
-								!check({
+								!checkWithToast({
 									requireMember: true,
 									windowsOnly: true,
 								}).isValid
@@ -158,9 +173,9 @@ export const RealMarketKanban = () => {
 						<span className="text-primary leading-none font-bold">
 							{showMoney ? (
 								totalWeight === 0 ? (
-									totalWeight
+									0
 								) : (
-									<NumberTicker value={totalWeight} />
+									<NumberTicker value={totalWeight * 100} />
 								)
 							) : (
 								"****"
@@ -168,7 +183,6 @@ export const RealMarketKanban = () => {
 							%
 						</span>
 					</div>
-
 					<div className="flex items-baseline gap-1">
 						<span className="">可用资金:</span>
 						<span className="text-primary font-bold leading-none">
@@ -184,7 +198,6 @@ export const RealMarketKanban = () => {
 						</span>
 						<span className="leading-none">¥</span>
 					</div>
-
 					<div className="flex items-baseline gap-1">
 						<span>总资产:</span>
 						<span className="text-primary font-bold leading-none">
@@ -200,11 +213,21 @@ export const RealMarketKanban = () => {
 						</span>
 						<span className="leading-none">¥</span>
 					</div>
+					<div className="flex items-baseline gap-1">
+						<span>券商:</span>
+						<span className="text-primary font-bold leading-none">
+							{showMoney
+								? brokerOrAccountLabel
+									? brokerOrAccountLabel
+									: "--"
+								: "****"}
+						</span>
+					</div>
 				</div>
 
-				<div className="flex items-center gap-2"></div>
+				{/* <div className="flex items-center gap-2"></div> */}
 
-				{libraryType !== "pos" && (
+				{/* {libraryType !== "pos" && (
 					<Card className="p-0">
 						<CardContent className="p-2">
 							<FinPieChart
@@ -214,7 +237,10 @@ export const RealMarketKanban = () => {
 							/>
 						</CardContent>
 					</Card>
-				)}
+				)} */}
+
+				<StatusTimeline />
+				<StockTimingView />
 				<div className="space-y-1">
 					<BuyBlacklist />
 				</div>
@@ -246,8 +272,15 @@ export const RealMarketKanban = () => {
 					<div className="text-primary leading-relaxed space-y-2">
 						{!isUpdating && (
 							<p>
-								<span className="font-bold">自动更新数据</span>
+								<span className="font-bold">自动更新历史数据</span>
 								：会实时检查并自动完成数据的处理与存储，尽量保证本地数据是最新的。
+							</p>
+						)}
+						{!isMinDataUpdating && (
+							<p>
+								<span className="font-bold">自动更新实时数据</span>
+								：会在交易时段内自动获取分钟级 K
+								线数据，保证选股和交易所需数据是最新的。
 							</p>
 						)}
 						<p>
@@ -265,6 +298,11 @@ export const RealMarketKanban = () => {
 							onClick={async () => {
 								if (!isUpdating) {
 									await handleTimeTask(false)
+								}
+								if (!isMinDataUpdating) {
+									await startMinDataSchedule()
+								}
+								if (!isUpdating || !isMinDataUpdating) {
 									await handleToggleAutoRocket(true, true, true)
 								} else {
 									await handleToggleAutoRocket(true)

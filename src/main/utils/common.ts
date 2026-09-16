@@ -11,12 +11,17 @@
 import { exec } from "node:child_process"
 import { existsSync } from "node:fs"
 import fs from "node:fs/promises"
-import { arch } from "node:os"
+// import { arch } from "node:os"
 import path from "node:path"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
+import {
+	normalizeTradingDateToYmd,
+	sortUniqueTradingDaysYmd,
+} from "@/shared/lib/trading-day.js"
 import { platform } from "@electron-toolkit/utils"
 import { app } from "electron"
+import { getTradingCalendar } from "etc-csv-napi"
 
 export const WINDOW_HEIGHT = 720
 export const WINDOW_WIDTH = 1280
@@ -48,6 +53,14 @@ export enum Channels {
 	AppUpdaterProgress = "AppUpdaterProgress",
 	AppUpdaterAbort = "AppUpdaterAbort",
 }
+
+export type RocketQmtMode = "mini_qmt" | "qmt"
+
+export async function getRocketQmtMode(): Promise<RocketQmtMode> {
+	const mode = await store.getValue("real_market_config.qmt_mode", "mini_qmt")
+	return mode === "qmt" ? "qmt" : "mini_qmt"
+}
+
 /**
  * 获取内核路径
  * @param kernel 内核名称
@@ -55,11 +68,10 @@ export enum Channels {
  */
 export const getKernalPath = async (kernel: string) => {
 	const codePath = await store.getAllDataPath("code", true)
-	let kernalPath: string = path.join(
-		codePath,
-		platform.isWindows ? kernel : `${kernel}-${arch()}`, // 非Windows系统，需要加上arch()
-		kernel,
-	)
+	let kernalPath: string =
+		kernel === "rocket"
+			? path.join(codePath, "rocket", await getRocketQmtMode(), "rocket")
+			: path.join(codePath, kernel, kernel)
 
 	if (platform.isWindows) {
 		kernalPath = `${kernalPath}.exe`
@@ -116,4 +128,30 @@ export const tradingCalender = async () => {
 	}
 
 	return []
+}
+// -- 读取交易日列表，文件缺失或读失败返回 []。
+export async function loadTradingDaysFromPeriodOffsetCsv(
+	options: {
+		// -- 默认：all_data_path/period_offset.csv
+		filePath?: string
+	} = {},
+): Promise<string[]> {
+	const filePath =
+		options.filePath ?? (await store.getAllDataPath("period_offset.csv", false))
+
+	if (!filePath || !existsSync(filePath)) {
+		logger.warn(`[period-offset] period_offset.csv 不存在: ${filePath ?? ""}`)
+		return []
+	}
+
+	try {
+		const raw = await getTradingCalendar(filePath)
+		const ymds = raw
+			.map((s) => normalizeTradingDateToYmd(s))
+			.filter((x): x is string => x !== null)
+		return sortUniqueTradingDaysYmd(ymds)
+	} catch (e) {
+		logger.error(`[period-offset] 读取 period_offset.csv 失败: ${e}`)
+		return []
+	}
 }

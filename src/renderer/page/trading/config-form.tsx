@@ -8,6 +8,9 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { BigQmtConfirmDialog } from "@/renderer/components/BigQmtConfirmDialog"
+import { CiccBseNoticeDialog } from "@/renderer/components/CiccBseNoticeDialog"
+import { ClearFactorCacheConfirmDialog } from "@/renderer/components/ClearFactorCacheConfirmDialog"
 import { PerformanceModeSelectTabs } from "@/renderer/components/select-tabs"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
@@ -27,29 +30,100 @@ import {
 	RadioGroup,
 	RadioGroupItem,
 } from "@/renderer/components/ui/radio-group"
+import { TabsContent } from "@/renderer/components/ui/tabs"
 // import { ScrollArea } from "@/renderer/components/ui/scroll-area"
 import { usePermissionCheck, useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useRealMarketConfig } from "@/renderer/hooks/useRealMarketConfig"
 import { realConfigEditModalAtom } from "@/renderer/store"
 import { rocketStatusQueryAtom } from "@/renderer/store/query"
-import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
+import {
+	ciccBseNoticeDismissedAtom,
+	realMarketConfigSchemaAtom,
+} from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
+import { getBrokerNameByAccountId } from "@/renderer/utils/broker"
 import { zodResolver } from "@hookform/resolvers/zod"
 import dayjs from "dayjs"
 import { useDebounceFn } from "etc-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { CircleHelp, Folder, PlayCircle, Save } from "lucide-react"
+import {
+	ChevronRight,
+	CircleHelp,
+	Folder,
+	Monitor,
+	PlayCircle,
+	Save,
+	Trash2,
+} from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
-const { setStoreValue, rendererLog, openUrl } = window.electronAPI
+const {
+	setStoreValue,
+	getStoreValue,
+	rendererLog,
+	openUrl,
+	checkKernalRunning,
+} = window.electronAPI
 
-export const RealMarketConfigSchema = z.object({
-	qmt_path: z.string().min(1, { message: "QMT 安装路径未填写" }),
+const QmtConfigFieldsSchema = z.object({
+	qmt_path: z.string(),
 	account_id: z.string().min(1, { message: "账户号未填写" }),
 	qmt_port: z.string().min(1, { message: "QMT 端口号未填写" }),
+	qmt_mode: z.enum(["mini_qmt", "qmt"]),
+	ws_host: z.string(),
+	ws_port: z.string(),
+})
+
+function hasBigQmtWsConfig(wsHost?: string, wsPort?: string) {
+	return !!wsHost?.trim() || !!wsPort?.trim()
+}
+
+function refineQmtPathRequired(
+	data: z.infer<typeof QmtConfigFieldsSchema>,
+	ctx: z.RefinementCtx,
+) {
+	if (data.qmt_mode === "mini_qmt" && !data.qmt_path.trim()) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			message: "QMT 安装路径未填写",
+			path: ["qmt_path"],
+		})
+	}
+}
+
+function refineBigQmtWsOptional(
+	data: z.infer<typeof QmtConfigFieldsSchema>,
+	ctx: z.RefinementCtx,
+) {
+	if (data.qmt_mode !== "qmt") return
+
+	const wsPort = data.ws_port.trim()
+	if (!wsPort) return
+
+	const port = Number(wsPort)
+	if (!Number.isInteger(port) || port < 1 || port > 65535) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			message: "websocket 端口号不合法",
+			path: ["ws_port"],
+		})
+	}
+}
+
+function refineQmtConfig(
+	data: z.infer<typeof QmtConfigFieldsSchema>,
+	ctx: z.RefinementCtx,
+) {
+	refineQmtPathRequired(data, ctx)
+	refineBigQmtWsOptional(data, ctx)
+}
+
+export const QmtConfigSchema = QmtConfigFieldsSchema.superRefine(refineQmtConfig)
+
+const RealMarketFormSchema = z.object({
 	date_start: z.date().optional(),
 	message_robot_url: z.string().optional(),
 	filter_kcb: z.enum(["0", "1"]),
@@ -57,22 +131,35 @@ export const RealMarketConfigSchema = z.object({
 	filter_bj: z.enum(["0", "1"]),
 	// -- 均衡-EQUAL，性能-PERFORMANCE，节能-ECONOMY
 	performance_mode: z.enum(["EQUAL", "PERFORMANCE", "ECONOMY"]),
+	// -- 开盘是否挂涨停卖出: "1" 启用，"0" 禁用
+	use_open_sell: z.enum(["0", "1"]),
 	reverse_repo_keep: z.union([z.string(), z.number()]).refine(
 		(value) => {
-			const numValue = typeof value === "string" ? parseFloat(value) : value
-			return !isNaN(numValue) && numValue >= 0
+			const numValue =
+				typeof value === "string" ? Number.parseFloat(value) : value
+			return !Number.isNaN(numValue) && numValue >= 0
 		},
 		{ message: "逆回购保留金额必须是一个大于等于0的数字" },
 	),
 })
 
-type FormData = z.infer<typeof RealMarketConfigSchema>
+export const RealMarketConfigSchema = RealMarketFormSchema.merge(
+	QmtConfigFieldsSchema,
+).superRefine(refineQmtConfig)
 
-export function TradingConfigForm() {
-	const { selectDirectory, createRealTradingDir } = window.electronAPI
+type FormData = z.infer<typeof RealMarketFormSchema>
+type QmtFormData = z.infer<typeof QmtConfigSchema>
+
+interface TradingConfigFormProps {
+	onGoToQmt?: () => void
+}
+
+export function TradingConfigForm({ onGoToQmt }: TradingConfigFormProps) {
+	const { selectDirectory, createRealTradingDir, clearFactorCache } =
+		window.electronAPI
 	const { user } = useAtomValue(userAtom)
 	const { data: rocketStatus = false } = useAtomValue(rocketStatusQueryAtom)
-	const { check } = usePermissionCheck()
+	const { checkWithToast } = usePermissionCheck()
 	const [choosing, setChoosing] = useState(false)
 	const [realMarketConfig, setRealMarketConfig] = useAtom(
 		realMarketConfigSchemaAtom,
@@ -82,46 +169,145 @@ export function TradingConfigForm() {
 
 	const setRealConfigEditModal = useSetAtom(realConfigEditModalAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
+	const [ciccDismissed, setCiccDismissed] = useAtom(ciccBseNoticeDismissedAtom)
+	const [showCiccNotice, setShowCiccNotice] = useState(false)
+	const [factorCacheConfirmOpen, setFactorCacheConfirmOpen] = useState(false)
+	const [bigQmtConfirmOpen, setBigQmtConfirmOpen] = useState(false)
+
+	const isCiccBroker =
+		getBrokerNameByAccountId(realMarketConfig.account_id ?? "") === "中金"
 
 	const defaultValues = useMemo(() => {
+		const isCicc =
+			getBrokerNameByAccountId(realMarketConfig.account_id ?? "") === "中金"
 		return {
-			...realMarketConfig,
 			date_start:
 				typeof realMarketConfig.date_start === "string"
 					? new Date(realMarketConfig.date_start)
 					: realMarketConfig.date_start,
-			qmt_port: "58610",
+			message_robot_url: realMarketConfig.message_robot_url ?? "",
 			filter_kcb: realMarketConfig.filter_kcb,
 			filter_cyb: realMarketConfig.filter_cyb,
-			filter_bj: realMarketConfig.filter_bj,
+			filter_bj: isCicc ? "1" : realMarketConfig.filter_bj,
 			performance_mode: realMarketConfig.performance_mode ?? "EQUAL",
+			use_open_sell: realMarketConfig.use_open_sell ?? "0",
 			reverse_repo_keep: realMarketConfig.reverse_repo_keep ?? 1000,
 		}
 	}, [realMarketConfig])
 
+	const qmtDefaultValues = useMemo(
+		() => ({
+			qmt_path: realMarketConfig.qmt_path ?? "",
+			account_id: realMarketConfig.account_id ?? "",
+			qmt_port: realMarketConfig.qmt_port ?? "58610",
+			qmt_mode: realMarketConfig.qmt_mode ?? "mini_qmt",
+			ws_host: realMarketConfig.ws_host ?? "",
+			ws_port: realMarketConfig.ws_port ?? "",
+		}),
+		[realMarketConfig],
+	)
+
 	const form = useForm<FormData>({
 		mode: "onChange",
-		resolver: zodResolver(RealMarketConfigSchema),
+		resolver: zodResolver(RealMarketFormSchema),
 		defaultValues,
 	})
 
+	const qmtForm = useForm<QmtFormData>({
+		mode: "onChange",
+		resolver: zodResolver(QmtConfigSchema),
+		defaultValues: qmtDefaultValues,
+	})
+
+	const qmtAccountId = qmtForm.watch("account_id")
+	const qmtMode = qmtForm.watch("qmt_mode")
+	const wsHost = qmtForm.watch("ws_host")
+	const wsPort = qmtForm.watch("ws_port")
+	const isBigQmtMode = qmtMode === "qmt"
+	const hasConfiguredBigQmtWs = hasBigQmtWsConfig(wsHost, wsPort)
+	const isQmtCiccBroker =
+		getBrokerNameByAccountId(qmtAccountId ?? "") === "中金"
+
+	useEffect(() => {
+		if (isBigQmtMode) {
+			qmtForm.clearErrors("qmt_path")
+			return
+		}
+		qmtForm.clearErrors(["ws_host", "ws_port"])
+		void qmtForm.trigger("qmt_path")
+	}, [isBigQmtMode, qmtForm])
+
+	useEffect(() => {
+		if (isCiccBroker) {
+			form.setValue("filter_bj", "1")
+		}
+	}, [isCiccBroker, form])
+
+	const ensureCanEditConfig = async () => {
+		if (
+			!checkWithToast({
+				requireMember: true,
+				windowsOnly: true,
+				onlyIn2025: true,
+			}).isValid
+		) {
+			return false
+		}
+		if (rocketStatus) {
+			toast.dismiss()
+			toast.warning("实盘中，请暂停实盘，再进行配置")
+			return false
+		}
+		return true
+	}
+
+	const persistQmtConfig = async () => {
+		const values = qmtForm.getValues()
+		const existing = ((await getStoreValue("real_market_config", {})) ??
+			{}) as Record<string, unknown>
+		const nextStore = {
+			...existing,
+			qmt_path: values.qmt_path,
+			account_id: values.account_id,
+			qmt_port: values.qmt_port,
+			qmt_mode: values.qmt_mode,
+			ws_host: values.ws_host,
+			ws_port: values.ws_port,
+			...(isQmtCiccBroker ? { filter_bj: true } : {}),
+		}
+
+		if (isQmtCiccBroker) {
+			form.setValue("filter_bj", "1")
+		}
+
+		await setStoreValue("real_market_config", nextStore)
+		setRealMarketConfig((prev) => ({
+			...prev,
+			...values,
+			...(isQmtCiccBroker ? { filter_bj: "1" } : {}),
+		}))
+	}
+
+	const ensureQmtConfigValid = async (
+		options: { redirectOnFailure?: boolean } = {},
+	) => {
+		const { redirectOnFailure = false } = options
+		const isValid = await qmtForm.trigger()
+		if (!isValid) {
+			toast.error(redirectOnFailure ? "请先完善 QMT 配置" : "QMT 配置不合法")
+			await rendererLog(
+				"error",
+				`QMT 配置表单数据不合法: ${JSON.stringify(qmtForm.formState.errors)}`,
+			)
+			if (redirectOnFailure) onGoToQmt?.()
+			return false
+		}
+		return true
+	}
+
 	const handleSave = async () => {
 		try {
-			// -- 权限检查
-			if (
-				!check({
-					requireMember: true,
-					windowsOnly: true,
-					onlyIn2025: true,
-				}).isValid
-			) {
-				return
-			}
-			if (rocketStatus) {
-				toast.dismiss()
-				toast.warning("实盘中，请暂停实盘，再进行配置")
-				return
-			}
+			if (!(await ensureCanEditConfig())) return false
 
 			const isValid = await form.trigger()
 			if (!isValid) {
@@ -130,29 +316,34 @@ export function TradingConfigForm() {
 					"error",
 					`实盘配置表单数据不合法: ${JSON.stringify(form.formState.errors)}`,
 				)
-				return
+				return false
 			}
 
 			await createRealTradingDir()
 
 			const values = form.getValues()
+			const existing = ((await getStoreValue("real_market_config", {})) ??
+				{}) as Record<string, unknown>
 
-			// -- 处理 start_date，确保保存的是字符串
-			const { date_start: date_start, ...restValues } = values
+			// -- 处理 start_date，确保保存的是字符串；QMT 字段沿用已有配置
+			const { date_start, ...restValues } = values
 			const formattedValues = {
+				...existing,
 				...restValues,
 				filter_kcb: values.filter_kcb !== "0",
 				filter_cyb: values.filter_cyb !== "0",
 				filter_bj: values.filter_bj !== "0",
 				date_start: date_start
 					? dayjs(date_start).format("YYYY-MM-DD")
-					: undefined,
+					: existing.date_start,
 			}
 
-			// -- 这里应该调用 setStoreValue 来保存配置
 			setPerformanceMode(values.performance_mode)
 			await setStoreValue("real_market_config", formattedValues)
-			setRealMarketConfig(values)
+			setRealMarketConfig((prev) => ({
+				...prev,
+				...values,
+			}))
 
 			toast.success("实盘配置保存成功")
 			return true
@@ -162,8 +353,24 @@ export function TradingConfigForm() {
 		}
 	}
 
+	const handleSaveQmt = async () => {
+		try {
+			if (!(await ensureCanEditConfig())) return false
+
+			if (!(await ensureQmtConfigValid())) return false
+
+			await persistQmtConfig()
+
+			toast.success("QMT 配置保存成功")
+			return true
+		} catch (error) {
+			toast.error("QMT 配置保存失败")
+			return false
+		}
+	}
+
 	const handleFolderSelect = useDebounceFn(
-		async (key: keyof z.infer<typeof RealMarketConfigSchema>) => {
+		async () => {
 			if (choosing) return
 
 			setChoosing(true)
@@ -171,7 +378,7 @@ export function TradingConfigForm() {
 				const res = (await selectDirectory()) as string
 
 				if (res) {
-					form.setValue(key, res, { shouldValidate: true })
+					qmtForm.setValue("qmt_path", res, { shouldValidate: true })
 				}
 			} finally {
 				setChoosing(false)
@@ -180,435 +387,56 @@ export function TradingConfigForm() {
 		{ wait: 100 },
 	)
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
 		form.reset(defaultValues)
+		qmtForm.reset(qmtDefaultValues)
 	}, [])
 
-	return (
-		// <Card className="flex-1 overflow-hidden border bg-transparent shadow-none">
-		// 	<CardContent className="p-0">
-		// 		<ScrollArea className="h-full">
+	const renderFormActions = ({
+		saveLabel,
+		onSave,
+		needCiccNotice,
+		checkQmtOnStart = false,
+	}: {
+		saveLabel: string
+		onSave: () => Promise<boolean | undefined>
+		needCiccNotice: boolean
+		checkQmtOnStart?: boolean
+	}) => (
 		<>
-			<Form {...form}>
-				<form className="w-full space-y-4 flex flex-col gap-4">
-					<div className="grid grid-cols-4 gap-x-4">
-						<div className="flex items-center space-x-2">
-							<FormField
-								name="filter_kcb"
-								control={form.control}
-								render={({ field }) => (
-									<FormItem className="flex flex-col gap-2 items-start">
-										<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
-											<span className="font-semibold">过滤科创板</span>{" "}
-											<span className="text-destructive">*</span>
-											<ButtonTooltip
-												content={
-													<div>
-														<p>
-															选择“过滤”，系统会禁止所有策略选择对应板块的股票
-														</p>
-														<p>
-															选择“不过滤”，所有策略都不会过滤，如果需要针对单个策略做过滤，请参考帖子：
-															<span
-																onClick={() =>
-																	openUrl("https://qtcls.cn/38022")
-																}
-																className="underline cursor-pointer hover:no-underline"
-															>
-																qtcls.cn/38022
-															</span>
-														</p>
-													</div>
-												}
-											>
-												<CircleHelp
-													className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
-													onClick={(e) => e.stopPropagation()}
-												/>
-											</ButtonTooltip>
-										</FormLabel>
-
-										<FormControl>
-											<RadioGroup
-												disabled={!user?.isMember}
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-												className="flex space-x-1"
-											>
-												<FormItem className="flex items-center space-x-1 space-y-0">
-													<FormControl>
-														<RadioGroupItem value="0" />
-													</FormControl>
-													<FormLabel
-														className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
-													>
-														不过滤
-													</FormLabel>
-												</FormItem>
-												<FormItem className="flex items-center space-x-1 space-y-0">
-													<FormControl>
-														<RadioGroupItem value="1" />
-													</FormControl>
-													<FormLabel
-														className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
-													>
-														过滤
-													</FormLabel>
-												</FormItem>
-											</RadioGroup>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						<div className="flex items-center space-x-2">
-							<FormField
-								name="filter_cyb"
-								control={form.control}
-								render={({ field }) => (
-									<FormItem className="flex flex-col gap-2 items-start">
-										<FormLabel className="!mt-0 flex items-center gap-1">
-											<span className="font-semibold">过滤创业板</span>
-											<span className="text-destructive">*</span>
-											<ButtonTooltip
-												content={
-													<div>
-														<p>
-															选择“过滤”，系统会禁止所有策略选择对应板块的股票
-														</p>
-														<p>
-															选择“不过滤”，所有策略都不会过滤，如果需要针对单个策略做过滤，请参考帖子：
-															<span
-																onClick={() =>
-																	openUrl("https://qtcls.cn/38022")
-																}
-																className="underline cursor-pointer hover:no-underline"
-															>
-																qtcls.cn/38022
-															</span>
-														</p>
-													</div>
-												}
-											>
-												<CircleHelp
-													className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
-													onClick={(e) => e.stopPropagation()}
-												/>
-											</ButtonTooltip>
-										</FormLabel>
-
-										<FormControl>
-											<RadioGroup
-												disabled={!user?.isMember}
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-												className="flex space-x-1"
-											>
-												<FormItem className="flex items-center space-x-1 space-y-0">
-													<FormControl>
-														<RadioGroupItem value="0" />
-													</FormControl>
-													<FormLabel
-														className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
-													>
-														不过滤
-													</FormLabel>
-												</FormItem>
-												<FormItem className="flex items-center space-x-1 space-y-0">
-													<FormControl>
-														<RadioGroupItem value="1" />
-													</FormControl>
-													<FormLabel
-														className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
-													>
-														过滤
-													</FormLabel>
-												</FormItem>
-											</RadioGroup>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						<div className="flex items-center space-x-2">
-							<FormField
-								name="filter_bj"
-								control={form.control}
-								render={({ field }) => (
-									<FormItem className="flex flex-col gap-2 items-start">
-										<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
-											<span className="font-semibold">过滤北交所</span>{" "}
-											<span className="text-destructive">*</span>
-										</FormLabel>
-
-										<FormControl>
-											<RadioGroup
-												disabled={!user?.isMember}
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-												className="flex space-x-1"
-											>
-												<FormItem className="flex items-center space-x-1 space-y-0">
-													<FormControl>
-														<RadioGroupItem value="0" />
-													</FormControl>
-													<FormLabel
-														className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
-													>
-														不过滤
-													</FormLabel>
-												</FormItem>
-												<FormItem className="flex items-center space-x-1 space-y-0">
-													<FormControl>
-														<RadioGroupItem value="1" />
-													</FormControl>
-													<FormLabel
-														className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
-													>
-														过滤
-													</FormLabel>
-												</FormItem>
-											</RadioGroup>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						<div className="flex items-center space-x-2">
-							<FormField
-								name="performance_mode"
-								control={form.control}
-								render={({ field }) => (
-									<FormItem className="flex flex-col gap-2 items-start">
-										<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
-											<span className="font-semibold">性能模式</span>{" "}
-											<span className="text-destructive">*</span>
-											<ButtonTooltip
-												content={
-													<div>
-														<p>选择“节能”，实盘使用 1/3 系统核心数进行计算</p>
-														<p>选择“均衡”，实盘使用 1/2 系统核心数进行计算</p>
-														<p>选择“性能”，实盘使用 系统核心数 - 1 进行计算</p>
-													</div>
-												}
-											>
-												<CircleHelp
-													className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
-													onClick={(e) => e.stopPropagation()}
-												/>
-											</ButtonTooltip>
-										</FormLabel>
-
-										<FormControl>
-											<PerformanceModeSelectTabs
-												name="性能模式"
-												defaultValue={field.value}
-												onValueChange={field.onChange}
-												showToast={false}
-											/>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-						</div>
-					</div>
-
-					<div className="grid grid-cols-2 gap-4 gap-y-6">
-						<FormField
-							name="qmt_path"
-							control={form.control}
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										QMT 安装路径
-										<span className="text-destructive mx-1">*</span>
-										<Badge className="font-semibold">
-											{"<QMT 路径>/userdata_mini"}
-										</Badge>
-									</FormLabel>
-									<div className="flex w-full gap-2">
-										<FormControl className="flex-grow">
-											<Input
-												{...field}
-												readOnly
-												disabled={!user?.isMember}
-												onClick={() => handleFolderSelect.run("qmt_path")}
-												placeholder="请填写 qmt 安装路径..."
-											/>
-										</FormControl>
-										<Button
-											size="sm"
-											variant="outline"
-											disabled={!user?.isMember}
-											onClick={(e) => {
-												e.preventDefault()
-												handleFolderSelect.run("qmt_path")
-											}}
-										>
-											<Folder className="mr-2 h-4 w-4" />
-											<span>选择文件夹</span>
-										</Button>
-									</div>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							name="account_id"
-							control={form.control}
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										QMT 账户号 <span className="text-destructive">*</span>{" "}
-										<span className="text-xs text-muted-foreground">
-											QMT账号，不清楚可以询问客户经理
-										</span>
-									</FormLabel>
-									<FormControl>
-										<Input
-											{...field}
-											disabled={!user?.isMember}
-											className="w-full"
-											placeholder="请填写 qmt 账户号..."
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							name="qmt_port"
-							control={form.control}
-							render={({ field }) => (
-								<FormItem className="hidden">
-									<FormLabel>
-										QMT 端口号 <span className="text-destructive">*</span>
-									</FormLabel>
-									<FormControl>
-										<Input
-											{...field}
-											disabled
-											className="w-full"
-											placeholder="请填写 qmt 端口号..."
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							name="date_start"
-							control={form.control}
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										计算起始日期 <span className="text-destructive">*</span>
-										<span className="text-xs text-muted-foreground">
-											运行选股的起始日期，一般参数越大需要越久的日期
-										</span>
-									</FormLabel>
-
-									<FormControl>
-										<DatePicker {...field} disableFutureDates />
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							name="message_robot_url"
-							control={form.control}
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										消息机器人 URL{" "}
-										<span className="text-xs text-muted-foreground">
-											机器人配置参考：
-										</span>
-										<span
-											onClick={() =>
-												openUrl("https://bbs.quantclass.cn/thread/10975")
-											}
-											className="underline cursor-pointer hover:no-underline text-xs"
-										>
-											quantclass/10975
-										</span>
-									</FormLabel>
-									<FormControl>
-										<Input
-											{...field}
-											className="w-full"
-											placeholder="可以不填..."
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							name="reverse_repo_keep"
-							control={form.control}
-							render={({ field, formState }) => (
-								<FormItem>
-									<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
-										<span className="font-semibold">逆回购保留金额</span>{" "}
-										<span className="text-xs text-muted-foreground">
-											如果未了解请不要修改
-										</span>{" "}
-										<ButtonTooltip
-											content={
-												<div>
-													<p>
-														每天尾盘自动买入1天期的逆回购，如果不想全部的钱都买逆回购，可以在这里设置需要保留的金额
-													</p>
-												</div>
-											}
-										>
-											<CircleHelp
-												className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
-												onClick={(e) => e.stopPropagation()}
-											/>
-										</ButtonTooltip>
-									</FormLabel>
-									<FormControl>
-										<Input
-											type="number"
-											{...field}
-											value={field.value || ""} // 确保输入框始终有值
-											min={0}
-											placeholder="请填写保留金额"
-										/>
-									</FormControl>
-									<FormMessage>
-										{formState.errors.reverse_repo_keep?.message}
-									</FormMessage>
-								</FormItem>
-							)}
-						/>
-					</div>
-				</form>
-			</Form>
 			<hr />
 			<div className="flex justify-center gap-2">
-				<Button size="sm" onClick={() => handleSave()}>
+				<Button
+					size="sm"
+					onClick={() => {
+						if (needCiccNotice && !ciccDismissed) {
+							setShowCiccNotice(true)
+						} else {
+							void onSave()
+						}
+					}}
+				>
 					<Save className="mr-2 size-4" />
-					保存实盘配置
+					{saveLabel}
 				</Button>
 				<Button
 					size="sm"
 					variant="success"
 					onClick={async () => {
-						const isSuccess = await handleSave()
-						if (!isSuccess) return
-						if (await handleToggleAutoRocket(true))
-							// 如果成功启动
-							setRealConfigEditModal(false)
+						if (needCiccNotice && !ciccDismissed) {
+							setShowCiccNotice(true)
+						} else {
+							const isSuccess = await onSave()
+							if (!isSuccess) return
+							if (checkQmtOnStart) {
+								if (!(await ensureQmtConfigValid({ redirectOnFailure: true })))
+									return
+								await persistQmtConfig()
+							}
+							if (await handleToggleAutoRocket(true))
+								setRealConfigEditModal(false)
+						}
 					}}
 					disabled={isAutoRocket}
 				>
@@ -616,6 +444,715 @@ export function TradingConfigForm() {
 					{isAutoRocket ? "正在实盘自动更新" : "保存配置并启动"}
 				</Button>
 			</div>
+		</>
+	)
+
+	return (
+		// <Card className="flex-1 overflow-hidden border bg-transparent shadow-none">
+		// 	<CardContent className="p-0">
+		// 		<ScrollArea className="h-full">
+		<>
+			<Form {...form}>
+				<TabsContent value="config" className="mt-4 space-y-4">
+					<form className="w-full space-y-4 flex flex-col gap-4">
+						<div className="grid grid-cols-4 gap-x-4">
+							<div className="flex items-center space-x-2">
+								<FormField
+									name="filter_kcb"
+									control={form.control}
+									render={({ field }) => (
+										<FormItem className="flex flex-col gap-2 items-start">
+											<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
+												<span className="font-semibold">过滤科创板</span>{" "}
+												<span className="text-destructive">*</span>
+												<ButtonTooltip
+													content={
+														<div>
+															<p>
+																选择“过滤”，系统会禁止所有策略选择对应板块的股票
+															</p>
+															<p>
+																选择“不过滤”，所有策略都不会过滤，如果需要针对单个策略做过滤，请参考帖子：
+																<span
+																	onKeyDown={(e) => {
+																		if (e.key === "Enter" || e.key === " ") {
+																			e.preventDefault()
+																		}
+																	}}
+																	onClick={() =>
+																		openUrl("https://qtcls.cn/38022")
+																	}
+																	className="underline cursor-pointer hover:no-underline"
+																>
+																	qtcls.cn/38022
+																</span>
+															</p>
+														</div>
+													}
+												>
+													<CircleHelp
+														className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
+														onClick={(e) => e.stopPropagation()}
+													/>
+												</ButtonTooltip>
+											</FormLabel>
+
+											<FormControl>
+												<RadioGroup
+													disabled={!user?.isMember}
+													value={field.value}
+													onValueChange={field.onChange}
+													className="flex space-x-1"
+												>
+													<FormItem className="flex items-center space-x-1 space-y-0">
+														<FormControl>
+															<RadioGroupItem value="0" />
+														</FormControl>
+														<FormLabel
+															className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
+														>
+															不过滤
+														</FormLabel>
+													</FormItem>
+													<FormItem className="flex items-center space-x-1 space-y-0">
+														<FormControl>
+															<RadioGroupItem value="1" />
+														</FormControl>
+														<FormLabel
+															className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
+														>
+															过滤
+														</FormLabel>
+													</FormItem>
+												</RadioGroup>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="flex items-center space-x-2">
+								<FormField
+									name="filter_cyb"
+									control={form.control}
+									render={({ field }) => (
+										<FormItem className="flex flex-col gap-2 items-start">
+											<FormLabel className="!mt-0 flex items-center gap-1">
+												<span className="font-semibold">过滤创业板</span>
+												<span className="text-destructive">*</span>
+												<ButtonTooltip
+													content={
+														<div>
+															<p>
+																选择“过滤”，系统会禁止所有策略选择对应板块的股票
+															</p>
+															<p>
+																选择“不过滤”，所有策略都不会过滤，如果需要针对单个策略做过滤，请参考帖子：
+																<span
+																	onKeyDown={(e) => {
+																		if (e.key === "Enter" || e.key === " ") {
+																			e.preventDefault()
+																		}
+																	}}
+																	onClick={() =>
+																		openUrl("https://qtcls.cn/38022")
+																	}
+																	className="underline cursor-pointer hover:no-underline"
+																>
+																	qtcls.cn/38022
+																</span>
+															</p>
+														</div>
+													}
+												>
+													<CircleHelp
+														className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
+														onClick={(e) => e.stopPropagation()}
+													/>
+												</ButtonTooltip>
+											</FormLabel>
+
+											<FormControl>
+												<RadioGroup
+													disabled={!user?.isMember}
+													value={field.value}
+													onValueChange={field.onChange}
+													className="flex space-x-1"
+												>
+													<FormItem className="flex items-center space-x-1 space-y-0">
+														<FormControl>
+															<RadioGroupItem value="0" />
+														</FormControl>
+														<FormLabel
+															className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
+														>
+															不过滤
+														</FormLabel>
+													</FormItem>
+													<FormItem className="flex items-center space-x-1 space-y-0">
+														<FormControl>
+															<RadioGroupItem value="1" />
+														</FormControl>
+														<FormLabel
+															className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
+														>
+															过滤
+														</FormLabel>
+													</FormItem>
+												</RadioGroup>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="flex items-center space-x-2">
+								<FormField
+									name="filter_bj"
+									control={form.control}
+									render={({ field }) => (
+										<FormItem className="flex flex-col gap-2 items-start">
+											<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
+												<span className="font-semibold">过滤北交所</span>{" "}
+												<span className="text-destructive">*</span>
+												{isCiccBroker && (
+													<span className="text-yellow-600 dark:text-yellow-500 text-xs font-normal">
+														（中金已强制过滤）
+													</span>
+												)}
+											</FormLabel>
+
+											<FormControl>
+												<RadioGroup
+													disabled={!user?.isMember || isCiccBroker}
+													value={field.value}
+													onValueChange={field.onChange}
+													className="flex space-x-1"
+												>
+													<FormItem className="flex items-center space-x-1 space-y-0">
+														<FormControl>
+															<RadioGroupItem value="0" />
+														</FormControl>
+														<FormLabel
+															className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
+														>
+															不过滤
+														</FormLabel>
+													</FormItem>
+													<FormItem className="flex items-center space-x-1 space-y-0">
+														<FormControl>
+															<RadioGroupItem value="1" />
+														</FormControl>
+														<FormLabel
+															className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
+														>
+															过滤
+														</FormLabel>
+													</FormItem>
+												</RadioGroup>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="flex items-center space-x-2">
+								<FormField
+									name="performance_mode"
+									control={form.control}
+									render={({ field }) => (
+										<FormItem className="flex flex-col gap-2 items-start">
+											<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
+												<span className="font-semibold">性能模式</span>{" "}
+												<span className="text-destructive">*</span>
+												<ButtonTooltip
+													content={
+														<div>
+															<p>选择"节能"，实盘使用 1/3 系统核心数进行计算</p>
+															<p>选择"均衡"，实盘使用 1/2 系统核心数进行计算</p>
+															<p>
+																选择"性能"，实盘使用 系统核心数 - 1 进行计算
+															</p>
+														</div>
+													}
+												>
+													<CircleHelp
+														className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
+														onClick={(e) => e.stopPropagation()}
+													/>
+												</ButtonTooltip>
+											</FormLabel>
+
+											<FormControl>
+												<PerformanceModeSelectTabs
+													name="性能模式"
+													defaultValue={field.value}
+													onValueChange={field.onChange}
+													showToast={false}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-2 gap-4 gap-y-6">
+							<FormItem>
+								<FormLabel>
+									QMT 配置
+									<span className="text-xs text-muted-foreground ml-1">
+										QMT相关配置请在 QMT配置 中填写
+									</span>
+								</FormLabel>
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									className="w-fit"
+									onClick={() => onGoToQmt?.()}
+								>
+									<Monitor className="mr-2 h-4 w-4" />
+									前往 QMT配置
+									<ChevronRight className="ml-1 h-4 w-4" />
+								</Button>
+							</FormItem>
+
+							<FormField
+								name="date_start"
+								control={form.control}
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											计算起始日期 <span className="text-destructive">*</span>
+											<span className="text-xs text-muted-foreground">
+												运行选股的起始日期，一般参数越大需要越久的日期
+											</span>
+										</FormLabel>
+
+										<FormControl>
+											<DatePicker {...field} disableFutureDates />
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								name="message_robot_url"
+								control={form.control}
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											消息机器人 URL{" "}
+											<span className="text-xs text-muted-foreground">
+												机器人配置参考：
+											</span>
+											<span
+												onKeyDown={(e) => {
+													if (e.key === "Enter" || e.key === " ") {
+														e.preventDefault()
+													}
+												}}
+												onClick={() =>
+													openUrl("https://bbs.quantclass.cn/thread/10975")
+												}
+												className="underline cursor-pointer hover:no-underline text-xs"
+											>
+												quantclass/10975
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												{...field}
+												className="w-full"
+												placeholder="可以不填..."
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								name="reverse_repo_keep"
+								control={form.control}
+								render={({ field, formState }) => (
+									<FormItem>
+										<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
+											<span className="font-semibold">逆回购保留金额</span>{" "}
+											<span className="text-xs text-muted-foreground">
+												如果未了解请不要修改
+											</span>{" "}
+											<ButtonTooltip
+												content={
+													<div>
+														<p>
+															每天尾盘自动买入1天期的逆回购，如果不想全部的钱都买逆回购，可以在这里设置需要保留的金额
+														</p>
+													</div>
+												}
+											>
+												<CircleHelp
+													className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
+													onClick={(e) => e.stopPropagation()}
+												/>
+											</ButtonTooltip>
+										</FormLabel>
+										<FormControl>
+											<Input
+												type="number"
+												{...field}
+												value={field.value || ""} // 确保输入框始终有值
+												min={0}
+												placeholder="请填写保留金额"
+											/>
+										</FormControl>
+										<FormMessage>
+											{formState.errors.reverse_repo_keep?.message}
+										</FormMessage>
+									</FormItem>
+								)}
+							/>
+							<FormField
+								name="use_open_sell"
+								control={form.control}
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel className="!mt-0 flex items-center gap-1 mr-1">
+											<span className="font-semibold">开盘是否挂涨停卖出</span>{" "}
+											<span className="text-destructive">*</span>
+											<span className="text-xs text-muted-foreground">
+												该功能需配合新版内核使用
+											</span>
+											<ButtonTooltip
+												content={
+													<div className="max-w-sm space-y-2">
+														<p className="font-semibold">开盘挂涨停介绍：</p>
+														<p>
+															"开盘挂涨停"是一种用于保证换仓时获取最大利润的方法。
+														</p>
+														<p>
+															它会在9点15分的时候把当日需要卖出的股票挂涨停单。理想情况下，这支股票当日在正式换仓前涨停，就可以直接卖出，防止它之后跌下来。
+														</p>
+														<p>
+															缺点是，它和轧差逻辑冲突，所以可能会出现当日开盘卖出后，到了换仓时间又买回来的情况。
+														</p>
+														<p>该功能属于高阶玩法，默认不开启。</p>
+														<p>rocket内核1.9.6d.20260407及以上</p>
+														<p>
+															未升级到新版本的内核【不影响使用】，"开盘挂涨停"功能在老版本中是默认开启的。
+														</p>
+													</div>
+												}
+											>
+												<CircleHelp
+													className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
+													onClick={(e) => e.stopPropagation()}
+												/>
+											</ButtonTooltip>
+										</FormLabel>
+										<FormControl>
+											<RadioGroup
+												disabled={!user?.isMember}
+												onValueChange={async (value) => {
+													const isRunning = await checkKernalRunning(["rocket"])
+													if (isRunning) {
+														toast.warning(
+															"实盘内核正在运行中，无法修改开盘挂涨停卖出设置",
+														)
+														return
+													}
+													field.onChange(value)
+												}}
+												value={field.value}
+												className="flex space-x-1"
+											>
+												<FormItem className="flex items-center space-x-1 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="1" />
+													</FormControl>
+													<FormLabel
+														className={`${field.value === "1" ? "font-bold" : "font-normal"}`}
+													>
+														启用
+													</FormLabel>
+												</FormItem>
+												<FormItem className="flex items-center space-x-1 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="0" />
+													</FormControl>
+													<FormLabel
+														className={`${field.value === "0" ? "font-bold" : "font-normal"}`}
+													>
+														禁用
+													</FormLabel>
+												</FormItem>
+											</RadioGroup>
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+							<FormItem className="space-y-2">
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									className="w-fit text-destructive hover:text-destructive"
+									disabled={!user?.isMember}
+									onClick={() => setFactorCacheConfirmOpen(true)}
+								>
+									<Trash2 className="mr-2 size-4" />
+									清除因子缓存
+								</Button>
+							</FormItem>
+						</div>
+					</form>
+					{renderFormActions({
+						saveLabel: "保存实盘配置",
+						onSave: handleSave,
+						needCiccNotice: isCiccBroker,
+						checkQmtOnStart: true,
+					})}
+				</TabsContent>
+			</Form>
+			<Form {...qmtForm}>
+				<TabsContent value="qmt" className="mt-4 space-y-4">
+					<form className="w-full space-y-4 flex flex-col gap-4">
+						<div className="grid grid-cols-2 gap-4 gap-y-6">
+							<FormField
+								name="qmt_mode"
+								control={qmtForm.control}
+								render={({ field }) => (
+									<FormItem className="col-span-2">
+										<FormLabel className="!mt-0 flex items-center gap-1">
+											<span className="font-semibold">QMT 模式切换</span>{" "}
+											<span className="text-destructive">*</span>
+											<ButtonTooltip
+												content={
+													<div className="space-y-1.5">
+														<p>
+															1.
+															miniQMT：qmt量化常用模式，如果券商没停，就没必要切换到其它模式。
+														</p>
+														<p>
+															2.
+															大QMT：基于论坛websocket方案，提供的【大QMT版】交易模式。
+														</p>
+													</div>
+												}
+											>
+												<CircleHelp
+													className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
+													onClick={(e) => e.stopPropagation()}
+												/>
+											</ButtonTooltip>
+										</FormLabel>
+										<FormControl>
+											<RadioGroup
+												disabled={!user?.isMember}
+												value={field.value}
+												onValueChange={(value) => {
+													if (value === "qmt" && !hasConfiguredBigQmtWs) {
+														setBigQmtConfirmOpen(true)
+														return
+													}
+													field.onChange(value)
+												}}
+												className="flex space-x-4"
+											>
+												<FormItem className="flex items-center space-x-1 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="mini_qmt" />
+													</FormControl>
+													<FormLabel
+														className={`${field.value === "mini_qmt" ? "font-bold" : "font-normal"}`}
+													>
+														miniQMT（默认模式）
+													</FormLabel>
+												</FormItem>
+												<FormItem className="flex items-center space-x-1 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="qmt" />
+													</FormControl>
+													<FormLabel
+														className={`${field.value === "qmt" ? "font-bold" : "font-normal"}`}
+													>
+														大QMT模式
+													</FormLabel>
+												</FormItem>
+											</RadioGroup>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							{!isBigQmtMode && (
+								<FormField
+									name="qmt_path"
+									control={qmtForm.control}
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel className="flex items-center gap-2 flex-wrap">
+												<span>QMT 安装路径</span>
+												<span className="text-destructive">*</span>
+												<Badge className="font-semibold">
+													{"<QMT 路径>/userdata_mini"}
+												</Badge>
+											</FormLabel>
+											<div className="flex w-full gap-2">
+												<FormControl className="flex-grow">
+													<Input
+														{...field}
+														readOnly
+														disabled={!user?.isMember}
+														onClick={() => handleFolderSelect.run()}
+														placeholder="请填写 qmt 安装路径..."
+													/>
+												</FormControl>
+												<Button
+													size="sm"
+													variant="outline"
+													disabled={!user?.isMember}
+													onClick={(e) => {
+														e.preventDefault()
+														handleFolderSelect.run()
+													}}
+												>
+													<Folder className="mr-2 h-4 w-4" />
+													<span>选择文件夹</span>
+												</Button>
+											</div>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
+
+							<FormField
+								name="account_id"
+								control={qmtForm.control}
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											QMT 账户号 <span className="text-destructive">*</span>{" "}
+											<span className="text-xs text-muted-foreground">
+												QMT账号，不清楚可以询问客户经理
+											</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												{...field}
+												disabled={!user?.isMember}
+												className="w-full"
+												placeholder="请填写 qmt 账户号..."
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							{isBigQmtMode && (
+								<>
+									<FormField
+										name="ws_host"
+										control={qmtForm.control}
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>websocket主机地址</FormLabel>
+												<FormControl>
+													<Input
+														{...field}
+														disabled={!user?.isMember}
+														className="w-full"
+														placeholder="127.0.0.1"
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										name="ws_port"
+										control={qmtForm.control}
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>websocket端口号</FormLabel>
+												<FormControl>
+													<Input
+														{...field}
+														disabled={!user?.isMember}
+														className="w-full"
+														placeholder="16666"
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</>
+							)}
+
+							<FormField
+								name="qmt_port"
+								control={qmtForm.control}
+								render={({ field }) => (
+									<FormItem className="hidden">
+										<FormLabel>
+											QMT 端口号 <span className="text-destructive">*</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												{...field}
+												disabled
+												className="w-full"
+												placeholder="请填写 qmt 端口号..."
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+					</form>
+					{renderFormActions({
+						saveLabel: "保存 QMT 配置",
+						onSave: handleSaveQmt,
+						needCiccNotice: isQmtCiccBroker,
+					})}
+				</TabsContent>
+			</Form>
+			<ClearFactorCacheConfirmDialog
+				open={factorCacheConfirmOpen}
+				onOpenChange={setFactorCacheConfirmOpen}
+				onConfirm={async () => {
+					const res = await clearFactorCache()
+					if (res.success) {
+						if (res.skipped) {
+							toast.info("因子缓存目录不存在，无需清理")
+						} else {
+							toast.success("因子缓存已清除")
+						}
+						setFactorCacheConfirmOpen(false)
+					} else {
+						toast.error(res.message ?? "清除因子缓存失败")
+					}
+				}}
+			/>
+			<CiccBseNoticeDialog
+				open={showCiccNotice}
+				onOpenChange={setShowCiccNotice}
+				onConfirm={() => setCiccDismissed(true)}
+			/>
+			<BigQmtConfirmDialog
+				open={bigQmtConfirmOpen}
+				onOpenChange={setBigQmtConfirmOpen}
+				onConfirm={() => {
+					qmtForm.setValue("qmt_mode", "qmt")
+					setBigQmtConfirmOpen(false)
+				}}
+			/>
 		</>
 		// 		</ScrollArea>
 		// 	</CardContent>

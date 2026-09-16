@@ -8,17 +8,17 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { Label, Pie, PieChart } from "recharts"
-import { selectStgListAtom, totalWeightAtom } from "../store/storage"
-
+import type { ChartConfig } from "@/renderer/components/ui/chart"
 import {
-	ChartConfig,
 	ChartContainer,
 	ChartLegend,
 	ChartLegendContent,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/renderer/components/ui/chart"
+import { selectStgListAtom, totalWeightAtom } from "@/renderer/store/storage"
+import { Label, Pie, PieChart } from "recharts"
+
 // import { useQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { useCallback, useMemo } from "react"
@@ -48,15 +48,19 @@ export function FinPieChart({
 		}
 
 		// 添加选股策略
-		selectStgList
-			// ?.filter((item) => item.enable_real_market)
-			?.filter((item) => item.cap_weight > 0)
-			.forEach((item, index) => {
+		{
+			const filtered =
+				selectStgList
+					// ?.filter((item) => item.enable_real_market)
+					?.filter((item) => item.cap_weight > 0) ?? []
+
+			for (const [index, item] of filtered.entries()) {
 				config[`${item.name}`] = {
-					label: `${item.cap_weight}% ${item.name}`,
+					label: `${(item.cap_weight * 100).toFixed(2)}% ${item.name}`,
 					color: `hsl(var(--chart-${((index + 2) % 10) + 1}))`,
 				}
-			})
+			}
+		}
 
 		return config
 	}, [selectStgList, totalCap, availCap])
@@ -65,26 +69,32 @@ export function FinPieChart({
 		const result: unknown[] = []
 		let total = 0
 
-		selectStgList
-			// ?.filter((item) => item.enable_real_market)
-			?.filter((item) => item.cap_weight > 0)
-			.forEach((item) => {
-				total += item.cap_weight
+		{
+			const filtered =
+				selectStgList
+					// ?.filter((item) => item.enable_real_market)
+					?.filter((item) => item.cap_weight > 0) ?? []
+
+			for (const item of filtered) {
+				const capWeightPercent = item.cap_weight * 100
+				total += capWeightPercent
 				result.push({
 					name: `${item.name}`,
-					cap_weight: item.cap_weight,
-					amount:
-						totalCap < 0 ? item.cap_weight : totalCap * (item.cap_weight / 100),
+					cap_weight: capWeightPercent,
+					amount: totalCap < 0 ? capWeightPercent : totalCap * item.cap_weight,
 					fill: chartConfig[`${item.name}`].color,
 				})
-			})
+			}
+		}
 
-		if (total !== totalWeight || totalWeight !== 100) {
+		const totalWeightPercent = totalWeight * 100
+		if (total !== totalWeightPercent || totalWeightPercent !== 100) {
+			const key = "可用资金"
 			result.push({
-				name: "可用资金",
+				name: key,
 				cap_weight: 100 - total,
 				amount: availCap < 0 ? 100 - total : availCap,
-				fill: chartConfig["可用资金"].color,
+				fill: chartConfig[key].color,
 			})
 		}
 
@@ -149,7 +159,7 @@ export function FinPieChart({
 											>
 												{}
 												{availCap < 0
-													? `${Number(100 - totalWeight).toFixed(2)}%`
+													? `${Number((1 - totalWeight) * 100).toFixed(2)}%`
 													: `${availCap}¥`}
 											</tspan>
 											<tspan
@@ -192,7 +202,9 @@ export function FinPieChart({
 
 			<div className="mt-2 text-sm">
 				资金已占用{" "}
-				<span className="font-semibold text-primary">{totalWeight}%</span>
+				<span className="font-semibold text-primary">
+					{Math.round(totalWeight * 100)}%
+				</span>
 			</div>
 		</div>
 	)

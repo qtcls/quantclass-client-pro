@@ -13,6 +13,7 @@ export type SettingsType = {
 	all_data_path: string
 	strategy_result_path: string
 	is_auto_launch_update: boolean
+	is_auto_launch_min_data: boolean
 	is_auto_launch_real_trading: boolean
 	data_white_list: string[]
 	hid: string
@@ -20,4 +21,6 @@ export type SettingsType = {
 	libraryType: string
 	performance_mode: string
 	user_choice: boolean
+	accelerated_data_source: boolean
+	enable_etf_min_data: boolean
 }

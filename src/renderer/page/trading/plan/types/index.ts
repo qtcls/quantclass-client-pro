@@ -24,6 +24,7 @@ export interface BuyRoot {
 	订单标记: string
 	证券代码: string
 	预计交易时间: string
+	个股择时?: "是" | "否"
 }
 
 export interface SellTableRef {
@@ -40,4 +41,5 @@ export interface SellRoot {
 	是否下单: string
 	委托编号?: string
 	订单标记: string
+	个股择时?: "是" | "否"
 }

@@ -160,8 +160,9 @@ export const isPidRunning = (pid: string) => {
 
 const PID_LOCK_PATH = {
 	fuel: ["code", "data"],
-	aqua: ["real_trading", "data", "locker"],
+	fusion: ["real_trading", "data", "locker"],
 	rocket: ["real_trading", "rocket", "data"],
+	scm: ["code", "scm", "data"],
 }
 
 export const isKernalRunning = async (
@@ -250,13 +251,9 @@ export async function isKernalBusy(kernal: KernalType): Promise<boolean> {
 	let isRunning = false
 	let isUpdating = false
 	switch (kernal) {
-		case "aqua":
-			isRunning = await isKernalRunning("aqua")
-			isUpdating = await isKernalUpdating("aqua")
-			break
-		case "zeus":
-			isRunning = await isKernalRunning("zeus")
-			isUpdating = await isKernalUpdating("zeus")
+		case "fusion":
+			isRunning = await isKernalRunning("fusion")
+			isUpdating = await isKernalUpdating("fusion")
 			break
 		case "rocket":
 			isRunning = await isKernalRunning("rocket", true) // -- rocket 仅在 Windows 下运行，且需要严格模式
@@ -265,6 +262,10 @@ export async function isKernalBusy(kernal: KernalType): Promise<boolean> {
 		case "fuel":
 			isRunning = await isKernalRunning("fuel")
 			isUpdating = await isKernalUpdating("fuel")
+			break
+		case "scm":
+			isRunning = await isKernalRunning("scm", true)
+			isUpdating = await isKernalUpdating("scm")
 			break
 	}
 
@@ -287,7 +288,7 @@ export async function isKernalBusy(kernal: KernalType): Promise<boolean> {
  * @returns 这些核心中是否有一个核心正忙
  */
 export async function isAnyKernalBusy(
-	kernals = ["aqua", "fuel", "zeus"],
+	kernals = ["fusion", "fuel"],
 ): Promise<boolean> {
 	for (const kernal of kernals) {
 		if (await isKernalBusy(kernal as KernalType)) {
@@ -295,6 +296,18 @@ export async function isAnyKernalBusy(
 		}
 	}
 	return false
+}
+
+export const killKernalByName = async (kernal: KernalType) => {
+	const killCommandByName = platform.isWindows
+		? `taskkill /IM ${kernal}.exe /T /F`
+		: `pkill -f ${kernal}`
+	try {
+		execSync(killCommandByName, { stdio: "ignore" })
+		logger.info(`[${kernal}] 所有 ${kernal} 进程已被强制终止`)
+	} catch (e) {
+		logger.error(`[${kernal}] 强制终止 ${kernal} 进程失败: ${e}`)
+	}
 }
 
 /**
@@ -305,6 +318,12 @@ export const killKernalByForce = async (
 	kernal: KernalType,
 	strictMode = false,
 ) => {
+	// config 大师（scm）是常驻 FastAPI 服务，不写 .py.lock，直接按进程名强杀
+	if (kernal === "scm") {
+		await killKernalByName(kernal)
+		return
+	}
+
 	const pidLockFilePath: string = await store.getAllDataPath(
 		PID_LOCK_PATH[kernal],
 		true, // -- 自动创建文件夹
@@ -342,26 +361,48 @@ export const killKernalByForce = async (
 	}
 	// console.log("33333")
 	if (strictMode) {
-		const killCommandByName = platform.isWindows
-			? `taskkill /IM ${kernal}.exe /T /F`
-			: `pkill -f ${kernal}`
-		try {
-			execSync(killCommandByName, { stdio: "ignore" })
-			logger.info(`[${kernal}] 所有 ${kernal} 进程已被强制终止`)
-		} catch (e) {
-			logger.error(`[${kernal}] 强制终止 ${kernal} 进程失败: ${e}`)
-		}
+		await killKernalByName(kernal)
 	}
 }
 
 export const killAllKernalByForce = async (
 	strictMode = false,
-	kernals: KernalType[] = ["fuel", "aqua", "rocket", "zeus"],
+	kernals: KernalType[] = ["fuel", "fusion", "rocket", "scm"],
 ) => {
 	logger.info(`[kill] ${kernals.join(", ")} ${strictMode}`)
 	for (const kernal of kernals) {
 		if (!platform.isWindows && kernal === "rocket") continue
 		await killKernalByForce(kernal, kernal === "rocket" || strictMode) // -- rocket 仅在 Windows 下运行，杀死时候做强杀
+	}
+}
+
+export const killAllKernalByName = async (
+	kernals: KernalType[] = ["fuel", "fusion", "rocket", "scm"],
+) => {
+	logger.info(`[kill] ${kernals.join(", ")}`)
+	const uniqueKernals = Array.from(new Set(kernals))
+
+	if (platform.isWindows) {
+		const killCommandByNames = [
+			"taskkill",
+			...uniqueKernals.map((kernal) => `/IM ${kernal}.exe`),
+			"/T",
+			"/F",
+		].join(" ")
+		try {
+			execSync(killCommandByNames, { stdio: "ignore" })
+			for (const kernal of uniqueKernals) {
+				logger.info(`[${kernal}] 所有 ${kernal} 进程已被强制终止`)
+			}
+		} catch (error) {
+			logger.error(`[kill] 批量终止内核进程失败: ${error}`)
+		}
+		return
+	}
+
+	for (const kernal of kernals) {
+		await killKernalByName(kernal)
+		logger.info(`[${kernal}] 所有 ${kernal} 进程已被强制终止`)
 	}
 }
 

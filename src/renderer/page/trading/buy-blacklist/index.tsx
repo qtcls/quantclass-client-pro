@@ -8,9 +8,13 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
-import { CircleSlash2, ShieldBan, Trash2 } from "lucide-react"
-import { useState } from "react"
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/renderer/components/ui/popover"
 import {
 	Table,
 	TableBody,
@@ -19,20 +23,18 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/renderer/components/ui/table"
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/renderer/components/ui/popover"
-import { toast } from "sonner"
-import { cn } from "@/renderer/lib/utils"
-import { Badge } from "@/renderer/components/ui/badge"
-import BuyBlacklistAddInput from "@/renderer/page/trading/buy-blacklist/add-input"
 import { H4 } from "@/renderer/components/ui/typography"
 import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
+import { cn } from "@/renderer/lib/utils"
+import BuyBlacklistAddInput from "@/renderer/page/trading/buy-blacklist/add-input"
 import type { BlacklistItem } from "@/renderer/types/trading"
+import { CircleSlash2, ShieldBan, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
 
-export default function BuyBlacklist() {
+export default function BuyBlacklist({
+	titleSize,
+}: { titleSize?: string | null }) {
 	const { buyBlacklist: blacklist, removeBlacklistItem } = useBuyBlacklist()
 	const [deletePopoverOpen, setDeletePopoverOpen] = useState<string | null>(
 		null,
@@ -84,9 +86,17 @@ export default function BuyBlacklist() {
 
 	return (
 		<>
-			<H4 className="flex items-center gap-2">
-				<ShieldBan size={24} /> 买入黑名单
-			</H4>
+			{titleSize ? (
+				<div className="flex items-center gap-2 text-lg font-bold mb-2">
+					<ShieldBan />
+					买入黑名单
+				</div>
+			) : (
+				<H4 className="flex items-center gap-2">
+					<ShieldBan size={24} /> 买入黑名单
+				</H4>
+			)}
+
 			<div className="text-muted-foreground pt-1 mb-2 text-sm">
 				设置不买入的股票，所有更改
 				<span className="font-bold text-primary">下单前设置都有效</span>

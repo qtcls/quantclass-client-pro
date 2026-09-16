@@ -11,11 +11,13 @@
 import { useAppUpdate } from "./useAppUpdate"
 import { useAuthUpdate } from "./useAuthUpdate"
 import { useCalcTotalWeight } from "./useCalcTotalWeight"
+import { useDataConsistencyCheckOnEnter } from "./useDataConsistencyCheckOnEnter"
 import { useDataSubscribed } from "./useDataSubscribed"
 import { useDataTable } from "./useDataTable"
 import { useGlobalValue } from "./useGlobalValue"
 import { useHandleTimeTask } from "./useHandleTimeTask"
 import { useLifeCycle } from "./useLifeCycle"
+import { useMinDataSchedule } from "./useMinDataSchedule"
 import { useNetInterval } from "./useNetInterval"
 import { useNetworkToast } from "./useNetworkToast"
 import { usePermissionCheck } from "./usePermissionCheck"
@@ -34,10 +36,12 @@ export {
 	useAppUpdate,
 	useAuthUpdate,
 	useCalcTotalWeight,
+	useDataConsistencyCheckOnEnter,
 	useDataTable,
 	useGlobalValue,
 	useHandleTimeTask,
 	useLifeCycle,
+	useMinDataSchedule,
 	useNetInterval,
 	useNetworkToast,
 	usePermissionCheck,

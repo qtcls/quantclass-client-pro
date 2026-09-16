@@ -10,10 +10,19 @@
 
 import { systemIPC } from "@/preload/system/index.js"
 import { contextBridge } from "electron"
+import { authIPC } from "./auth/index.js"
 import { dataIPC } from "./data/index.js"
 import { emitterIPC } from "./emitter/index.js"
 import { fileSysIPC } from "./file-sys/index.js"
+import { kernelLogIPC } from "./kernel-log/index.js"
+import { migrationIPC } from "./migration/index.js"
+import { notificationIPC } from "./notification/index.js"
+import { realTradingBackupIPC } from "./real-trading-backup/index.js"
+import { repoIPC } from "./repo/index.js"
+import { startupCheckIPC } from "./startup-check/index.js"
 import { storeIPC } from "./store/index.js"
+import { strategyIPC } from "./strategy/index.js"
+import { userIPC } from "./user/index.js"
 
 import { electronAPI } from "@electron-toolkit/preload"
 import { coreIPC } from "./core/index.js"
@@ -28,9 +37,18 @@ if (process.contextIsolated) {
 			...coreIPC,
 			...storeIPC,
 			...dataIPC,
+			...strategyIPC,
 			...fileSysIPC,
+			...kernelLogIPC,
 			...emitterIPC,
 			...systemIPC,
+			...userIPC,
+			...migrationIPC,
+			...authIPC,
+			...notificationIPC,
+			...realTradingBackupIPC,
+			...repoIPC,
+			...startupCheckIPC,
 		})
 	} catch (error) {
 		console.error(error)

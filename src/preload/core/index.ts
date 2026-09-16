@@ -25,4 +25,19 @@ export const coreIPC = {
 	setAutoTrading: (isAutoTrading: boolean) => {
 		ipcRenderer.invoke("set-auto-trading", isAutoTrading)
 	},
+	toggleMinDataSchedule: (options: {
+		isOn: boolean
+		mode?: "fast" | "stable"
+	}) => ipcRenderer.invoke("toggle-min-data-schedule", options),
+	onMinDataScheduleStatus: (
+		callback: (
+			event: Electron.IpcRendererEvent,
+			status: { type: string; task?: string; reason?: string },
+		) => void,
+	) => {
+		ipcRenderer.on("min-data-schedule-status", callback)
+	},
+	removeMinDataScheduleStatusListener: () => {
+		ipcRenderer.removeAllListeners("min-data-schedule-status")
+	},
 }

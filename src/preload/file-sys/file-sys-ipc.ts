@@ -12,15 +12,14 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { getJsonDataFromFile } from "@/main/core/dataList.js"
-// @ts-ignore
-import {
-	convertPythonVariableToJson,
-	// deleteLineComments,
-} from "@/main/pythonToJson.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
+import { parsePythonConfig } from "@/main/pythonRunner.js"
 import store, { rStore } from "@/main/store/index.js"
 import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
 import { LIBRARY_TYPE } from "@/shared/constants.js"
+import type { ManualStockSelectResultItem } from "@/shared/types/manual-stock-select.js"
 import { parse } from "csv-parse/sync"
 import {
 	BrowserWindow,
@@ -31,20 +30,6 @@ import {
 	shell,
 } from "electron"
 import { keys } from "lodash-es"
-
-async function createStrategyDirHandler(): Promise<void> {
-	ipcMain.handle("create-strategy-dir", async () => {
-		const all_data_path = await store.getSetting("all_data_path", "")
-
-		const fullPath = path.join(all_data_path, "strategy")
-
-		store.setValue("settings.strategy_result_path", fullPath)
-
-		fs.mkdirSync(fullPath, { recursive: true })
-
-		return fullPath
-	})
-}
 
 async function strategyResultPathHandler(): Promise<void> {
 	ipcMain.handle("strategy-result-path", async (_, mode = "backtest") => {
@@ -124,20 +109,6 @@ async function selectFileDirHandler(): Promise<void> {
 	)
 }
 
-async function createDirectoryHandler(): Promise<void> {
-	ipcMain.handle(
-		"create-directory",
-		async (_event, pathArray: string[] | string) => {
-			const fullPath = path.join(
-				app.getPath("userData"),
-				...(Array.isArray(pathArray) ? pathArray : [pathArray]),
-			)
-			fs.mkdirSync(fullPath, { recursive: true })
-			return fullPath
-		},
-	)
-}
-
 async function openDirectoryHandler(): Promise<void> {
 	ipcMain.handle("open-directory", async (_event, pathArray) => {
 		// path 是一个数组，帮我拼接起来
@@ -174,23 +145,6 @@ async function openUserDirectoryHandler(): Promise<void> {
 	)
 }
 
-async function openFile(): Promise<string | undefined> {
-	const options: OpenDialogOptions = {} // specify options here if needed
-	const { canceled, filePaths } = await dialog.showOpenDialog(
-		new BrowserWindow(),
-		options,
-	)
-
-	if (!canceled) {
-		return filePaths[0]
-	}
-	return undefined
-}
-
-function openFileHandler() {
-	ipcMain.handle("dialog:openFile", openFile)
-}
-
 // async function checkpythonLockHandler(): Promise<void> {
 // 	ipcMain.handle("check-python-lock", async () => {
 // 		const status = await checkLock()
@@ -204,12 +158,6 @@ function openFileHandler() {
 function openUrlHandler() {
 	ipcMain.handle("open-url", async (_, url: string) => {
 		await shell.openExternal(url)
-	})
-}
-
-async function deleteRealMarketDataHandler(): Promise<void> {
-	ipcMain.handle("delete-real-market-data", async (_, key: string) => {
-		rStore.delete(key)
 	})
 }
 
@@ -259,6 +207,9 @@ async function checkDBFileHandler(): Promise<void> {
 }
 
 async function importSelectStockHandler(): Promise<void> {
+	// 获取实盘路径
+	const realTradingPath = await store.getAllDataPath(["real_trading"], true)
+
 	ipcMain.handle("import-select-stock", async (_, configFilePath: string) => {
 		try {
 			const fuelProTradingPath = await store.getAllDataPath(
@@ -274,6 +225,7 @@ async function importSelectStockHandler(): Promise<void> {
 			// }
 			let configJsonStr: string | undefined
 			let backtestName: string | undefined
+			let reTimingStr: string | null | undefined
 
 			// -- 检查 config.py 文件是否存在
 			if (!fs.existsSync(configFilePath)) {
@@ -283,21 +235,24 @@ async function importSelectStockHandler(): Promise<void> {
 			}
 			console.log("[import] config:", configFilePath)
 
-			// -- 读取并解析 config.py
+			// -- 读取并解析 config.py（通过内嵌 Python 解析）
 			try {
-				const content = fs.readFileSync(configFilePath, "utf-8")
-				const jsonStr = convertPythonVariableToJson(content, "strategy_list")
-				if (!jsonStr) {
+				const result = await parsePythonConfig(configFilePath, [
+					"strategy_list",
+					"backtest_name",
+					"re_timing",
+				])
+				if (!result.strategy_list) {
 					logger.error("[importLibraryDirHandler] 解析 strategy_list 失败")
 					return { success: false, error: "解析 strategy_list 失败" }
 				}
-				backtestName =
-					convertPythonVariableToJson(content, "backtest_name") ?? "默认策略"
-				configJsonStr = jsonStr
+				configJsonStr = JSON.stringify(result.strategy_list, null, 2)
+				backtestName = result.backtest_name ?? "默认策略"
+				reTimingStr = result.re_timing ? JSON.stringify(result.re_timing) : null
 				logger.info(`[import] 解析 config.py 文件成功，策略名：${backtestName}`)
 			} catch (error) {
-				logger.error(`[import] 读取 config.py 文件失败: ${error}`)
-				return { success: false, error: "读取 config.py 文件失败" }
+				logger.error(`[import] 解析 config.py 文件失败: ${error}`)
+				return { success: false, error: "解析 config.py 文件失败" }
 			}
 
 			// -- 检查策略库和因子库文件夹是否存在
@@ -321,18 +276,13 @@ async function importSelectStockHandler(): Promise<void> {
 			// 	path.join(fuelProTradingPath, "config.py"),
 			// )
 
-			// -- 复制策略库文件
+			// -- 复制策略库文件（合并模式：保留已有文件，同名覆盖）
 			const copyFiles = (sourcePath: string, targetPath: string) => {
 				logger.info(`[import] 复制文件夹: ${sourcePath} -> ${targetPath}`)
-				if (fs.existsSync(targetPath)) {
-					// -- 如果目标路径已存在，删除目标路径
-					fs.rmSync(targetPath, {
-						recursive: true,
-						force: true,
-					})
+				if (!fs.existsSync(targetPath)) {
+					fs.mkdirSync(targetPath, { recursive: true })
 				}
-				fs.mkdirSync(targetPath, { recursive: true })
-				// -- 复制文件
+
 				const files = fs.readdirSync(sourcePath)
 				for (const file of files) {
 					const sourceFile = path.join(sourcePath, file)
@@ -364,10 +314,21 @@ async function importSelectStockHandler(): Promise<void> {
 			fs.existsSync(timingPath) &&
 				copyFiles(timingPath, path.join(fuelProTradingPath, "信号库"))
 
+			// -- 复制外部数据(如需)
+			const externalDataPath = path.join(rootPath, "外部数据")
+			fs.existsSync(externalDataPath) &&
+				copyFiles(externalDataPath, path.join(realTradingPath, "外部数据"))
+
+			// -- 复制截面因子库(如需)
+			const sectionFactorPath = path.join(rootPath, "截面因子库")
+			fs.existsSync(sectionFactorPath) &&
+				copyFiles(sectionFactorPath, path.join(realTradingPath, "截面因子库"))
+
 			return {
 				success: true,
 				configJson: configJsonStr,
 				backtestName,
+				reTiming: reTimingStr,
 			}
 		} catch (error) {
 			logger.error(`[import] 导入文件夹失败: ${JSON.stringify(error, null, 2)}`)
@@ -393,39 +354,34 @@ async function importFusionHandler(): Promise<void> {
 			}
 			console.log("[import] config:", configFilePath)
 
-			// -- 读取并解析 config.py
+			// -- 读取并解析 config.py（通过内嵌 Python 解析）
 			try {
-				const content = fs.readFileSync(configFilePath, "utf-8")
-				// 判断 config.py 内容类型（fusion/pos/select）
-				const normalizedContent = content.replace(/\s*=\s*/g, "=")
-				if (normalizedContent.includes("strategies=[")) {
+				const result = await parsePythonConfig(configFilePath, [
+					"strategies",
+					"pos_strategy",
+					"strategy_list",
+					"backtest_name",
+				])
+				if (result.strategies) {
 					importType = "fusion"
-				} else if (normalizedContent.includes("pos_strategy={")) {
+					jsonStr = JSON.stringify(result.strategies, null, 2)
+				} else if (result.pos_strategy) {
 					importType = "pos"
-				}
-				logger.info(`[import] 检测到导入类型: ${importType}`)
-				const mapping = {
-					fusion: "strategies",
-					pos: "pos_strategy",
-					select: "strategy_list",
-				}
-				const attributeVal = convertPythonVariableToJson(
-					content,
-					mapping[importType],
-				)
-				if (!attributeVal) {
+					jsonStr = JSON.stringify(result.pos_strategy, null, 2)
+				} else if (result.strategy_list) {
+					importType = "select"
+					jsonStr = JSON.stringify(result.strategy_list, null, 2)
+				} else {
 					logger.error("[importLibraryDirHandler] 解析 strategies 失败")
 					return { success: false, error: "解析 strategies 失败" }
 				}
-				backtestName =
-					convertPythonVariableToJson(content, "backtest_name") ?? "默认策略"
-				jsonStr = attributeVal
+				backtestName = result.backtest_name ?? "默认策略"
 				logger.info(
 					`[import] 解析 config.py 文件成功，策略名：${backtestName}，类型：${importType}`,
 				)
 			} catch (error) {
-				logger.error(`[import] 读取 config.py 文件失败: ${error}`)
-				return { success: false, error: "读取 config.py 文件失败" }
+				logger.error(`[import] 解析 config.py 文件失败: ${error}`)
+				return { success: false, error: "解析 config.py 文件失败" }
 			}
 
 			// -- 复制策略库文件
@@ -493,45 +449,6 @@ async function importFusionHandler(): Promise<void> {
 		}
 	})
 }
-async function exportLibraryDirHandler(): Promise<void> {
-	ipcMain.handle("export-library-dir", async (_, filePath: string) => {
-		try {
-			const fuelProTradingPath = await store.getAllDataPath(["real_trading"])
-
-			// -- 检查源路径下的策略库和因子库文件夹是否存在
-			const strategyPath = path.join(fuelProTradingPath, "策略库")
-			const factorPath = path.join(fuelProTradingPath, "因子库")
-
-			// -- 复制策略库文件
-			const copyFiles = (sourcePath: string, targetPath: string) => {
-				if (!fs.existsSync(targetPath)) {
-					fs.mkdirSync(targetPath, { recursive: true })
-				}
-
-				const files = fs.readdirSync(sourcePath)
-				for (const file of files) {
-					const sourceFile = path.join(sourcePath, file)
-					const targetFile = path.join(targetPath, file)
-
-					if (fs.statSync(sourceFile).isDirectory()) {
-						copyFiles(sourceFile, targetFile)
-					} else {
-						fs.copyFileSync(sourceFile, targetFile)
-					}
-				}
-			}
-
-			// -- 复制策略库和因子库
-			copyFiles(strategyPath, path.join(filePath, "策略库"))
-			copyFiles(factorPath, path.join(filePath, "因子库"))
-
-			return { success: true }
-		} catch (error) {
-			console.error("导出文件夹失败:", error)
-			throw error
-		}
-	})
-}
 
 async function parseCsvFileHandler(): Promise<void> {
 	ipcMain.handle(
@@ -551,7 +468,7 @@ async function parseCsvFileHandler(): Promise<void> {
 			}
 
 			try {
-				const libraryType = await store.getValue(LIBRARY_TYPE, "select")
+				const libraryType = await store.getValue(LIBRARY_TYPE, "pos")
 				const backtestName = await store.getValue(
 					`${libraryType === "pos" ? "pos_mgmt" : "select_stock"}.backtest_name`,
 					"策略库",
@@ -648,29 +565,232 @@ async function importPositionHandler(): Promise<void> {
 	})
 }
 
+async function clearFactorCacheHandler(): Promise<void> {
+	ipcMain.handle("clear-factor-cache", async () => {
+		try {
+			const allDataPath = (await store.getSetting(
+				"all_data_path",
+				"",
+			)) as string
+			if (!allDataPath?.trim()) {
+				return {
+					success: false,
+					message: "未配置数据存储路径",
+				}
+			}
+
+			const factorCachePath = await store.getAllDataPath(
+				["real_trading", "data", "因子缓存"],
+				false,
+			)
+
+			if (!fs.existsSync(factorCachePath)) {
+				return { success: true, skipped: true as const }
+			}
+
+			const stat = fs.statSync(factorCachePath)
+			if (!stat.isDirectory()) {
+				return {
+					success: false,
+					message: "目标路径不是文件夹，已取消操作",
+				}
+			}
+
+			fs.rmSync(factorCachePath, {
+				recursive: true,
+				force: true,
+			})
+			logger.info(`[factor-cache] cleared: ${factorCachePath}`)
+			return { success: true, skipped: false as const }
+		} catch (error) {
+			logger.error(
+				`[factor-cache] clear failed: ${JSON.stringify(error, null, 2)}`,
+			)
+			return {
+				success: false,
+				message: "清除因子缓存失败",
+			}
+		}
+	})
+}
+
+async function loadManualStockResultHandler(): Promise<void> {
+	ipcMain.handle("load-manual-stock-result", async (_, filename: string) => {
+		try {
+			const filePath = await store.getAllDataPath(
+				["real_trading", "data", "手工策略", `${filename}.json`],
+				false,
+			)
+
+			if (!fs.existsSync(filePath)) {
+				return { success: true, data: [] }
+			}
+
+			const raw = fs.readFileSync(filePath, "utf-8").trim()
+			if (!raw) {
+				return { success: true, data: [] }
+			}
+
+			const data = JSON.parse(raw) as unknown
+			if (!Array.isArray(data)) {
+				logger.warn("[手工选股] 结果文件格式无效")
+				return {
+					success: false,
+					data: [],
+					message: "选股结果文件格式无效",
+				}
+			}
+
+			logger.info(`[手工选股] 结果已读取: ${filePath}`)
+			return { success: true, data }
+		} catch (error) {
+			logger.error(`[手工选股] 读取失败: ${JSON.stringify(error, null, 2)}`)
+			return {
+				success: false,
+				data: [],
+				message: "读入选股结果失败",
+			}
+		}
+	})
+}
+
+async function saveManualStockResultHandler(): Promise<void> {
+	ipcMain.handle(
+		"save-manual-stock-result",
+		async (_, filename: string, data: ManualStockSelectResultItem[]) => {
+			try {
+				const filePath = await store.getAllDataPath(
+					["real_trading", "data", "手工策略", `${filename}.json`],
+					true,
+				)
+				fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8")
+				logger.info(`[手工选股] 结果已写入: ${filePath}`)
+				return { success: true, filePath }
+			} catch (error) {
+				logger.error(`[手工选股] 写入失败: ${JSON.stringify(error, null, 2)}`)
+				return { success: false, message: "写入选股结果失败" }
+			}
+		},
+	)
+}
+
+async function deleteManualStockReselectFlagHandler(): Promise<void> {
+	ipcMain.handle("delete-manual-stock-reselect-flag", async () => {
+		try {
+			const filePath = await store.getAllDataPath(
+				["real_trading", "data", "timestamp", "flag.json"],
+				false,
+			)
+
+			if (!fs.existsSync(filePath)) {
+				logger.warn(`[手工选股] 立即重新选股失败，文件不存在: ${filePath}`)
+				return { success: false, message: "立即重新选股失败" }
+			}
+
+			fs.unlinkSync(filePath)
+			logger.info(`[手工选股] 已删除重新选股标记: ${filePath}`)
+			return { success: true }
+		} catch (error) {
+			logger.error(
+				`[手工选股] 立即重新选股失败: ${JSON.stringify(error, null, 2)}`,
+			)
+			return { success: false, message: "立即重新选股失败" }
+		}
+	})
+}
+
+async function deletePeriodOffsetHandler(): Promise<void> {
+	ipcMain.handle("delete-period-offset", async () => {
+		try {
+			// 检查 rocket 和选股内核是否正在运行
+			const { isAnyKernalBusy } = await import("@/main/utils/tools.js")
+			const kernalsBusy = await isAnyKernalBusy(["rocket", "fusion"])
+
+			if (kernalsBusy) {
+				logger.warn(
+					"[updatePeriodOffset] 内核正在运行中，无法更新 period_offset.csv",
+				)
+				return {
+					success: false,
+					message: "选股或实盘内核正在运行中，无法更新 period_offset.csv",
+				}
+			}
+
+			const periodOffsetPath = await store.getAllDataPath(
+				"period_offset.csv",
+				false,
+			)
+
+			// 删除旧文件
+			if (fs.existsSync(periodOffsetPath)) {
+				fs.unlinkSync(periodOffsetPath)
+				logger.info("[updatePeriodOffset] 已删除旧的 period_offset.csv")
+			}
+
+			// 从 API 下载新文件
+			const downloadUrl = `${BASE_URL}/api/data/client/real-trading/period-offset?client=${CLIENT_VERSION}`
+			logger.info(`[updatePeriodOffset] 开始下载: ${downloadUrl}`)
+
+			const token = await tokenStore.getAccessToken()
+			const headers: HeadersInit = {}
+			if (token) {
+				headers.Authorization = `Bearer ${token}`
+			}
+
+			const response = await fetch(downloadUrl, {
+				method: "POST",
+				headers,
+			})
+
+			if (!response.ok) {
+				logger.error(
+					`[updatePeriodOffset] 下载失败，HTTP 状态: ${response.status}`,
+				)
+				return {
+					success: false,
+					message: `下载 period_offset.csv 失败: HTTP ${response.status}`,
+				}
+			}
+
+			// 使用 arrayBuffer 处理二进制数据，避免乱码
+			const buffer = Buffer.from(await response.arrayBuffer())
+			const { writeFile } = await import("node:fs/promises")
+			await writeFile(periodOffsetPath, buffer)
+
+			logger.info("[updatePeriodOffset] 成功更新 period_offset.csv")
+			return { success: true, message: "成功更新 period_offset.csv" }
+		} catch (error) {
+			logger.error(
+				`[updatePeriodOffset] 更新 period_offset.csv 失败: ${JSON.stringify(error, null, 2)}`,
+			)
+			return { success: false, message: "更新 period_offset.csv 失败" }
+		}
+	})
+}
+
 export const regFileSysIPC = () => {
 	openUrlHandler()
 	killRocketHandler()
 	checkDBFileHandler()
-	openFileHandler()
 	selectFileDirHandler()
 	openDirectoryHandler()
 	openDataDirectoryHandler()
 	openUserDirectoryHandler()
 	parseCsvFileHandler()
 	readChangelogHandler()
-	createDirectoryHandler()
 	// checkpythonLockHandler()
 	importSelectStockHandler()
 	importFusionHandler()
-	exportLibraryDirHandler()
-	createStrategyDirHandler()
 	saveRealMarketDataHandler()
 	cleanRealMarketDataHandler()
 	clearRealMarketDataHandler()
-	deleteRealMarketDataHandler()
 	createRealTradingDirHandler()
 	strategyResultPathHandler()
 	importPositionHandler()
+	deletePeriodOffsetHandler()
+	clearFactorCacheHandler()
+	loadManualStockResultHandler()
+	saveManualStockResultHandler()
+	deleteManualStockReselectFlagHandler()
 	console.log("[reg] file-sys-ipc")
 }

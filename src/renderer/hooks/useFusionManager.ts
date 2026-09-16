@@ -8,12 +8,12 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { useCallback } from "react"
 import { useStore } from "@/renderer/context/store-context"
+import { useCallback } from "react"
 import type {
+	PosStrategyType,
 	SelectStgType,
 	StgGroupType,
-	PosStrategyType,
 } from "../types/strategy"
 
 export function useFusionManager() {
@@ -113,6 +113,23 @@ export function useFusionManager() {
 		[fusion, setFusion],
 	)
 
+	// 更新仓管模式下 pos 类型策略自身的配置
+	const updateFusionPosStrategy = useCallback(
+		(fusionIndex: number, partial: Partial<PosStrategyType>) => {
+			const stg = fusion[fusionIndex]
+			if (!stg || stg.type !== "pos") return null
+			const updated = { ...stg, ...partial } as PosStrategyType
+			const newFusion = [
+				...fusion.slice(0, fusionIndex),
+				updated,
+				...fusion.slice(fusionIndex + 1),
+			]
+			setFusion(newFusion)
+			return updated
+		},
+		[fusion, setFusion],
+	)
+
 	return {
 		// 状态
 		fusion,
@@ -122,6 +139,7 @@ export function useFusionManager() {
 		addFusionStrategies, // 添加Fusion策略
 		removeFusionStrategy, // 删除Fusion策略
 		updateFusionStgInRow, // 更新Fusion策略中的单个策略
+		updateFusionPosStrategy, // 更新 pos 类型策略自身配置
 		resetFusion, // 重置Fusion策略列表
 		syncFusion, // 同步Fusion策略列表
 	}

@@ -10,8 +10,8 @@
 
 import { Badge } from "@/renderer/components/ui/badge"
 import { StrategyTableRowActions } from "@/renderer/components/ui/strategy-table-row-action"
-import { IStrategyList } from "@/renderer/page/subscription/stg-schema"
-import { ColumnDef } from "@tanstack/react-table"
+import type { IStrategyList } from "@/renderer/page/subscription/stg-schema"
+import type { ColumnDef } from "@tanstack/react-table"
 import dayjs from "dayjs"
 
 export const strategyColumns = (

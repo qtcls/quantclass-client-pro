@@ -15,7 +15,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { Provider } from "jotai"
 import { queryClientAtom } from "jotai-tanstack-query"
 import { useHydrateAtoms } from "jotai/react/utils"
-import { type FC } from "react"
+import type { FC } from "react"
 import { HashRouter, Route, Routes } from "react-router"
 import { CSSTransition, TransitionGroup } from "react-transition-group"
 
@@ -40,7 +40,7 @@ window.onerror = (message, source, lineno, colno, error) => {
 const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
-			staleTime: Infinity,
+			staleTime: Number.POSITIVE_INFINITY,
 		},
 	},
 })

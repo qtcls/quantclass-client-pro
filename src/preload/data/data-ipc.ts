@@ -10,22 +10,27 @@
 
 import {
 	getBuyInfoList,
+	getBuyTimingInfoList,
 	getDataList,
 	getJsonDataFromFile,
-	getSelectedStrategiesList,
 	getSellInfoList,
-	getTradingPlanList,
+	getSellTimingInfoList,
 } from "@/main/core/dataList.js"
 import {
 	downloadFullData,
 	updateFullProducts,
 	updateProduct,
 } from "@/main/core/product.js"
-import { updateStrategies } from "@/main/core/strategy.js"
+import { updateStrategies } from "@/main/core/strategy/index.js"
+import DBManager from "@/main/lib/db-manager.js"
 import { execBin } from "@/main/lib/process.js"
+import { loadTradingDaysFromPeriodOffsetCsv } from "@/main/utils/common.js"
 import { isKernalRunning } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
+import { getLocalDateYYYYMMDD } from "@/shared/lib/trading-day.js"
 import { ipcMain } from "electron"
+
+type MinDataDataTypeFilter = "stock" | "etf" | "all"
 
 async function handleLoadProductStatus() {
 	ipcMain.handle("load-product-status", async () => {
@@ -40,9 +45,19 @@ async function handleLoadProductStatus() {
 }
 
 async function handleExecDownloadZip() {
-	ipcMain.handle("exec-download-zip", async (_event, product_name: string) => {
+	ipcMain.handle("exec-download-zip", async (event, product_name: string) => {
 		try {
-			return await downloadFullData(product_name)
+			logger.info(`开始下载 ${product_name} 的完整数据`)
+			return await downloadFullData(product_name, (progress) => {
+				// 发送进度更新到渲染进程
+				// logger.info(
+				// 	`[下载进度] ${product_name}: ${progress.percent.toFixed(2)}% (${(progress.transferred / 1024 / 1024).toFixed(2)} MB / ${progress.total > 0 ? (progress.total / 1024 / 1024).toFixed(2) : "?"} MB)`,
+				// )
+				event.sender.send("download-progress", {
+					product_name,
+					...progress,
+				})
+			})
 		} catch (error) {
 			logger.error(`exec-download-zip ${product_name} error: ${error}`)
 			throw new Error("数据 zip 下载失败")
@@ -115,23 +130,20 @@ async function queryDataListHandler(): Promise<void> {
 	)
 }
 
-async function fetchSelectedStrategiesList() {
-	ipcMain.handle(
-		"get-selected-strategies-list",
-		async () => await getSelectedStrategiesList(),
-	)
-}
-
-async function getTradingPlanListHandler() {
-	ipcMain.handle("fetch_trading", async () => await getTradingPlanList())
-}
-
 async function getBuyInfoListHandler() {
 	ipcMain.handle("fetch_buy", async () => await getBuyInfoList())
 }
 
 async function getSellInfoListHandler() {
 	ipcMain.handle("fetch_sell", async () => await getSellInfoList())
+}
+
+async function getBuyTimingInfoListHandler() {
+	ipcMain.handle("fetch_buy_timing", async () => await getBuyTimingInfoList())
+}
+
+async function getSellTimingInfoListHandler() {
+	ipcMain.handle("fetch_sell_timing", async () => await getSellTimingInfoList())
 }
 
 async function handleExecBinWithEnv() {
@@ -163,53 +175,11 @@ async function handleExecBinWithEnv() {
 	)
 }
 
-async function handleRocketExecute() {
-	ipcMain.handle("rocket-execute", async () => {
-		try {
-			const is_rocket_running = await isKernalRunning("rocket", true)
-			if (is_rocket_running) {
-				logger.warn("手动运行，但 Rocket 正在运行中，跳出操作")
-				return { code: 300, message: "Rocket 正在运行中，请勿重复点击运行" }
-			}
-
-			await execBin(["run"], "启动 rocket", "rocket")
-			return {
-				code: 200,
-				message: "启动 rocket 成功",
-			}
-		} catch (error) {
-			logger.error(`运行 rocket 失败: ${error}`)
-			return {
-				code: 400,
-				message: "运行 rocket 失败",
-			}
-		}
-	})
-}
-
-async function handleLoadPosition() {
-	ipcMain.handle("load-position", async () => {
-		return await getJsonDataFromFile(
-			["real_trading", "rocket", "data", "position.json"],
-			"获取持仓信息失败",
-		)
-	})
-}
-
 async function handleLoadAccount() {
 	ipcMain.handle("load-account", async () => {
 		return await getJsonDataFromFile(
 			["real_trading", "rocket", "data", "account.json"],
 			"获取账户信息失败",
-		)
-	})
-}
-
-async function handleLoadRunResult() {
-	ipcMain.handle("load-run-result", async () => {
-		return await getJsonDataFromFile(
-			["real_trading", "trade_info_test.json"],
-			"获取运行结果失败",
 		)
 	})
 }
@@ -235,25 +205,303 @@ async function handleLoadAquaTradingInfo() {
 	})
 }
 
+async function handleExecMinData() {
+	ipcMain.handle("exec-min-data", async (_event, mode: "fast" | "stable") => {
+		try {
+			const args = mode === "stable" ? ["min_data", "thread"] : ["min_data"]
+			const action =
+				mode === "stable"
+					? "获取准确QMT数据-稳定模式"
+					: "获取准确QMT数据-极速模式"
+
+			await execBin(args, action)
+			return { code: 200, message: `${action}执行完毕` }
+		} catch (error) {
+			logger.error(`[min-data] 执行准确QMT数据获取失败: ${error}`)
+			return {
+				code: 400,
+				message: error instanceof Error ? error.message : "执行失败",
+			}
+		}
+	})
+}
+
+function appendMinDataTypeFilter(
+	dataType: MinDataDataTypeFilter | undefined,
+	conditions: string[],
+	values: (string | number)[],
+): void {
+	if (dataType && dataType !== "all") {
+		conditions.push("data_type = ?")
+		values.push(dataType)
+	}
+}
+
+async function handleDeleteMinDataToday() {
+	ipcMain.handle("delete-min-data-today", async () => {
+		const dbManager = DBManager.getInstance()
+		const db = await dbManager.getConnection([
+			"min_data",
+			"min_data_update_task",
+		])
+		if (!db) {
+			return { success: false, message: "数据库不可用" }
+		}
+
+		const today = getLocalDateYYYYMMDD()
+
+		try {
+			const deleteMinData = db.prepare(
+				"DELETE FROM min_data WHERE trade_date = ?",
+			)
+			const deleteTask = db.prepare(
+				"DELETE FROM min_data_update_task WHERE run_date = ?",
+			)
+
+			const tx = db.transaction((date: string) => {
+				const minDataResult = deleteMinData.run(date)
+				const taskResult = deleteTask.run(date)
+				return {
+					minDataDeleted: minDataResult.changes,
+					taskDeleted: taskResult.changes,
+				}
+			})
+
+			const { minDataDeleted, taskDeleted } = tx(today)
+
+			logger.info(
+				`[min-data] 已删除今日数据（${today}）：min_data.trade_date ${minDataDeleted} 条，min_data_update_task.run_date ${taskDeleted} 条`,
+			)
+
+			return {
+				success: true,
+				message: `已删除今日实时数据：min_data ${minDataDeleted} 条，min_data_update_task ${taskDeleted} 条`,
+				minDataDeleted,
+				taskDeleted,
+				runDate: today,
+			}
+		} catch (error) {
+			logger.error(`[min-data] 删除今日实时数据失败: ${error}`)
+			return {
+				success: false,
+				message: error instanceof Error ? error.message : "删除失败",
+			}
+		}
+	})
+}
+
+async function handleGetMinDataTaskStats() {
+	ipcMain.handle(
+		"get-min-data-task-stats",
+		async (
+			_event,
+			runDate?: string,
+			runIndex?: number,
+			dataType: MinDataDataTypeFilter = "all",
+		) => {
+			const tableName = "min_data_update_task"
+
+			const dbManager = DBManager.getInstance()
+			const db = await dbManager.getConnection([tableName])
+			if (!db)
+				return {
+					runDate: null,
+					runIndex: null,
+					availableRunIndexes: [],
+					statusCounts: {},
+					total: 0,
+					error: "数据库不可用",
+				}
+
+			const date = runDate ?? new Date().toISOString().slice(0, 10)
+
+			try {
+				const indexConditions = ["run_date = ?"]
+				const indexValues: (string | number)[] = [date]
+				appendMinDataTypeFilter(dataType, indexConditions, indexValues)
+
+				const indexRows = db
+					.prepare(
+						`SELECT DISTINCT run_index FROM ${tableName} WHERE ${indexConditions.join(" AND ")} ORDER BY run_index DESC`,
+					)
+					.all(...indexValues) as { run_index: number }[]
+				const availableRunIndexes = indexRows.map((r) => r.run_index)
+
+				let targetIndex: number
+				if (runIndex !== undefined && runIndex !== null) {
+					targetIndex = runIndex
+				} else if (indexRows.length > 0) {
+					targetIndex = indexRows[0].run_index
+				} else {
+					return {
+						runDate: date,
+						runIndex: null,
+						availableRunIndexes,
+						statusCounts: {},
+						total: 0,
+					}
+				}
+
+				const statsConditions = ["run_date = ?", "run_index = ?"]
+				const statsValues: (string | number)[] = [date, targetIndex]
+				appendMinDataTypeFilter(dataType, statsConditions, statsValues)
+
+				const rows = db
+					.prepare(
+						`SELECT status, COUNT(*) as count FROM ${tableName} WHERE ${statsConditions.join(" AND ")} GROUP BY status`,
+					)
+					.all(...statsValues) as { status: string; count: number }[]
+
+				const statusCounts: Record<string, number> = {}
+				let total = 0
+				for (const row of rows) {
+					statusCounts[row.status] = row.count
+					total += row.count
+				}
+
+				return {
+					runDate: date,
+					runIndex: targetIndex,
+					availableRunIndexes,
+					statusCounts,
+					total,
+				}
+			} catch (error) {
+				logger.error(`[min-data] 查询 ${tableName} 统计失败: ${error}`)
+				return {
+					runDate: date,
+					runIndex: null,
+					availableRunIndexes: [],
+					statusCounts: {},
+					total: 0,
+					error: error instanceof Error ? error.message : String(error),
+				}
+			}
+		},
+	)
+}
+
+async function handleGetMinDataTaskStatus() {
+	ipcMain.handle(
+		"get-min-data-task-status",
+		async (
+			_event,
+			params: {
+				runDate?: string
+				runIndex?: number
+				status?: string
+				search?: string
+				page: number
+				pageSize: number
+				dataType?: MinDataDataTypeFilter
+			},
+		) => {
+			const tableName = "min_data_update_task"
+			const dataType = params.dataType ?? "all"
+
+			const dbManager = DBManager.getInstance()
+			const db = await dbManager.getConnection([tableName])
+			if (!db)
+				return {
+					datalist: [],
+					total: 0,
+					error: "数据库不可用",
+				}
+
+			const date = params.runDate ?? new Date().toISOString().slice(0, 10)
+
+			try {
+				const indexConditions = ["run_date = ?"]
+				const indexValues: (string | number)[] = [date]
+				appendMinDataTypeFilter(dataType, indexConditions, indexValues)
+
+				const indexRows = db
+					.prepare(
+						`SELECT DISTINCT run_index FROM ${tableName} WHERE ${indexConditions.join(" AND ")} ORDER BY run_index DESC`,
+					)
+					.all(...indexValues) as { run_index: number }[]
+
+				let targetIndex: number
+				if (params.runIndex !== undefined && params.runIndex !== null) {
+					targetIndex = params.runIndex
+				} else if (indexRows.length > 0) {
+					targetIndex = indexRows[0].run_index
+				} else {
+					return { datalist: [], total: 0 }
+				}
+
+				const conditions = ["run_date = ?", "run_index = ?"]
+				const values: (string | number)[] = [date, targetIndex]
+
+				appendMinDataTypeFilter(dataType, conditions, values)
+
+				if (params.status) {
+					conditions.push("status = ?")
+					values.push(params.status)
+				}
+				if (params.search) {
+					conditions.push("stock_code LIKE ?")
+					values.push(`%${params.search}%`)
+				}
+
+				const whereClause = conditions.join(" AND ")
+
+				const countRow = db
+					.prepare(
+						`SELECT COUNT(*) as count FROM ${tableName} WHERE ${whereClause}`,
+					)
+					.get(...values) as { count: number }
+
+				const offset = (params.page - 1) * params.pageSize
+				const datalist = db
+					.prepare(
+						`SELECT * FROM ${tableName} WHERE ${whereClause} ORDER BY id LIMIT ? OFFSET ?`,
+					)
+					.all(...values, params.pageSize, offset) as Record<string, unknown>[]
+
+				return {
+					datalist,
+					total: countRow.count,
+				}
+			} catch (error) {
+				logger.error(`[min-data] 查询 ${tableName} 状态失败: ${error}`)
+				return {
+					datalist: [],
+					total: 0,
+					error: error instanceof Error ? error.message : String(error),
+				}
+			}
+		},
+	)
+}
+
+function handleLoadTradingDays() {
+	ipcMain.handle("load-trading-days", async () => {
+		return loadTradingDaysFromPeriodOffsetCsv()
+	})
+}
+
 export const regDataIPC = () => {
 	handleFuelStatus()
 	handleLoadAccount()
-	handleLoadPosition()
-	handleLoadRunResult()
-	handleRocketExecute()
 	queryDataListHandler()
 	handleExecBinWithEnv()
 	handleExecDownloadZip()
 	getStrategySelectData()
 	getBuyInfoListHandler()
 	getSellInfoListHandler()
+	getBuyTimingInfoListHandler()
+	getSellTimingInfoListHandler()
 	handleUpdateStrategies()
 	handleUpdateOneProduct()
 	handleFetchRocketStatus()
 	handleLoadProductStatus()
 	handleUpdateFullProducts()
-	getTradingPlanListHandler()
-	fetchSelectedStrategiesList()
 	handleLoadAquaTradingInfo()
+	handleExecMinData()
+	handleDeleteMinDataToday()
+	handleGetMinDataTaskStats()
+	handleGetMinDataTaskStatus()
+	handleLoadTradingDays()
 	console.log("[reg] data-ipc")
 }

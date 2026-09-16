@@ -11,7 +11,7 @@
 	},
 	"linter": {
 		"enabled": true,
-		"include": ["*.ts"],
+		"include": ["**/*.ts", "**/*.tsx"],
 		"ignore": [
 			".pnpm/*",
 			".vscode/*",
@@ -24,14 +24,20 @@
 		"rules": {
 			"recommended": true,
 			"style": {
-				"noNonNullAssertion": "off"
+				"noNonNullAssertion": "off",
+				"noUselessElse": "off"
 			},
 			"correctness": {
 				"noUnusedImports": "info",
-				"useExhaustiveDependencies": "off"
+				"useExhaustiveDependencies": "warn"
 			},
 			"suspicious": {
-				"noExplicitAny": "off"
+				"noExplicitAny": "off",
+				"noArrayIndexKey": "off"
+			},
+			"a11y": {
+				"useKeyWithClickEvents": "off",
+				"useButtonType": "warn"
 			}
 		}
 	},

@@ -11,11 +11,14 @@
 import {
 	fusionAtom,
 	libraryTypeAtom,
+	reTimingAtom,
+	rebTimeConfigAtom,
 	selectStgDictAtom,
 	selectStgListAtom,
 } from "@/renderer/store/storage"
 import type {
 	PosStrategyType,
+	RebTimeConfig,
 	SelectStgType,
 	StgGroupType,
 } from "@/renderer/types/strategy"
@@ -63,11 +66,17 @@ const StoreContext = createContext<StoreContextType | null>(null)
 export function StoreProvider({ children }: { children: React.ReactNode }) {
 	const [fusion, setFusion] = useAtom(fusionAtom)
 	const [selectStgList, setSelectStgList] = useAtom(selectStgListAtom)
+	const [rebTimeConfig, setRebTimeConfig] = useAtom(rebTimeConfigAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
 	const setSelectStgDict = useSetAtom(selectStgDictAtom)
+	const setReTiming = useSetAtom(reTimingAtom)
 	const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null) // 防抖时间控制器
-	const { clearRealMarketData, saveRealMarketData, cleanRealMarketData } =
-		window.electronAPI
+	const {
+		clearRealMarketData,
+		saveRealMarketData,
+		cleanRealMarketData,
+		setStoreValue,
+	} = window.electronAPI
 
 	/**
 	 * 初始化各种electron-store
@@ -105,8 +114,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
 	const syncFusion = useAtomCallback(async (get, set) => {
 		const currentFusion = get(fusionAtom)
-		const fusionDict = await saveStrategyListFusion(currentFusion)
-		set(selectStgDictAtom, fusionDict)
+		const currentRebTimeConfig = get(rebTimeConfigAtom)
+		const { strategyDict, rebTimeConfig: newRebTimeConfig } =
+			await saveStrategyListFusion(currentFusion, currentRebTimeConfig)
+		set(selectStgDictAtom, strategyDict)
+		set(rebTimeConfigAtom, newRebTimeConfig)
 	})
 
 	// SelectStgList 相关方法
@@ -114,14 +126,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 		setSelectStgList([])
 		if (libraryType !== "pos") {
 			setSelectStgDict(RESET)
+			// 清除资金曲线再择时
+			setReTiming(null)
+			setStoreValue("select_stock.re_timing", null)
 		}
 		return []
-	}, [setSelectStgList, libraryType, setSelectStgDict])
+	}, [
+		setSelectStgList,
+		libraryType,
+		setSelectStgDict,
+		setReTiming,
+		setStoreValue,
+	])
 
 	const syncSelectStgList = useAtomCallback(async (get, set) => {
 		const currentSelectStgList = get(selectStgListAtom)
-		const selectStgDict = await saveStrategyList(currentSelectStgList)
-		set(selectStgDictAtom, selectStgDict)
+		const currentRebTimeConfig = get(rebTimeConfigAtom)
+		const { strategyDict, rebTimeConfig: newRebTimeConfig } =
+			await saveStrategyList(currentSelectStgList, currentRebTimeConfig)
+		set(selectStgDictAtom, strategyDict)
+		set(rebTimeConfigAtom, newRebTimeConfig)
 	})
 
 	/**
@@ -136,18 +160,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 		// 设置防抖定时器
 		saveTimeoutRef.current = setTimeout(async () => {
 			const saveData = async () => {
-				let selectStgDict = {}
+				let selectStgDict: Record<string, any> = {}
+				let newRebTimeConfig: Record<string, RebTimeConfig> = {}
+
 				switch (libraryType) {
-					case "pos":
-						selectStgDict = await saveStrategyListFusion(fusion)
+					case "pos": {
+						const result = await saveStrategyListFusion(fusion, rebTimeConfig)
+						selectStgDict = result.strategyDict
+						newRebTimeConfig = result.rebTimeConfig
 						break
-					case "select":
-						selectStgDict = await saveStrategyList(selectStgList)
+					}
+					case "select": {
+						const result = await saveStrategyList(selectStgList, rebTimeConfig)
+						selectStgDict = result.strategyDict
+						newRebTimeConfig = result.rebTimeConfig
 						break
+					}
 					default:
 						break
 				}
+
 				setSelectStgDict(selectStgDict)
+				setRebTimeConfig(newRebTimeConfig)
+
 				// 修正：确保 selectStgDict 是对象，且避免类型报错，使用 Object.keys
 				const parsedData: Record<string, any> = {}
 				Object.entries({
@@ -159,7 +194,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 				const strategyKeys = Object.keys(parsedData)
 				await cleanRealMarketData(strategyKeys)
 				await saveRealMarketData(parsedData)
-				console.log(libraryType, selectStgDict, parsedData)
+				console.log(libraryType, selectStgDict, parsedData, newRebTimeConfig)
 			}
 			await saveData()
 		}, 300) // 300ms 防抖延迟
@@ -170,7 +205,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 				clearTimeout(saveTimeoutRef.current)
 			}
 		}
-	}, [relevantList, libraryType, setSelectStgDict])
+	}, [relevantList, libraryType, setSelectStgDict, setRebTimeConfig])
 
 	const contextValue = useMemo(
 		() => ({

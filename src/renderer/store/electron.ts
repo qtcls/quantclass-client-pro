@@ -31,13 +31,16 @@ export const settingsAtom = atomWithElectronStore<SettingsType>("settings", {
 	all_data_path: "",
 	strategy_result_path: "",
 	is_auto_launch_update: false,
+	is_auto_launch_min_data: false,
 	is_auto_launch_real_trading: false,
 	data_white_list: [],
 	hid: "",
 	api_key: "",
-	libraryType: "select",
+	libraryType: "pos",
 	performance_mode: "EQUAL",
 	user_choice: false,
+	accelerated_data_source: false,
+	enable_etf_min_data: false,
 })
 
 export const dataSubscribedAtom = atomWithElectronStore<IDataListType[]>(
@@ -58,6 +61,7 @@ export const scheduleTimesAtom = atomWithElectronStore<{
 
 /**
  * 实盘配置
+ * @deprecated 此atom已废弃，实盘配置 Dialog、表单与新逻辑请改用 `storage.ts` 中的 `realMarketConfigSchemaAtom`
  */
 export const realMarketConfigAtom = atomWithElectronStore<RealMarketConfigType>(
 	"real_market_config",
@@ -70,6 +74,9 @@ export const realMarketConfigAtom = atomWithElectronStore<RealMarketConfigType>(
 		qmt_path: "",
 		account_id: "",
 		qmt_port: "58610",
+		qmt_mode: "mini_qmt",
+		ws_host: "",
+		ws_port: "",
 		message_robot_url: "",
 		reverse_repo_keep: 1000,
 	},

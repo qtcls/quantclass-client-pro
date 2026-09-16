@@ -18,7 +18,6 @@ import { useAtom } from "jotai"
 import { Edit } from "lucide-react"
 import { useRef, useState } from "react"
 import { RatioIntro } from "../FAQ/ratioIntro"
-import { ChangeLibrary } from "@/renderer/components/change-library"
 
 export default function StrategyLibrary() {
 	const { setStoreValue } = window.electronAPI
@@ -36,7 +35,6 @@ export default function StrategyLibrary() {
 
 	return (
 		<div className="h-full flex-1 flex-col space-y-4 md:flex pt-3">
-			<ChangeLibrary currentLibraryType="select" />
 			<div className="w-full">
 				<div className="flex items-center gap-2 w-auto">
 					{isEditing ? (

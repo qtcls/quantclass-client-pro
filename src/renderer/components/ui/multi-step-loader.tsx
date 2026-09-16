@@ -10,11 +10,14 @@
 
 import { Button } from "@/renderer/components/ui/button"
 import { cn } from "@/renderer/lib/utils"
-import { IDataListType } from "@/renderer/schemas/data-schema"
+import type { IDataListType } from "@/renderer/schemas/data-schema"
+import { stepAtom } from "@/renderer/store"
 import { AnimatePresence, motion } from "framer-motion"
-import { SetStateAction } from "jotai"
+import type { SetStateAction } from "jotai"
+import { useAtomValue } from "jotai"
 import { ArrowLeft, ArrowRight, LoaderCircleIcon } from "lucide-react"
-import { Dispatch, ReactNode } from "react"
+import type { Dispatch, ReactNode } from "react"
+import { useMemo } from "react"
 
 const CheckIcon = ({ className }: { className?: string }) => {
 	return (
@@ -26,6 +29,7 @@ const CheckIcon = ({ className }: { className?: string }) => {
 			stroke="currentColor"
 			className={cn("h-6 w-6", className)}
 		>
+			<title>Check Icon</title>
 			<path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
 		</svg>
 	)
@@ -39,6 +43,7 @@ const CheckFilled = ({ className }: { className?: string }) => {
 			fill="currentColor"
 			className={cn("h-6 w-6", className)}
 		>
+			<title>Check Filled</title>
 			<path
 				fillRule="evenodd"
 				d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z"
@@ -82,10 +87,12 @@ const LoaderCore = ({
 						transition={{ duration: 0.5 }}
 					>
 						<div>
-							{!loadingState.loading && index > value && (
+							{/* {!loadingState.loading && index > value && ( */}
+							{index > value && (
 								<CheckIcon className="text-black dark:text-white" />
 							)}
-							{!loadingState.loading && index <= value && (
+							{/* {!loadingState.loading && index <= value && ( */}
+							{index < value && (
 								<CheckFilled
 									className={cn(
 										"text-black dark:text-white",
@@ -94,7 +101,8 @@ const LoaderCore = ({
 									)}
 								/>
 							)}
-							{loadingState.loading && (
+							{/* {loadingState.loading && ( */}
+							{value === index && (
 								<LoaderCircleIcon
 									className={cn(
 										"h-6 w-6 animate-spin text-black dark:text-white",
@@ -106,17 +114,6 @@ const LoaderCore = ({
 						</div>
 
 						<span
-							// onClick={async () => {
-							//   if (isAnyLoading || loadingState.loading) return
-
-							//   if (value !== index && value > index) {
-							//     toast.warning('请先完成当前步骤')
-
-							//     return
-							//   }
-
-							//   await loadingState.action()
-							// }}
 							className={cn(
 								"inline-flex w-36 text-black dark:text-white",
 								value === index && "text-black opacity-100 dark:text-lime-500",
@@ -146,23 +143,31 @@ const LoaderCore = ({
 
 export const MultiStepLoader = ({
 	task,
-	loading,
 	loadingStates,
 	currentState,
 	setCurrentState,
+	downloadProgress,
+	showStepLoader,
 }: {
 	task: IDataListType
-	loading?: boolean
-	stepOneLoading?: boolean
 	loadingStates: LoadingState[]
 	currentState: number
-	setCurrentState?: Dispatch<SetStateAction<number>>
+	setCurrentState: Dispatch<SetStateAction<number>>
+	downloadProgress: string
+	showStepLoader: boolean
 }) => {
-	const isAnyLoading = loadingStates.some((state) => state.loading)
+	const step = useAtomValue(stepAtom)
+	const isAnyLoading = useMemo(() => {
+		return loadingStates.some((state) => state.loading)
+	}, [loadingStates])
+
+	if (!showStepLoader) {
+		return null
+	}
 
 	return (
 		<AnimatePresence mode="wait">
-			{loading && (
+			{showStepLoader && (
 				<motion.div
 					initial={{
 						opacity: 0,
@@ -173,11 +178,21 @@ export const MultiStepLoader = ({
 					exit={{
 						opacity: 0,
 					}}
-					className="fixed inset-0 z-[100] top-10 flex h-[calc(100%-2.5rem)] w-full flex-col items-center justify-center backdrop-blur-2xl"
+					className="fixed inset-0 z-[100] top-10 flex h-[calc(100%-2.5rem)] w-full flex-col items-center justify-center backdrop-blur-2xl bg-background"
 				>
 					<div className="relative top-0 flex flex-col items-center justify-center gap-1.5">
 						<div className="text-xl text-foreground">{task.displayName}</div>
 						<div className="text-lg text-muted-foreground">{task.name}</div>
+						{step === 0 && (
+							<div className="text-sm text-primary animate-pulse">
+								正在从小讲堂获取全量数据下载连接...
+							</div>
+						)}
+						<div className="text-sm text-warning">
+							{step > 1
+								? "[导入数据] 正在解压缩全量数据，和你CPU性能有关，请耐心等待..."
+								: downloadProgress}
+						</div>
 					</div>
 
 					<div className="relative h-80">

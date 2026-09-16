@@ -17,6 +17,7 @@ import {
 } from "node:child_process"
 import fs from "node:fs"
 import { updateKernal } from "@/main/core/runpy.js"
+import { tokenStore } from "@/main/lib/tokenStore.js"
 import { userStore } from "@/main/lib/userStore.js"
 import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
 import {
@@ -27,10 +28,13 @@ import {
 import logger from "@/main/utils/wiston.js"
 import { platform } from "@electron-toolkit/utils"
 import dayjs from "dayjs"
+import Store from "electron-store"
 import iconv from "iconv-lite"
 import { isUndefined } from "lodash-es"
 import { getKernalPath } from "../utils/common.js"
 import windowManager from "./WindowManager.js"
+
+const _store = new Store()
 
 export class ProcessManage {
 	private processes: Map<
@@ -39,7 +43,7 @@ export class ProcessManage {
 			action: string
 			createdAt: string
 			pid?: number
-			kernel: "fuel" | "rocket" | "aqua" | "zeus"
+			kernel: "fuel" | "rocket" | "fusion" | "scm"
 		}
 	>
 
@@ -52,9 +56,14 @@ export class ProcessManage {
 		args: string[],
 		options: SpawnOptionsWithoutStdio,
 		action: string,
-		kernel: "fuel" | "rocket" | "aqua" | "zeus" = "fuel",
+		kernel: "fuel" | "rocket" | "fusion" | "scm" = "fuel",
 	) {
 		const childProcess = spawn(command, args, options)
+
+		childProcess.on("error", (err) => {
+			logger.error(`[${kernel}] spawn 失败: ${err.message}`)
+		})
+
 		const createdAt = dayjs().format("YYYY-MM-DD HH:mm")
 		if (!childProcess.pid) {
 			logger.error(`[${kernel}] 创建进程失败: pid失败`)
@@ -142,11 +151,8 @@ export class ProcessManage {
 			if (action.action === "自动更新所有数据") {
 				await killKernalByForce("fuel")
 			}
-			if (action.kernel === "aqua") {
-				await killKernalByForce("aqua")
-			}
-			if (action.kernel === "zeus") {
-				await killKernalByForce("zeus")
+			if (action.kernel === "fusion") {
+				await killKernalByForce("fusion")
 			}
 			if (action.action === "启动 rocket") {
 				await killKernalByForce("rocket")
@@ -192,31 +198,25 @@ export const process_manager = new ProcessManage()
 export const execBin = async (
 	args: string[],
 	action: string,
-	kernel: "fuel" | "rocket" | "aqua" | "zeus" = "fuel",
-	extraEnv?: string,
+	kernel: "fuel" | "rocket" | "fusion" | "scm" = "fuel",
+	extraEnv?: string | Record<string, string>,
 ) => {
 	try {
 		const api_key = await store.getSetting("api_key", "")
 		const hid = await store.getSetting("hid", "")
-		const status = await store.getValue("status", 0)
-		const userState = await userStore.getUserState()
+		const userAccount = await userStore.getUserAccount()
 
 		if (kernel !== "fuel") {
-			const isAnonymous = (!api_key && !hid) || !userState?.isLoggedIn //--是否是游客
-			const isAllowed = status !== 2 // --可以使用内核
+			const isAnonymous = (!api_key && !hid) || !userAccount?.isLoggedIn //--是否是游客
+			const isAllowed = userAccount?.isMember // --是否是分享会
 			if (isAnonymous) {
 				logger.warn(`[exec-${kernel}] 未登录，不调用内核`)
 				return
 			}
-			if (isAllowed) {
+			if (!isAllowed) {
 				logger.warn(`[exec-${kernel}] 非分享会，不调用内核`)
 				return
 			}
-		}
-
-		if (!userState?.isLoggedIn) {
-			logger.warn("[exec-fuel] 未登录，不调用内核")
-			return
 		}
 
 		// -- 根据指定的内核选择相应的执行文件路径
@@ -235,29 +235,26 @@ export const execBin = async (
 		}
 
 		const fuelRunning = await isKernalRunning("fuel")
-		const aquaRunning = await isKernalRunning("aqua")
-		const zeusRunning = await isKernalRunning("zeus")
+		const fusionRunning = await isKernalRunning("fusion")
 		const rocketRunning = await isKernalRunning("rocket", true)
 		if (platform.isMacOS) exec(`chmod +x ${binPath}`)
 
 		logger.info(`[exec-${kernel}] 内核路径: ${binPath}`)
 		logger.info(
-			`[exec-${kernel}] fuel(${fuelRunning})、rocket(${rocketRunning})、aqua(${aquaRunning})、zeus(${zeusRunning})`,
+			`[exec-${kernel}] fuel(${fuelRunning})、rocket(${rocketRunning})、fusion(${fusionRunning})`,
 		)
 
+		// 仅阻止重复启动「自动更新所有数据」，允许历史数据与实时数据更新（min_data）同时执行
 		if (
 			fuelRunning &&
 			kernel === "fuel" &&
+			action === "自动更新所有数据" &&
 			process_manager.hasProcessWithAction("自动更新所有数据")
 		) {
-			logger.warn(`[exec-${kernel}] 仍在运行中，退出 execBin`)
+			logger.warn(`[exec-${kernel}] 自动更新所有数据仍在运行中，退出 execBin`)
 			return
 		}
-		if (aquaRunning && kernel === "aqua") {
-			logger.warn(`[exec-${kernel}] 仍在运行中，退出 execBin`)
-			return
-		}
-		if (zeusRunning && kernel === "zeus") {
+		if (fusionRunning && kernel === "fusion") {
 			logger.warn(`[exec-${kernel}] 仍在运行中，退出 execBin`)
 			return
 		}
@@ -267,7 +264,7 @@ export const execBin = async (
 		}
 
 		if (
-			(kernel === "aqua" || kernel === "zeus") &&
+			kernel === "fusion" &&
 			action === "选股" &&
 			process_manager.hasProcessWithAction("选股")
 		) {
@@ -279,12 +276,15 @@ export const execBin = async (
 
 		const fuelCodePath = await store.getAllDataPath(["code"])
 		const fuelProTradingPath = await store.getAllDataPath(["real_trading"])
+		const accessToken = await tokenStore.getAccessToken()
 		logger.info(`export PYTHONPATH=${fuelCodePath}`)
 		logger.info(`export FUEL_CODE_PATH=${fuelCodePath}`)
 		logger.info(`export FUEL_CLIENT_CONFIG_PATH=${CONFIG_PATH}`)
 		logger.info(`export FUEL_PRO_TRADING_PATH=${fuelProTradingPath}`)
 		logger.info(`export ROCKET_STR_INFO_PATH=${ROCKET_STR_INFO_PATH}`)
 		logger.info(`~% ${kernel} ${args.join(" ")}`)
+
+		const useOpenSell = _store.get("real_market_config.use_open_sell", "0")
 
 		return new Promise((resolve, reject) => {
 			// -- 内核目录
@@ -300,21 +300,36 @@ export const execBin = async (
 			process.env.PYTHON8 = "1"
 			process.env.PYTHONUNBUFFERED = "1"
 			process.env.PYTHONIOENCODING = "utf8"
-			process.env.FUEL_TEMP_FILE_PATH = extraEnv ?? ""
+			process.env.USE_OPEN_SELL = useOpenSell as string
+			if (typeof extraEnv === "string") {
+				process.env.FUEL_TEMP_FILE_PATH = extraEnv
+			} else {
+				process.env.FUEL_TEMP_FILE_PATH = ""
+				if (extraEnv) Object.assign(process.env, extraEnv)
+			}
+
+			const env: NodeJS.ProcessEnv = {
+				...process.env,
+				FUEL_ACCESS_TOKEN: accessToken ?? "",
+			}
 
 			const pythonProcess = process_manager.spawnProcess(
 				binPath,
 				args,
 				{
-					env: process.env,
+					env,
 				},
 				action,
 				kernel,
 			)
 			if (pythonProcess) {
 				handlePythonProcess(pythonProcess, resolve, reject, kernel, action)
+				if (kernel === "scm") {
+					resolve?.(undefined)
+				}
 			} else {
 				logger.error(`[exec-${kernel}] 创建进程失败`)
+				reject?.(new Error(`[exec-${kernel}] 创建进程失败`))
 			}
 		})
 	} catch (error) {
@@ -327,7 +342,7 @@ function handlePythonProcess<T = any>(
 	pythonProcess: ChildProcessWithoutNullStreams,
 	resolve: (value?: T) => void,
 	reject: (reason?: any) => void,
-	kernel: "fuel" | "rocket" | "aqua" | "zeus",
+	kernel: "fuel" | "rocket" | "fusion" | "scm",
 	action: string,
 ) {
 	const mainWindow = windowManager.getWindow()
@@ -353,6 +368,10 @@ function handlePythonProcess<T = any>(
 
 	pythonProcess.stderr.on("data", (data: any) => {
 		const utf8Data = `${data.toString("utf8")}`
+
+		const isProgressBar = utf8Data.includes("\r") || /\d+%\|/.test(utf8Data)
+		if (isProgressBar) return
+
 		logger.error(`[${kernel}] ${action} 标准错误: ${utf8Data}`)
 
 		reject?.(new Error(`${kernel} ${action} 错误: ${utf8Data}`))

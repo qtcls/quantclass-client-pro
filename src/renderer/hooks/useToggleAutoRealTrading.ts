@@ -8,7 +8,11 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { isAutoRocketAtom, isUpdatingAtom } from "@/renderer/store"
+import {
+	isAutoRocketAtom,
+	isMinDataUpdatingAtom,
+	isUpdatingAtom,
+} from "@/renderer/store"
 import {
 	fusionAtom,
 	libraryTypeAtom,
@@ -25,7 +29,8 @@ import { useCallback, useMemo } from "react"
 import { toast } from "sonner"
 
 export const useToggleAutoRealTrading = () => {
-	const isUpdating = useAtomValue(isUpdatingAtom) // -- 获取内核是否自动更新
+	const isUpdating = useAtomValue(isUpdatingAtom) // -- 获取历史数据是否自动更新
+	const isMinDataUpdating = useAtomValue(isMinDataUpdatingAtom) // -- 获取实时数据是否自动更新
 	const [isAutoRocket, setIsAutoRocket] = useAtom(isAutoRocketAtom) // -- 获取是否自动实盘
 	const selectStgList = useAtomValue(selectStgListAtom) // -- 获取选择的策略
 	const libraryType = useAtomValue(libraryTypeAtom)
@@ -44,8 +49,14 @@ export const useToggleAutoRealTrading = () => {
 	const handleToggleAutoRocket = useCallback(
 		async (enable: boolean, showToast = true, ignoreUpdateCheck = false) => {
 			if (enable) {
-				if (!ignoreUpdateCheck && !isUpdating) {
-					showToast && toast.warning("请在首页，先启动自动更新数据")
+				if (
+					!ignoreUpdateCheck &&
+					(!isUpdating || !isMinDataUpdating)
+				) {
+					showToast &&
+						toast.warning(
+							"请在首页，先启动自动更新历史数据和实时数据",
+						)
 					return
 				}
 
@@ -104,7 +115,7 @@ export const useToggleAutoRealTrading = () => {
 
 			return true
 		},
-		[isUpdating],
+		[isUpdating, isMinDataUpdating],
 	)
 
 	return {

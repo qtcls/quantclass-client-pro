@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { DataRecycleBinDialog } from "@/renderer/components/DataRecycleBinDialog"
 import { DataLocationCtrl } from "@/renderer/components/data-location-ctrl"
 import { PerformanceModeSelectTabs } from "@/renderer/components/select-tabs"
 import { Button } from "@/renderer/components/ui/button"
@@ -15,6 +16,7 @@ import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { H2 } from "@/renderer/components/ui/typography"
 import {
 	useAuthUpdate,
+	useDataConsistencyCheckOnEnter,
 	useHandleTimeTask,
 	useScheduleTimes,
 } from "@/renderer/hooks" // 引入handleTimeTask
@@ -32,9 +34,11 @@ import {
 	RefreshCw,
 	Server,
 } from "lucide-react"
-import type { FC } from "react"
+import { type FC, useRef } from "react"
 
 const Data: FC = () => {
+	const refreshRecycleBinCountRef = useRef<(() => void) | null>(null)
+	useDataConsistencyCheckOnEnter(refreshRecycleBinCountRef)
 	const disabled = useAuthUpdate()
 	const isUpdating = useAtomValue(isUpdatingAtom) // 获取是否正在更新的状态
 	const handleTimeTask = useHandleTimeTask() // 使用引入的 handleTimeTask
@@ -101,6 +105,11 @@ const Data: FC = () => {
 						)}
 					</div>
 					<DataLocationCtrl className="w-72" />
+					<DataRecycleBinDialog
+						onRegisterRefreshCount={(refresh) => {
+							refreshRecycleBinCountRef.current = refresh
+						}}
+					/>
 				</div>
 				<div className="flex items-center space-x-4">
 					<div className="flex items-center space-x-1">
@@ -137,9 +146,11 @@ const Data: FC = () => {
 						# 数据订阅名词解释
 					</h3>
 					<div>
-						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
-							<HardDrive size={16} />
+						<div className="flex items-start space-x-2">
+							<div className="flex items-center space-x-2 mt-1.5">
+								<div className="w-1 h-1 bg-muted-foreground rounded-full" />
+								<HardDrive size={16} />
+							</div>
 							<span>
 								<span className="font-semibold">数据时间：</span>
 								<span>
@@ -147,9 +158,11 @@ const Data: FC = () => {
 								</span>
 							</span>
 						</div>
-						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
-							<Server size={16} />
+						<div className="flex items-start space-x-2">
+							<div className="flex items-center space-x-2 mt-1.5">
+								<div className="w-1 h-1 bg-muted-foreground rounded-full" />
+								<Server size={16} />
+							</div>
 							<span>
 								<span className="font-semibold">更新时间（云端）：</span>
 								<span>
@@ -158,9 +171,11 @@ const Data: FC = () => {
 								</span>
 							</span>
 						</div>
-						<div className="flex items-center space-x-2">
-							<div className="w-1 h-1 bg-muted-foreground rounded-full" />
-							<RefreshCcwDot size={16} />
+						<div className="flex items-start space-x-2">
+							<div className="flex items-center space-x-2 mt-1.5">
+								<div className="w-1 h-1 bg-muted-foreground rounded-full" />
+								<RefreshCcwDot size={16} />
+							</div>
 							<span>
 								<span className="font-semibold">更新时间（本地）：</span>
 								<span>

@@ -28,6 +28,7 @@ See the full license text at: https://mariadb.com/bsl11/
 
 - Using pnpm instead of npm
 - `pnpm install` to add all the dependencies and pay attention to the network. Downloading electron consumes a lot and sometimes blocked under some networks.
+- `pnpm download-python` once before dev (pulls embedded Python into `resources/python`, used to parse user `config.py`).
 - `pnpm dev:win` to start
 - `pnpm build:win` to build. Please notice the windows policy over the program, security will block the build process. Use Power shell cmd `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` to bypass.
 
@@ -47,3 +48,44 @@ IF STILL FAILED ON WINDOWS, AND SEE ERR WITH `!include` TRY FOLLOWING:
 - Double-click on "Enable Win32 long paths" and set it to Enabled.
 - **DELETE `node_modules`**
 - THEN REBOOT YOUR WIN
+
+## Mac Signed Release
+
+Before building a signed macOS release, prepare a local release env file:
+
+```bash
+cd /Users/zdc/Projects/quantclass-client-pro
+source .env.release.local
+pnpm build:mac
+```
+
+Verify the signed apps:
+
+```bash
+codesign --verify --deep --strict --verbose=2 dist/mac-arm64/QuantclassClient.app
+codesign --verify --deep --strict --verbose=2 dist/mac/QuantclassClient.app
+```
+
+Notarize and staple the generated dmg files. Update `APP_VERSION` before each release:
+
+```bash
+export APP_VERSION="x.x.x"
+
+xcrun notarytool submit "dist/QuantclassClient-${APP_VERSION}-arm64.dmg" \
+  --key "${APPLE_API_KEY}" \
+  --key-id "${APPLE_API_KEY_ID}" \
+  --issuer "${APPLE_API_ISSUER}" \
+  --wait
+
+xcrun stapler staple "dist/QuantclassClient-${APP_VERSION}-arm64.dmg"
+xcrun stapler validate "dist/QuantclassClient-${APP_VERSION}-arm64.dmg"
+
+xcrun notarytool submit "dist/QuantclassClient-${APP_VERSION}-x64.dmg" \
+  --key "${APPLE_API_KEY}" \
+  --key-id "${APPLE_API_KEY_ID}" \
+  --issuer "${APPLE_API_ISSUER}" \
+  --wait
+
+xcrun stapler staple "dist/QuantclassClient-${APP_VERSION}-x64.dmg"
+xcrun stapler validate "dist/QuantclassClient-${APP_VERSION}-x64.dmg"
+```

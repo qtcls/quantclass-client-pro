@@ -9,42 +9,27 @@
  */
 
 import type { SelectStgFormData } from "@/renderer/page/strategy/types"
-import { autoTradeTimeByRebTime } from "@/renderer/utils/trade"
 import { isNumber } from "lodash-es"
 import type { UseFormReturn } from "react-hook-form"
 import { toast } from "sonner"
 
-export const useFormValidation = (form: UseFormReturn<SelectStgFormData>) => {
+export const useFormValidation = (_form: UseFormReturn<SelectStgFormData>) => {
 	// -- 验证表单数据并返回验证结果
 	const validateFormData = async (data: SelectStgFormData) => {
 		/**
-		 * 拆单金额必须为大于 0 的数字
+		 * 拆单金额须在 6000～12000 之间
 		 */
 		const splitOrderAmount = Number(data.split_order_amount)
 
-		if (!isNumber(splitOrderAmount) || splitOrderAmount <= 0) {
-			toast.error("拆单金额必须为大于 0 的数字")
+		if (
+			!isNumber(splitOrderAmount) ||
+			splitOrderAmount < 6000 ||
+			splitOrderAmount > 12000
+		) {
+			toast.error("拆单金额须在 6000～12000 之间")
 			return false
 		}
 
-		/**
-		 * 交易时间验证
-		 */
-		let sellTime = data.sell_time // -- 表单中的卖出时间
-		let buyTime = data.buy_time // -- 表单中的买入时间
-
-		const { sell_time, buy_time } = autoTradeTimeByRebTime(
-			data.rebalance_time ?? "close-open",
-		) // -- 生成自动交易时间
-
-		// -- 如果表单中没有时间，使用自动生成的时间
-		if (!sellTime || !buyTime) {
-			sellTime = sell_time
-			buyTime = buy_time
-		}
-
-		form.setValue("sell_time", sellTime)
-		form.setValue("buy_time", buyTime)
 		return true
 	}
 

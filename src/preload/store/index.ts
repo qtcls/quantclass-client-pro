@@ -22,8 +22,6 @@ export const storeIPC = {
 	saveRealMarketData: (data: Record<string, any>) =>
 		ipcRenderer.invoke("save-real-market-data", data),
 	clearRealMarketData: () => ipcRenderer.invoke("clear-real-market-data"),
-	deleteRealMarketData: (key: string) =>
-		ipcRenderer.invoke("delete-real-market-data", key),
 	cleanRealMarketData: (keys: string[]) =>
 		ipcRenderer.invoke("clean-real-market-data", keys),
 

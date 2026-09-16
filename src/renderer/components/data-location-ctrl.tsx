@@ -10,15 +10,17 @@
 
 import { Button } from "@/renderer/components/ui/button"
 import { Input } from "@/renderer/components/ui/input"
-import { useDataSubscribed } from "@/renderer/hooks/useDataSubscribed"
 import { cn } from "@/renderer/lib/utils"
+import { dataSubscribedAtom } from "@/renderer/store/electron"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useAtom } from "jotai"
 import { ArrowUp, FolderOpen, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 import { useSettings } from "../hooks/useSettings"
+import { DataPathChangeDialog } from "./DataPathChangeDialog"
 import ButtonTooltip from "./ui/button-tooltip"
 
 const { selectDirectory, openDataDirectory } = window.electronAPI
@@ -32,8 +34,9 @@ type DataLocationFormData = z.infer<typeof dataLocationSchema>
 export function DataLocationCtrl({ className }: { className?: string }) {
 	const [pending, setPending] = useState(false) // 等待IPC调用，有时候windows这个IPC比较慢
 	const [choosing, setChoosing] = useState(false) // 是否正在选择文件夹
-	const { setDataLocation, dataLocation } = useSettings()
-	const { resetDataSubscribed } = useDataSubscribed()
+	const [showWarningDialog, setShowWarningDialog] = useState(false)
+	const { updateSettings, dataLocation } = useSettings()
+	const [, setDataSubscribed] = useAtom(dataSubscribedAtom)
 	const form = useForm<DataLocationFormData>({
 		mode: "onChange",
 		resolver: zodResolver(dataLocationSchema),
@@ -43,6 +46,16 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 		form.setValue("all_data_path", dataLocation)
 	}, [dataLocation])
 
+	const handleButtonClick = () => {
+		// 已有路径，显示警告弹窗
+		if (dataLocation) {
+			setShowWarningDialog(true)
+		} else {
+			// 没有路径，选择文件夹
+			handleFolderSelect()
+		}
+	}
+
 	const handleFolderSelect = async () => {
 		if (choosing) return
 		setChoosing(true)
@@ -50,15 +63,31 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 			const _path = await selectDirectory()
 			if (_path) {
 				form.setValue("all_data_path", _path, { shouldValidate: true })
-				setDataLocation(_path)
 
-				resetDataSubscribed()
+				// 更新settings（包含data_white_list）
+				updateSettings({
+					all_data_path: _path,
+					data_white_list: [],
+				})
+
+				// 清空本地数据订阅状态
+				setDataSubscribed([])
+
 				// await startServer()
 				toast.success("路径配置成功")
 			}
 		} finally {
 			setChoosing(false)
 		}
+	}
+
+	const handleConfirm = () => {
+		setShowWarningDialog(false)
+		handleFolderSelect()
+	}
+
+	const handleCancel = () => {
+		setShowWarningDialog(false)
 	}
 	return (
 		<>
@@ -74,7 +103,7 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 					className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 flex items-center justify-center" // 按钮的高度和输入框一致
 					disabled={choosing}
 					size="sm"
-					onClick={handleFolderSelect}
+					onClick={handleButtonClick}
 				>
 					{dataLocation ? "更改" : "选择"}
 				</Button>
@@ -106,6 +135,14 @@ export function DataLocationCtrl({ className }: { className?: string }) {
 					</Button>
 				</ButtonTooltip>
 			)}
+
+			<DataPathChangeDialog
+				open={showWarningDialog}
+				onOpenChange={setShowWarningDialog}
+				currentPath={dataLocation}
+				onConfirm={handleConfirm}
+				onCancel={handleCancel}
+			/>
 		</>
 	)
 }

@@ -10,6 +10,7 @@
 
 import { networkInterfaces } from "node:os"
 import {
+	setAutoMinData,
 	setAutoTrading,
 	setAutoUpdate,
 	systemState,
@@ -57,10 +58,26 @@ async function getMacAddressHandler(): Promise<void> {
 	})
 }
 
+async function toggleMinDataScheduleHandler(): Promise<void> {
+	ipcMain.handle(
+		"toggle-min-data-schedule",
+		(
+			_event,
+			options: {
+				isOn: boolean
+				mode?: "fast" | "stable"
+			},
+		) => {
+			setAutoMinData(options)
+		},
+	)
+}
+
 export const regCoreIPC = () => {
 	toggleHandler()
 	setAutoTradingHandler()
 	getMacAddressHandler()
 	syncNetworkStatusHandler()
+	toggleMinDataScheduleHandler()
 	console.log("[reg] core-ipc")
 }

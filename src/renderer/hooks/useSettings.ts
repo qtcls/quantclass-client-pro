@@ -24,7 +24,7 @@ export function useSettings() {
 				setLibraryTypeAtom(newSettings.libraryType)
 			}
 
-			setSettings((prev: SettingsType) => ({
+			setSettings((prev) => ({
 				...prev,
 				...newSettings,
 			}))

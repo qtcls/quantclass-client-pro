@@ -38,6 +38,11 @@ const createTerminalWindow = () => {
 						),
 					)
 				}
+
+				win.once("ready-to-show", () => {
+					win?.show()
+					win?.focus()
+				})
 			}
 
 			if (process.env.VITE_XBX_ENV === "development") {

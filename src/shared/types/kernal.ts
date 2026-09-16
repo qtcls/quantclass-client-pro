@@ -1,1 +1,1 @@
-export type KernalType = "fuel" | "aqua" | "rocket" | "zeus"
+export type KernalType = "fuel" | "fusion" | "rocket" | "scm"

@@ -26,19 +26,12 @@ export const dataIPC = {
 		pageSize: number
 		file_name: string
 	}) => ipcRenderer.invoke("query-data-list", params),
-	runClientInit: () => ipcRenderer.invoke("run-client-init"),
-	getSelectedStrategiesList: () =>
-		ipcRenderer.invoke("get-selected-strategies-list"),
-	getTradingPlanList: () => ipcRenderer.invoke("fetch_trading"),
 	execFuelWithEnv: (
 		args: string[],
 		action: string,
 		kernel: string,
 		extraEnv?: string,
 	) => ipcRenderer.invoke("exec-fuel-with-env", args, action, kernel, extraEnv),
-	rocketExecute: () => ipcRenderer.invoke("rocket-execute"),
-	// TODO: 需要迁移到trading.ts
-
 	// 从renderer/ipc/index.ts迁移的方法
 	rendererLog: (type: "info" | "error" | "warning", msg: string) =>
 		ipcRenderer.invoke("do-renderer-log", type, msg),
@@ -58,21 +51,92 @@ export const dataIPC = {
 		>,
 
 	// 运行结果
-	loadRunResult: () => ipcRenderer.invoke("load-run-result"),
 	getStrategyResultPath: (mode = "backtest") =>
 		ipcRenderer.invoke("strategy-result-path", mode),
 
 	// 交易计划
 	getBuyInfoList: () => ipcRenderer.invoke("fetch_buy"),
 	getSellInfoList: () => ipcRenderer.invoke("fetch_sell"),
+	getBuyTimingInfoList: () => ipcRenderer.invoke("fetch_buy_timing"),
+	getSellTimingInfoList: () => ipcRenderer.invoke("fetch_sell_timing"),
 
 	// 数据库
 	checkDBFile: () => ipcRenderer.invoke("check-db-file"),
 
+	// 实时数据（QMT 分钟数据）
+	execMinData: (mode: "fast" | "stable") =>
+		ipcRenderer.invoke("exec-min-data", mode) as Promise<{
+			code: number
+			message: string
+		}>,
+	getMinDataTaskStats: (
+		runDate?: string,
+		runIndex?: number,
+		dataType?: "stock" | "etf" | "all",
+	) =>
+		ipcRenderer.invoke(
+			"get-min-data-task-stats",
+			runDate,
+			runIndex,
+			dataType,
+		) as Promise<{
+			runDate: string | null
+			runIndex: number | null
+			availableRunIndexes: number[]
+			statusCounts: Record<string, number>
+			total: number
+			error?: string
+		}>,
+	getMinDataTaskStatus: (params: {
+		runDate?: string
+		runIndex?: number
+		status?: string
+		search?: string
+		page: number
+		pageSize: number
+		dataType?: "stock" | "etf" | "all"
+	}) =>
+		ipcRenderer.invoke("get-min-data-task-status", params) as Promise<{
+			datalist: Record<string, unknown>[]
+			total: number
+			error?: string
+		}>,
+	deleteMinDataToday: () =>
+		ipcRenderer.invoke("delete-min-data-today") as Promise<{
+			success: boolean
+			message?: string
+			minDataDeleted?: number
+			taskDeleted?: number
+			runDate?: string
+		}>,
+
 	// 监控
 	fetchMonitorProcesses: () => ipcRenderer.invoke("fetch-monitor-processes"),
+
+	// 交易日历（period_offset.csv）
+	getTradingDays: () =>
+		ipcRenderer.invoke("load-trading-days") as Promise<string[]>,
 
 	// 导入功能
 	parseCsvFile: (csvfileName = "最新选股结果", mode = "backtest") =>
 		ipcRenderer.invoke("parse-csv-file", csvfileName, mode),
+
+	// 下载进度监听
+	onDownloadProgress: (
+		callback: (progress: {
+			product_name: string
+			transferred: number
+			total: number
+			percent: number
+			bytesPerSecond: number
+		}) => void,
+	) => {
+		ipcRenderer.on("download-progress", (_event, progress) => {
+			console.log("[下载进度]", progress)
+			callback(progress)
+		})
+	},
+	removeDownloadProgressListener: () => {
+		ipcRenderer.removeAllListeners("download-progress")
+	},
 }

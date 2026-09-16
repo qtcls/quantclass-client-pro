@@ -27,13 +27,15 @@ import {
 import { DialogFooter, DialogHeader } from "@/renderer/components/ui/dialog"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
-import { backtestConfigAtom } from "@/renderer/store/storage"
-import { SelectStgType } from "@/renderer/types/strategy"
+import { backtestConfigAtom, reTimingAtom } from "@/renderer/store/storage"
+import type { SelectStgType } from "@/renderer/types/strategy"
 import { openRealTradingFolder } from "@/renderer/utils"
 import { useMutation } from "@tanstack/react-query"
 import { useSetAtom } from "jotai"
 import { isArray } from "lodash-es"
 import {
+	BadgePlus,
+	Clock,
 	Eraser,
 	FolderDown,
 	FolderOpen,
@@ -45,6 +47,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import RebTimeConfigModal from "../../components/RebTimeConfigModal"
 import TradeCtrlBtn from "../../components/trade-ctrl-btn"
 
 export default function StgImportButton() {
@@ -53,33 +56,43 @@ export default function StgImportButton() {
 	const [pending, setPending] = useState(false)
 	const [importOpen, setImportOpen] = useState(false)
 	const [deleteOpen, setDeleteOpen] = useState(false)
+	const [rebTimeConfigOpen, setRebTimeConfigOpen] = useState(false)
 
 	const setBacktestConfig = useSetAtom(backtestConfigAtom)
+	const setReTiming = useSetAtom(reTimingAtom)
 	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
-	const { resetSelectStgList, updateSelectStgList } = useStrategyManager()
+	const { resetSelectStgList, addSelectStgList } = useStrategyManager()
 	const { mutateAsync: importLibraryDir, isPending } = useMutation({
 		mutationKey: ["import-library"],
 		mutationFn: async (configFilePath: string) =>
 			await importSelectStock(configFilePath),
 		onSuccess: async (data) => {
-			const { configJson: strategyListStr = "", backtestName = "默认策略" } =
-				data
+			const {
+				configJson: strategyListStr = "",
+				backtestName = "默认策略",
+				reTiming = null,
+			} = data
 			const strategyList = JSON.parse(strategyListStr)
 
 			if (isArray(strategyList)) {
 				const strategyListWithCap0 = strategyList.map((item) => ({
 					...item,
 					cap_weight: 0,
+					remark_name: item.remark_name ?? "",
 				}))
 
 				// -- Set to config json store
 				setStoreValue("select_stock.backtest_name", backtestName)
+				// -- 保存 re_timing（资金曲线再择时）
+				const reTimingObj = reTiming ? JSON.parse(reTiming) : null
+				setStoreValue("select_stock.re_timing", reTimingObj)
+				setReTiming(reTimingObj)
 				// -- Set to render local storage
 				setBacktestConfig((p) => ({
 					...p,
 					backtest_name: backtestName,
 				}))
-				updateSelectStgList(strategyListWithCap0 as SelectStgType[])
+				addSelectStgList(strategyListWithCap0 as SelectStgType[])
 			}
 			setImportOpen(false)
 			toast.success("导入成功")
@@ -102,7 +115,7 @@ export default function StgImportButton() {
 					onClick={() => setImportOpen(true)}
 				>
 					<FolderDown className="size-4 mr-2" />
-					导入策略
+					添加策略
 				</Button>
 			</ButtonTooltip>
 
@@ -141,11 +154,24 @@ export default function StgImportButton() {
 					打开文件夹
 				</Button>
 			</ButtonTooltip>
+			<Button
+				size="sm"
+				variant="outline"
+				className="h-8 lg:flex"
+				onClick={() => setRebTimeConfigOpen(true)}
+			>
+				<Clock className="size-4 mr-2" />
+				换仓时间配置
+			</Button>
+			<RebTimeConfigModal
+				open={rebTimeConfigOpen}
+				onOpenChange={setRebTimeConfigOpen}
+			/>
 			<Dialog open={importOpen} onOpenChange={setImportOpen}>
 				<DialogContent className="p-4">
 					<DialogHeader>
 						<DialogTitle className="flex items-center">
-							导入策略到选股策略库
+							导入策略到策略库（选股）
 						</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-1">
@@ -176,13 +202,13 @@ export default function StgImportButton() {
 						<span className="text-sm">ℹ️ 导入说明：</span>
 						<ul className="list-inside space-y-2">
 							<li className="flex items-center">
-								<Eraser size={18} className="mr-2" /> 导入会{" "}
-								<span className="text-danger">覆盖</span>
-								当前策略库中所有的策略
+								<BadgePlus size={18} className="mr-2" /> 选中策略会{" "}
+								<span className="text-success font-bold">增加</span>
+								到当前策略库中
 							</li>
 							<li className="flex items-center">
 								<ShieldCheck size={18} className="mr-2" />
-								导入成功后，为了资金安全，策略资金占比都
+								导入成功后，为了资金安全，新增策略资金占比会
 								<span className="text-blue-400">重置为 0</span>
 							</li>
 							<li className="flex items-center">

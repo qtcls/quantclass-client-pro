@@ -210,6 +210,7 @@ export default function CreditPage() {
 								<TableHead>描述</TableHead>
 								<TableHead className="text-right">变动额度</TableHead>
 								<TableHead>订单号</TableHead>
+								<TableHead className="text-right">时间</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -252,6 +253,9 @@ export default function CreditPage() {
 										</TableCell>
 										<TableCell className="font-mono text-xs text-muted-foreground">
 											{ledger.order_id || "--"}
+										</TableCell>
+										<TableCell className="text-right whitespace-nowrap text-muted-foreground">
+											{ledger.create_time || "--"}
 										</TableCell>
 									</TableRow>
 								))

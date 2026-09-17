@@ -54,6 +54,7 @@ export type CreditChangeType = "consumption" | "gift" | "purchase"
 export interface CreditLedger {
 	amount: number
 	change_type: CreditChangeType | string
+	create_time: string
 	nickname: string
 	order_id: string
 	reason: string

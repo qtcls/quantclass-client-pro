@@ -10,6 +10,8 @@ const CREDIT_RECORDS_QUERY_CONFIG = {
 
 export const useCreditRecords = (
 	enabled = true,
+	page = 1,
+	size = 20,
 	options?: Partial<UseQueryOptions<CreditLedgerResponse | null, Error>>,
 ) => {
 	const {
@@ -18,10 +20,10 @@ export const useCreditRecords = (
 		isFetching: isFetchingCreditRecords,
 		refetch: refetchCreditRecords,
 	} = useQuery({
-		queryKey: ["credit-ledger"],
+		queryKey: ["credit-ledger", page, size],
 		queryFn: async () => {
 			try {
-				return await getCreditLedger({ page: 1, size: 50 })
+				return await getCreditLedger({ page, size })
 			} catch (error) {
 				console.error("查询积分流水失败:", error)
 				throw error

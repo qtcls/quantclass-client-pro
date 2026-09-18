@@ -8,31 +8,20 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import {
+	BasicRotationStgSchema,
+	BasicSelectStgSchema,
+	BasicTimingStgSchema,
+} from "@/shared/schemas/basic-strategy.js"
+
 /** 基础版选股策略导入字段白名单 */
 export const BASIC_SELECT_STRATEGY_IMPORT_LIMIT = 2
 
-export const BASIC_SELECT_STRATEGY_ALLOWED_KEYS = [
-	"name",
-	"cap_weight",
-	"info",
-	"select_num",
-	"hold_period",
-	"rebalance_time",
-	"factor_list",
-	"filter_list",
-	// 个股日线择时
-	"code",
-	"code_type",
-	"timing",
-	// 轮动
-	"code_list",
-	"rotation",
-] as const
-
-export type BasicSelectStrategyAllowedKey =
-	(typeof BASIC_SELECT_STRATEGY_ALLOWED_KEYS)[number]
-
-const ALLOWED_KEY_SET = new Set<string>(BASIC_SELECT_STRATEGY_ALLOWED_KEYS)
+const ALLOWED_KEY_SET = new Set([
+	...Object.keys(BasicSelectStgSchema.shape),
+	...Object.keys(BasicTimingStgSchema.shape),
+	...Object.keys(BasicRotationStgSchema.shape),
+])
 
 export function getForbiddenBasicStrategyKeys(
 	strategy: Record<string, unknown>,

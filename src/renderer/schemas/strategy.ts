@@ -8,8 +8,18 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { BasicSelectStgSchema } from "@/shared/schemas/basic-strategy.js"
 import type { TimeValue } from "react-aria"
 import { z } from "zod"
+
+export {
+	BasicRotationBlockSchema,
+	BasicRotationStgSchema,
+	BasicSelectStgSchema,
+	BasicStgSharedSchema,
+	BasicTimingBlockSchema,
+	BasicTimingStgSchema,
+} from "@/shared/schemas/basic-strategy.js"
 
 // ===== 基础共享字段 =====
 
@@ -117,25 +127,18 @@ export const TimeValueSchema = z.custom<TimeValue>()
 
 // ===== 核心策略字段组合 =====
 /**
- * 选股策略，和策略结构保持一致
+ * 分享会选股核心配置：在基础选股字段之上扩展会员专属字段
  */
-export const CoreStrategySchema = z.object({
-	name: NameSchema,
+export const CoreStrategySchema = BasicSelectStgSchema.extend({
 	remark_name: z.string().optional().default(""),
 	cap_weight: z.number().default(0),
-	hold_period: HoldPeriodSchema,
-	select_num: SelectNumSchema,
 	offset_list: OffsetListSchema,
-	rebalance_time: RebalanceTimeSchema,
-	factor_list: z.array(z.any()),
 	cross_sections: z.array(z.any()).optional(), // 截面因子
 	stock_timing_list: z.array(z.any()).optional(), // 个股择时
-	filter_list: z.array(z.any()),
 	filter_list_post: z.array(z.any()).optional(), // 后置过滤因子列表
 	timing: TimingSchema,
 	scalein_targets: z.array(z.number()).optional(),
 	override: TimingSchema, // 提前离场逻辑
-	info: z.any().optional(), // 策略信息，用于存储策略的额外信息
 })
 
 export const SelectStgSchema = CoreStrategySchema.extend({

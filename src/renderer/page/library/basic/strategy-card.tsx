@@ -31,7 +31,13 @@ import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { cn } from "@/renderer/lib/utils"
 import { DeleteStrategy } from "@/renderer/page/strategy/delete"
-import type { SelectStgType } from "@/renderer/types/strategy"
+import type {
+	BasicRotationStgType,
+	BasicSelectStgType,
+	BasicStgType,
+	BasicTimingStgType,
+	SelectStgType,
+} from "@/renderer/types/strategy"
 import { resolveSelectStrategyName } from "@/shared/lib/real-market-strategy-name"
 import {
 	AlarmClockCheck,
@@ -40,7 +46,6 @@ import {
 	Filter,
 	GitCompare,
 	ListOrdered,
-	Lock,
 	type LucideIcon,
 	MoreHorizontal,
 	Percent,
@@ -51,36 +56,31 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 
-interface BasicTiming {
-	name?: string
-	factor_list?: unknown[]
-	params?: {
-		mode?: string
-		zero_filter?: boolean
-		min_bar?: number
-		confirm_n?: number
-	}
+type BasicStrategyType = "select" | "timing" | "rotation"
+
+function isBasicRotationStgType(
+	strategy: BasicStgType,
+): strategy is BasicRotationStgType {
+	return strategy.rotation != null
 }
 
-interface BasicRotation {
-	name?: string
-	factor_list?: unknown[]
-	max_select_num?: number
-	params?: {
-		empty_when_all_negative?: boolean
-		tie_break?: string
-	}
+function isBasicTimingStgType(
+	strategy: BasicStgType,
+): strategy is BasicTimingStgType {
+	return strategy.timing != null && strategy.rotation == null
 }
 
-type BasicStrategy = SelectStgType & {
-	code?: string
-	code_list?: string[]
-	code_type?: string
-	timing?: BasicTiming
-	rotation?: BasicRotation
+function isBasicSelectStgType(
+	strategy: BasicStgType,
+): strategy is BasicSelectStgType {
+	return strategy.rotation == null && strategy.timing == null
 }
 
-export type BasicStrategyType = "select" | "timing" | "rotation"
+function getBasicStrategyType(strategy: BasicStgType): BasicStrategyType {
+	if (isBasicRotationStgType(strategy)) return "rotation"
+	if (isBasicTimingStgType(strategy)) return "timing"
+	return "select"
+}
 
 const TYPE_LABELS: Record<BasicStrategyType, string> = {
 	select: "选股策略",
@@ -123,14 +123,6 @@ const MEMBER_EXCLUSIVE_FIELDS: {
 		icon: Timer,
 	},
 ]
-
-export function getBasicStrategyType(
-	strategy: BasicStrategy,
-): BasicStrategyType {
-	if (strategy.rotation != null) return "rotation"
-	if (strategy.timing != null) return "timing"
-	return "select"
-}
 
 function getRebalanceTimeLabel(rebalanceTimeType: string): string {
 	if (rebalanceTimeType === "close-open") return "隔日换仓"
@@ -247,7 +239,7 @@ function FilterLines({ filters }: { filters?: unknown[] }) {
 	)
 }
 
-function SelectFooter({ strategy }: { strategy: BasicStrategy }) {
+function SelectFooter({ strategy }: { strategy: BasicSelectStgType }) {
 	return (
 		<div className="grid grid-cols-2 gap-x-4 gap-y-4">
 			<div className="min-w-0">
@@ -311,7 +303,11 @@ function SelectExclusiveGrid({
 	)
 }
 
-function TimingSpecGrid({ timing }: { timing?: BasicTiming }) {
+function TimingSpecGrid({
+	timing,
+}: {
+	timing?: BasicTimingStgType["timing"]
+}) {
 	const params = timing?.params ?? {}
 	return (
 		<div className="grid grid-cols-2 gap-x-4 gap-y-5">
@@ -339,7 +335,7 @@ function TimingSpecGrid({ timing }: { timing?: BasicTiming }) {
 	)
 }
 
-function TimingFooter({ strategy }: { strategy: BasicStrategy }) {
+function TimingFooter({ strategy }: { strategy: BasicTimingStgType }) {
 	return (
 		<div>
 			<div className="text-xs font-semibold mb-1.5 text-foreground">
@@ -350,7 +346,7 @@ function TimingFooter({ strategy }: { strategy: BasicStrategy }) {
 	)
 }
 
-function RotationSpecGrid({ strategy }: { strategy: BasicStrategy }) {
+function RotationSpecGrid({ strategy }: { strategy: BasicRotationStgType }) {
 	const rotation = strategy.rotation
 	const params = rotation?.params ?? {}
 	const codeCount = strategy.code_list?.length ?? 0
@@ -384,7 +380,7 @@ function RotationSpecGrid({ strategy }: { strategy: BasicStrategy }) {
 	)
 }
 
-function RotationFooter({ strategy }: { strategy: BasicStrategy }) {
+function RotationFooter({ strategy }: { strategy: BasicRotationStgType }) {
 	const rotation = strategy.rotation
 	return (
 		<div className="space-y-4">
@@ -447,11 +443,10 @@ export function StrategyCard({
 	strategy,
 	index,
 }: {
-	strategy: SelectStgType
+	strategy: BasicStgType
 	index: number
 }) {
-	const basicStrategy = strategy as BasicStrategy
-	const type = getBasicStrategyType(basicStrategy)
+	const type = getBasicStrategyType(strategy)
 	const typeLabel = TYPE_LABELS[type]
 	const { isAutoRocket } = useToggleAutoRealTrading()
 	const { updateSelectStg } = useStrategyManager()
@@ -460,21 +455,21 @@ export function StrategyCard({
 	const [deleteOpen, setDeleteOpen] = useState(false)
 	const [capWeightOpen, setCapWeightOpen] = useState(false)
 
-	const capWeightPercent = Number(
-		((basicStrategy.cap_weight ?? 0) * 100).toFixed(2),
-	)
+	const capWeightPercent = Number(((strategy.cap_weight ?? 0) * 100).toFixed(2))
 
-	const title = resolveSelectStrategyName(basicStrategy)
+	const title = resolveSelectStrategyName(strategy)
 	const rebalanceLabel = getRebalanceTimeLabel(
-		basicStrategy.rebalance_time ?? "close-open",
+		strategy.rebalance_time ?? "close-open",
 	)
 
 	const subtitle =
-		type === "select"
-			? `选股数量 ${basicStrategy.select_num ?? "--"} · 持仓周期 ${basicStrategy.hold_period ?? "--"} · ${rebalanceLabel}`
-			: type === "timing"
-				? `${basicStrategy.code ?? "--"} · ${basicStrategy.code_type ?? "--"} · ${rebalanceLabel}`
-				: `${basicStrategy.code_type ?? "--"} · ${rebalanceLabel}`
+		type === "select" && isBasicSelectStgType(strategy)
+			? `选股数量 ${strategy.select_num ?? "--"} · 持仓周期 ${strategy.hold_period ?? "--"} · ${rebalanceLabel}`
+			: type === "timing" && isBasicTimingStgType(strategy)
+				? `${strategy.code ?? "--"} · ${strategy.code_type ?? "--"} · ${rebalanceLabel}`
+				: isBasicRotationStgType(strategy)
+					? `${strategy.code_type ?? "--"} · ${rebalanceLabel}`
+					: rebalanceLabel
 
 	const hasFooter = true
 
@@ -535,7 +530,7 @@ export function StrategyCard({
 								updateSelectStg(index, {
 									...strategy,
 									cap_weight: newValue / 100,
-								})
+								} as SelectStgType)
 							}}
 						/>
 					</div>
@@ -549,7 +544,7 @@ export function StrategyCard({
 				hideTrigger
 				open={deleteOpen}
 				onOpenChange={setDeleteOpen}
-				strategy={{ ...strategy, name: title }}
+				strategy={{ ...strategy, name: title } as SelectStgType}
 				rowIndex={index}
 				strategyType="select"
 				onSuccess={() => {}}
@@ -560,13 +555,13 @@ export function StrategyCard({
 
 				{/* 区域二：核心配置 */}
 				<div>
-					{type === "select" ? (
-						<SelectFooter strategy={basicStrategy} />
-					) : type === "timing" ? (
-						<TimingSpecGrid timing={basicStrategy.timing} />
-					) : (
-						<RotationSpecGrid strategy={basicStrategy} />
-					)}
+					{isBasicSelectStgType(strategy) ? (
+						<SelectFooter strategy={strategy} />
+					) : isBasicTimingStgType(strategy) ? (
+						<TimingSpecGrid timing={strategy.timing} />
+					) : isBasicRotationStgType(strategy) ? (
+						<RotationSpecGrid strategy={strategy} />
+					) : null}
 				</div>
 
 				{hasFooter ? (
@@ -574,18 +569,18 @@ export function StrategyCard({
 						<hr className={cn("my-4", DIVIDER)} />
 						{/* 区域三：补充详情 */}
 						<div>
-							{type === "select" ? (
+							{isBasicSelectStgType(strategy) ? (
 								<SelectExclusiveGrid
 									onSelect={(featureName) => {
 										setPromoFeature(featureName)
 										setPromoOpen(true)
 									}}
 								/>
-							) : type === "timing" ? (
-								<TimingFooter strategy={basicStrategy} />
-							) : (
-								<RotationFooter strategy={basicStrategy} />
-							)}
+							) : isBasicTimingStgType(strategy) ? (
+								<TimingFooter strategy={strategy} />
+							) : isBasicRotationStgType(strategy) ? (
+								<RotationFooter strategy={strategy} />
+							) : null}
 						</div>
 					</>
 				) : null}

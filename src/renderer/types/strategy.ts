@@ -9,8 +9,30 @@
  */
 
 import type { SelectStgSchema } from "@/renderer/schemas/strategy"
+import type {
+	BasicRotationStgSchema,
+	BasicSelectStgSchema,
+	BasicTimingStgSchema,
+} from "@/shared/schemas/basic-strategy.js"
 import type { TimeValue } from "react-aria"
 import type { z } from "zod"
+
+export type BasicSelectStgType = z.infer<typeof BasicSelectStgSchema> & {
+	type?: "select"
+}
+
+export type BasicTimingStgType = z.infer<typeof BasicTimingStgSchema> & {
+	type?: "timing"
+}
+
+export type BasicRotationStgType = z.infer<typeof BasicRotationStgSchema> & {
+	type?: "rotation"
+}
+
+export type BasicStgType =
+	| BasicSelectStgType
+	| BasicTimingStgType
+	| BasicRotationStgType
 
 export type SelectStgType = z.infer<typeof SelectStgSchema> & {
 	type?: "select"

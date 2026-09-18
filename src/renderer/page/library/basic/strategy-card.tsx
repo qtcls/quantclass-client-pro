@@ -134,50 +134,10 @@ function getRebalanceTimeLabel(rebalanceTimeType: string): string {
 	return rebalanceTimeType
 }
 
-function formatFactorItem(item: unknown): string {
-	if (!Array.isArray(item) || item.length === 0) return "--"
-	const [name, sortAsc, params] = item
-	const sortLabel = sortAsc === false ? "从大到小" : "从小到大"
-	const paramLabel =
-		params == null
-			? "无参数"
-			: typeof params === "object"
-				? JSON.stringify(params)
-				: String(params)
-	return `${String(name ?? "--")} · ${sortLabel} · ${paramLabel}`
-}
-
-function formatFilterItem(item: unknown): string {
-	if (!Array.isArray(item) || item.length === 0) return "--"
-	const [name, params, condition, sortAsc] = item
-	const paramLabel =
-		params == null
-			? "无参数"
-			: typeof params === "object"
-				? JSON.stringify(params)
-				: String(params)
-	const parts = [String(name ?? "--"), paramLabel, String(condition ?? "--")]
-	if (sortAsc !== undefined) {
-		parts.push(sortAsc === false ? "从大到小" : "从小到大")
-	}
-	return parts.join(" · ")
-}
-
-function formatTimingMode(mode?: string): string {
-	if (mode === "cross") return "金叉买死叉卖"
-	if (mode === "state") return "逐日判断"
-	return mode ?? "--"
-}
-
-function formatTieBreak(value?: string): string {
-	if (value === "hold") return "维持原持仓"
-	return value ?? "--"
-}
-
-function formatBool(value?: boolean): string {
-	if (value === true) return "是"
-	if (value === false) return "否"
-	return "--"
+function formatRawParamValue(value: unknown): string {
+	if (value == null) return "--"
+	if (typeof value === "object") return JSON.stringify(value)
+	return String(value)
 }
 
 /** 苹果风分隔线 */
@@ -207,52 +167,103 @@ function SpecCell({
 	)
 }
 
-function FactorLines({ factors }: { factors?: unknown[] }) {
+function FactorListGrid({ factors }: { factors?: unknown[] }) {
 	if (!factors?.length) {
 		return <p className="text-[11px] text-muted-foreground">暂无因子</p>
 	}
 
 	return (
-		<ul className="space-y-0.5 text-[11px] text-muted-foreground leading-relaxed">
-			{factors.map((factor, index) => (
-				<li key={index} className="break-all">
-					{formatFactorItem(factor)}
-				</li>
-			))}
-		</ul>
+		<div className="min-w-0">
+			<div className="grid grid-cols-4 gap-x-2 text-[10px] text-muted-foreground mb-1.5">
+				<span>因子名称</span>
+				<span>排序方式</span>
+				<span>因子参数</span>
+				<span>因子计算参数（比如权重）</span>
+			</div>
+			<div className="space-y-1.5">
+				{factors.map((item, index) => {
+					if (!Array.isArray(item)) return null
+					const factor = item as [
+						string,
+						boolean,
+						unknown,
+						string | number | null,
+					]
+					return (
+						<div
+							key={index}
+							className="grid grid-cols-4 gap-x-2 text-[11px] text-muted-foreground break-all leading-snug"
+						>
+							<span>{factor[0] ?? "--"}</span>
+							<span>
+								{factor[1] ? "从小到大排序" : "从大到小排序"}
+							</span>
+							<span className="font-mono">
+								{factor[2] != null ? JSON.stringify(factor[2]) : "无参数"}
+							</span>
+							<span>{factor[3] ?? ""}</span>
+						</div>
+					)
+				})}
+			</div>
+		</div>
 	)
 }
 
-function FilterLines({ filters }: { filters?: unknown[] }) {
+function FilterListGrid({ filters }: { filters?: unknown[] }) {
 	if (!filters?.length) {
 		return <p className="text-[11px] text-muted-foreground">暂无过滤因子</p>
 	}
 
 	return (
-		<ul className="space-y-0.5 text-[11px] text-muted-foreground leading-relaxed">
-			{filters.map((filter, index) => (
-				<li key={index} className="break-all">
-					{formatFilterItem(filter)}
-				</li>
-			))}
-		</ul>
+		<div className="min-w-0">
+			<div className="grid grid-cols-4 gap-x-2 text-[10px] text-muted-foreground mb-1.5">
+				<span>因子名称</span>
+				<span>因子参数</span>
+				<span>过滤条件</span>
+				<span>排序方式</span>
+			</div>
+			<div className="space-y-1.5">
+				{filters.map((item, index) => {
+					if (!Array.isArray(item)) return null
+					const filter = item as [string, unknown, string, boolean | undefined]
+					return (
+						<div
+							key={index}
+							className="grid grid-cols-4 gap-x-2 text-[11px] text-muted-foreground break-all leading-snug"
+						>
+							<span>{filter[0] ?? "--"}</span>
+							<span className="font-mono">{JSON.stringify(filter[1])}</span>
+							<span>{filter[2] ?? "--"}</span>
+							<span>
+								{filter[3] === undefined
+									? "从小到大排序"
+									: filter[3]
+										? "从小到大排序"
+										: "从大到小排序"}
+							</span>
+						</div>
+					)
+				})}
+			</div>
+		</div>
 	)
 }
 
 function SelectFooter({ strategy }: { strategy: BasicSelectStgType }) {
 	return (
-		<div className="grid grid-cols-2 gap-x-4 gap-y-4">
+		<div className="space-y-4">
 			<div className="min-w-0">
 				<div className="text-xs font-semibold mb-1.5 text-foreground">
 					选股因子
 				</div>
-				<FactorLines factors={strategy.factor_list} />
+				<FactorListGrid factors={strategy.factor_list} />
 			</div>
 			<div className="min-w-0">
 				<div className="text-xs font-semibold mb-1.5 text-foreground">
 					过滤因子
 				</div>
-				<FilterLines filters={strategy.filter_list} />
+				<FilterListGrid filters={strategy.filter_list} />
 			</div>
 		</div>
 	)
@@ -314,22 +325,22 @@ function TimingSpecGrid({
 			<SpecCell
 				icon={GitCompare}
 				label="模式"
-				value={formatTimingMode(params.mode)}
+				value={formatRawParamValue(params.mode)}
 			/>
 			<SpecCell
 				icon={Filter}
 				label="零轴过滤"
-				value={formatBool(params.zero_filter)}
+				value={formatRawParamValue(params.zero_filter)}
 			/>
 			<SpecCell
 				icon={BarChart3}
 				label="最小柱值"
-				value={params.min_bar == null ? "--" : String(params.min_bar)}
+				value={formatRawParamValue(params.min_bar)}
 			/>
 			<SpecCell
 				icon={AlarmClockCheck}
 				label="确认天数"
-				value={params.confirm_n == null ? "--" : `${params.confirm_n} 个交易日`}
+				value={formatRawParamValue(params.confirm_n)}
 			/>
 		</div>
 	)
@@ -341,7 +352,7 @@ function TimingFooter({ strategy }: { strategy: BasicTimingStgType }) {
 			<div className="text-xs font-semibold mb-1.5 text-foreground">
 				选股因子
 			</div>
-			<FactorLines factors={strategy.timing?.factor_list} />
+			<FactorListGrid factors={strategy.timing?.factor_list} />
 		</div>
 	)
 }
@@ -364,12 +375,12 @@ function RotationSpecGrid({ strategy }: { strategy: BasicRotationStgType }) {
 			<SpecCell
 				icon={Filter}
 				label="全负空仓"
-				value={formatBool(params.empty_when_all_negative)}
+				value={formatRawParamValue(params.empty_when_all_negative)}
 			/>
 			<SpecCell
 				icon={Repeat}
 				label="并列处理"
-				value={formatTieBreak(params.tie_break)}
+				value={formatRawParamValue(params.tie_break)}
 			/>
 			<SpecCell
 				icon={ChartPie}
@@ -388,7 +399,7 @@ function RotationFooter({ strategy }: { strategy: BasicRotationStgType }) {
 				<div className="text-xs font-semibold mb-1.5 text-foreground">
 					选股因子
 				</div>
-				<FactorLines factors={rotation?.factor_list} />
+				<FactorListGrid factors={rotation?.factor_list} />
 			</div>
 			{strategy.code_list?.length ? (
 				<div>

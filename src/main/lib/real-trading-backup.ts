@@ -17,7 +17,7 @@ import { loadTradingDaysFromPeriodOffsetCsv } from "@/main/utils/common.js"
 import logger from "@/main/utils/wiston.js"
 import { STOCK_QUANT_STRATEGY_CONFIG } from "@/shared/constants.js"
 import { stockQuantToStrategyList } from "@/shared/lib/basic-strategy-import.js"
-import { checkPermission } from "@/shared/lib/permission.js"
+import { checkPermission, getSelectKernal } from "@/shared/lib/permission.js"
 import {
 	getLocalCalendarYmd,
 	getLocalMidnightOfNthTradingDayBefore,
@@ -301,6 +301,8 @@ async function addFilteredRealTradingToArchive(
 ): Promise<CopyStats> {
 	const posNames = await getPosStrategyNames()
 	const selectNames = await getSelectStockStrategyNames()
+	const userAccount = await userStore.getUserAccount()
+	const selectKernal = getSelectKernal(userAccount?.permissions ?? [])
 	const stats: CopyStats = { copiedItems: 0, skippedMissing: [] }
 
 	const addFile = (rel: string) => {
@@ -324,8 +326,8 @@ async function addFilteredRealTradingToArchive(
 	}
 
 	for (const rel of [
-		`data/ui_status/fusion-stats-${ymd}.json`,
-		`data/ui_views/fusion-views-${ymd}.json`,
+		`data/ui_status/${selectKernal}-stats-${ymd}.json`,
+		`data/ui_views/${selectKernal}-views-${ymd}.json`,
 	]) {
 		addFile(rel)
 	}

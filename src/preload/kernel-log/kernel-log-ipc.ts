@@ -10,8 +10,10 @@
 
 import fs from "node:fs"
 import path from "node:path"
+import { userStore } from "@/main/lib/userStore.js"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
+import { getSelectKernal } from "@/shared/lib/permission.js"
 import { BrowserWindow, ipcMain } from "electron"
 
 const POLL_INTERVAL_MS = 1000
@@ -36,7 +38,9 @@ type KernelType = "fuel" | "select" | "rocket"
 
 async function getLogFileName(kernelType: KernelType): Promise<string> {
 	if (kernelType === "select") {
-		return "fusion.log"
+		const userAccount = await userStore.getUserAccount()
+		const selectKernal = getSelectKernal(userAccount?.permissions ?? [])
+		return `${selectKernal}.log`
 	}
 	const today = new Date()
 	const yyyy = today.getFullYear()

@@ -44,21 +44,19 @@ export const memberPromoHeaderClassName = cn(
 	memberPromoTextClassName,
 )
 
+export const memberPromoContentPanelClassName =
+	"min-h-0 flex-1 overflow-hidden rounded-lg border border-blue-200/70 bg-white/90 p-4 shadow-sm dark:border-blue-800/50 dark:bg-background/90"
+
+export const memberPromoTabBarClassName = cn(
+	"-mx-1 shrink-0 border-border bg-transparent pr-10",
+	"[&>div]:overflow-x-auto [&>div]:flex-nowrap [&>div]:px-0",
+	"[&_button.border-foreground]:!bg-transparent [&_button.border-foreground]:!border-b-[3px] [&_button.border-foreground]:-mb-px",
+)
+
 export const memberPromoIconBadgeClassName = cn(
 	"flex size-7 shrink-0 items-center justify-center rounded-full border bg-white/80 dark:bg-background/80",
 	memberPromoBorderClassName,
 )
-
-export const memberPromoTabClassName = cn(
-	"relative z-0 shrink-0 rounded-none rounded-t-lg border border-b-0 border-blue-200/70 px-2.5 py-1.5 text-xs font-medium shadow-none",
-	"data-[state=inactive]:bg-white/30 data-[state=inactive]:text-blue-900/65",
-	"dark:data-[state=inactive]:bg-white/5 dark:data-[state=inactive]:text-blue-200/60",
-	"data-[state=active]:z-10 data-[state=active]:-mb-px data-[state=active]:bg-white/90 data-[state=active]:text-blue-900 data-[state=active]:shadow-none",
-	"dark:data-[state=active]:bg-background/90 dark:data-[state=active]:text-blue-100",
-)
-
-export const memberPromoContentPanelClassName =
-	"min-h-0 flex-1 overflow-hidden rounded-b-lg rounded-tr-lg border border-t-0 border-blue-200/70 bg-white/90 p-4 shadow-sm dark:border-blue-800/50 dark:bg-background/90"
 
 export const memberPromoCarouselFrameClassName =
 	"overflow-hidden rounded-lg border border-blue-200/60 bg-blue-50/30 p-2 dark:border-blue-800/50 dark:bg-blue-950/20"

@@ -30,20 +30,15 @@ import {
 	memberPromoHeaderClassName,
 	memberPromoIconBadgeClassName,
 	memberPromoShimmerOverlayClassName,
-	memberPromoTabClassName,
+	memberPromoTabBarClassName,
 } from "@/renderer/components/member-promo/theme"
+import { SectionTabs } from "@/renderer/components/section-tabs"
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogTitle,
 } from "@/renderer/components/ui/dialog"
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@/renderer/components/ui/tabs"
 import { cn } from "@/renderer/lib/utils"
 import { Sparkles } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -94,6 +89,14 @@ export function MemberPromoDialog({
 		[],
 	)
 
+	const sectionTabs = useMemo(
+		() => MEMBER_PROMO_TABS.map((tab) => ({ key: tab.id, label: tab.label })),
+		[],
+	)
+
+	const activeTabLabel =
+		MEMBER_PROMO_TABS.find((tab) => tab.id === activeTab)?.label ?? ""
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className={memberPromoDialogClassName}>
@@ -106,11 +109,7 @@ export function MemberPromoDialog({
 					<div aria-hidden className={memberPromoShimmerOverlayClassName} />
 
 					<MemberPromoTabNavContext.Provider value={tabNav}>
-						<Tabs
-							value={activeTab}
-							onValueChange={(value) => setActiveTab(value as MemberPromoTabId)}
-							className="relative z-10 flex min-h-0 flex-1 flex-col px-5 pb-4 pt-3"
-						>
+						<div className="relative z-10 flex min-h-0 flex-1 flex-col px-5 pb-4 pt-3">
 							<div className={cn(memberPromoHeaderClassName, "pr-8")}>
 								<div className={memberPromoIconBadgeClassName}>
 									<Sparkles
@@ -121,30 +120,19 @@ export function MemberPromoDialog({
 								<span className="text-sm font-semibold">分享会专享功能</span>
 							</div>
 
-							<TabsList className="h-auto w-full shrink-0 items-end justify-start gap-0 overflow-x-auto bg-transparent p-0">
-								{MEMBER_PROMO_TABS.map((tab) => (
-									<TabsTrigger
-										key={tab.id}
-										value={tab.id}
-										className={memberPromoTabClassName}
-									>
-										{tab.label}
-									</TabsTrigger>
-								))}
-							</TabsList>
+							<SectionTabs
+								tabs={sectionTabs}
+								value={activeTab}
+								onValueChange={(value) =>
+									setActiveTab(value as MemberPromoTabId)
+								}
+								className={memberPromoTabBarClassName}
+							/>
 
 							<div className={memberPromoContentPanelClassName}>
-								{MEMBER_PROMO_TABS.map((tab) => (
-									<TabsContent
-										key={tab.id}
-										value={tab.id}
-										className="mt-0 h-full min-h-0 focus-visible:ring-0"
-									>
-										<MemberPromoTabBody id={tab.id} label={tab.label} />
-									</TabsContent>
-								))}
+								<MemberPromoTabBody id={activeTab} label={activeTabLabel} />
 							</div>
-						</Tabs>
+						</div>
 					</MemberPromoTabNavContext.Provider>
 				</div>
 			</DialogContent>

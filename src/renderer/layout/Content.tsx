@@ -24,7 +24,9 @@ import {
 import { UserMenu } from "@/renderer/layout/UserMenu"
 import { cn } from "@/renderer/lib/utils"
 import { activeTabAtom } from "@/renderer/store"
-import { useSetAtom } from "jotai"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtomValue, useSetAtom } from "jotai"
 import {
 	BookOpen,
 	Database,
@@ -92,6 +94,9 @@ export const NavRail: FC = () => {
 	const { pathname } = useLocation()
 	const navigate = useNavigate()
 	const setActiveTab = useSetAtom(activeTabAtom)
+	const { isLoggedIn, permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+	const showBasicEditionLabel = isLoggedIn && !isMember
 
 	const isActive = (to: string) => {
 		if (to === HOME_PAGE) return pathname === HOME_PAGE
@@ -100,11 +105,16 @@ export const NavRail: FC = () => {
 
 	return (
 		<nav className="w-16 border-r bg-background flex flex-col items-center py-3 gap-1.5">
-			<div className="mb-2.5" aria-hidden>
+			<div className="mb-2.5 flex flex-col items-center gap-1">
 				<Avatar className="size-9 rounded-[9px] border bg-white dark:border-white">
 					<AvatarImage src={Img} alt="quantclass" />
 					<AvatarFallback className="rounded-[9px]">Q</AvatarFallback>
 				</Avatar>
+				{showBasicEditionLabel ? (
+					<span className="text-[10px] leading-none font-medium text-muted-foreground">
+						基础版
+					</span>
+				) : null}
 			</div>
 
 			{NAV_ITEMS.map((item) => (

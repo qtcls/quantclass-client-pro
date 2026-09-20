@@ -15,16 +15,19 @@ import { OverviewDateBadge } from "@/renderer/page/home/overview-date-badge"
 import { OverviewMetrics } from "@/renderer/page/home/overview-metrics"
 import { ResearchCard } from "@/renderer/page/home/research-card"
 import { TradingCard } from "@/renderer/page/home/trading-card"
+import { BasicCourseHome } from "@/renderer/page/home/basic-course-home"
 import { showFinanceInfoAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
-import { useAtom } from "jotai"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtom, useAtomValue } from "jotai"
 import { Eye, EyeOff, RefreshCw } from "lucide-react"
 import { type FC, useEffect } from "react"
 import { ABOUT_CLIENT_VER, AboutPage } from "../settings/about"
 
 const { getStoreValue, setStoreValue, closeApp } = window.electronAPI
 
-const Home: FC = () => {
+function MemberHome() {
 	const useAlert = useAlertDialog()
 	const [showFinanceInfo, setShowFinanceInfo] = useAtom(showFinanceInfoAtom)
 	const [{ isFetching: isRefreshingAccount, refetch: refetchAccount }] =
@@ -98,6 +101,12 @@ const Home: FC = () => {
 			</div>
 		</div>
 	)
+}
+
+const Home: FC = () => {
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+	return isMember ? <MemberHome /> : <BasicCourseHome />
 }
 
 export default Home

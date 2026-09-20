@@ -12,11 +12,8 @@ import { BlacklistPromoContent } from "@/renderer/components/member-promo/conten
 import { ConfigMasterPromoContent } from "@/renderer/components/member-promo/content/config-master"
 import { ExclusivePromoContent } from "@/renderer/components/member-promo/content/exclusive"
 import { FusionLibraryPromoContent } from "@/renderer/components/member-promo/content/fusion-library"
+import { IntroPromoContent } from "@/renderer/components/member-promo/content/intro"
 import { RandomStrategyPromoContent } from "@/renderer/components/member-promo/content/random-strategy"
-import {
-	MemberPromoPlaceholderBody,
-	MemberPromoTabPanel,
-} from "@/renderer/components/member-promo/promo-tab-panel"
 import { MemberPromoTabNavContext } from "@/renderer/components/member-promo/tab-nav-context"
 import {
 	MEMBER_PROMO_TABS,
@@ -50,24 +47,15 @@ interface MemberPromoDialogProps {
 	description?: string
 }
 
-function MemberPromoTabBody({
-	id,
-	label,
-}: {
-	id: MemberPromoTabId
-	label: string
-}) {
+function MemberPromoTabBody({ id }: { id: MemberPromoTabId }) {
+	if (id === "intro") return <IntroPromoContent />
 	if (id === "random-strategy") return <RandomStrategyPromoContent />
 	if (id === "config-master") return <ConfigMasterPromoContent />
 	if (id === "blacklist") return <BlacklistPromoContent />
 	if (id === "fusion-library") return <FusionLibraryPromoContent />
 	if (id === "exclusive") return <ExclusivePromoContent />
 
-	return (
-		<MemberPromoTabPanel title={label}>
-			<MemberPromoPlaceholderBody />
-		</MemberPromoTabPanel>
-	)
+	return null
 }
 
 export function MemberPromoDialog({
@@ -93,9 +81,6 @@ export function MemberPromoDialog({
 		() => MEMBER_PROMO_TABS.map((tab) => ({ key: tab.id, label: tab.label })),
 		[],
 	)
-
-	const activeTabLabel =
-		MEMBER_PROMO_TABS.find((tab) => tab.id === activeTab)?.label ?? ""
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,7 +115,7 @@ export function MemberPromoDialog({
 							/>
 
 							<div className={memberPromoContentPanelClassName}>
-								<MemberPromoTabBody id={activeTab} label={activeTabLabel} />
+								<MemberPromoTabBody id={activeTab} />
 							</div>
 						</div>
 					</MemberPromoTabNavContext.Provider>

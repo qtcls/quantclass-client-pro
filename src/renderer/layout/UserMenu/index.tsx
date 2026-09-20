@@ -19,6 +19,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/renderer/components/ui/dropdown-menu"
 import { UserMenuContent } from "@/renderer/layout/UserMenu/UserMenuContent"
+import { UserAvatarWithCrown } from "@/renderer/layout/UserMenu/user-avatar-with-crown"
 import { useOpenLoginWindow } from "@/renderer/layout/hooks/useOpenLoginWindow"
 import { cn } from "@/renderer/lib/utils"
 import { getStatusExpires } from "@/renderer/request"
@@ -35,6 +36,7 @@ interface UserMenuProps {
 
 export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
 	const [{ user, isLoggedIn, permissions }] = useAtom(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const isMemberOrStock = checkPermission(
 		permissions,
 		"isMember",
@@ -61,16 +63,22 @@ export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
 	}
 
 	const logoAvatar = isLoggedIn ? (
-		<Avatar className="size-9 rounded-[9px] border border-border">
-			<AvatarImage
-				src={user?.headimgurl}
-				alt={user?.nickname}
-				className="rounded-[9px]"
-			/>
-			<AvatarFallback className="rounded-[9px] bg-muted">
-				<UserRound className="size-[18px]" strokeWidth={1.8} />
-			</AvatarFallback>
-		</Avatar>
+		<UserAvatarWithCrown
+			isLoggedIn={isLoggedIn}
+			isMember={isMember}
+			size="lg"
+		>
+			<Avatar className="size-9 rounded-[9px] border border-border">
+				<AvatarImage
+					src={user?.headimgurl}
+					alt={user?.nickname}
+					className="rounded-[9px]"
+				/>
+				<AvatarFallback className="rounded-[9px] bg-muted">
+					<UserRound className="size-[18px]" strokeWidth={1.8} />
+				</AvatarFallback>
+			</Avatar>
+		</UserAvatarWithCrown>
 	) : (
 		<span className="size-9 rounded-[9px] border border-dashed border-muted-foreground/35 bg-muted/50 grid place-items-center text-muted-foreground transition-colors group-hover:border-foreground/25 group-hover:bg-muted/80 group-hover:text-foreground">
 			<UserRound className="size-[18px]" strokeWidth={1.8} />
@@ -135,10 +143,18 @@ export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
 				)}
 				aria-label={isLoggedIn ? "账户" : "登录"}
 			>
-				<Avatar className="size-[21px] rounded-md">
-					<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
-					<AvatarFallback className="rounded-md text-[9px]">CN</AvatarFallback>
-				</Avatar>
+				<UserAvatarWithCrown
+					isLoggedIn={isLoggedIn}
+					isMember={isMember}
+					size="sm"
+				>
+					<Avatar className="size-[21px] rounded-md">
+						<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
+						<AvatarFallback className="rounded-md text-[9px]">
+							CN
+						</AvatarFallback>
+					</Avatar>
+				</UserAvatarWithCrown>
 			</button>
 		)
 
@@ -177,10 +193,16 @@ export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
 			{isLoggedIn ? (
 				<DropdownMenuTrigger asChild>
 					<Button variant="ghost" className={userMenuButtonClass}>
-						<Avatar className="h-8 w-8 rounded-lg">
-							<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
-							<AvatarFallback className="rounded-lg">CN</AvatarFallback>
-						</Avatar>
+						<UserAvatarWithCrown
+							isLoggedIn={isLoggedIn}
+							isMember={isMember}
+							size="md"
+						>
+							<Avatar className="h-8 w-8 rounded-lg">
+								<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
+								<AvatarFallback className="rounded-lg">CN</AvatarFallback>
+							</Avatar>
+						</UserAvatarWithCrown>
 						<div className="grid flex-1 text-left text-sm leading-tight">
 							<span className="truncate font-semibold">{user?.nickname}</span>
 						</div>

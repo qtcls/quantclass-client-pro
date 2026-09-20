@@ -25,7 +25,11 @@ import {
 	DropdownMenuSeparator,
 } from "@/renderer/components/ui/dropdown-menu"
 import { CREDIT_PAGE } from "@/renderer/constant"
+import { UserAvatarWithCrown } from "@/renderer/layout/UserMenu/user-avatar-with-crown"
 import { useLogout } from "@/renderer/layout/UserMenu/useLogout"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtomValue } from "jotai"
 import { cn } from "@/renderer/lib/utils"
 import type { UserAccountInfo } from "@/shared/types"
 import { LogOut, Sparkles, Zap } from "lucide-react"
@@ -47,6 +51,8 @@ export const UserMenuContent = ({
 	const [promoOpen, setPromoOpen] = useState(false)
 	const navigate = useNavigate()
 	const { openUrl } = window.electronAPI
+	const { permissions, isLoggedIn } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 
 	return (
 		<>
@@ -58,10 +64,16 @@ export const UserMenuContent = ({
 			>
 				<DropdownMenuLabel className="p-0 font-normal">
 					<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-						<Avatar className="h-8 w-8 rounded-lg">
-							<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
-							<AvatarFallback className="rounded-lg">CN</AvatarFallback>
-						</Avatar>
+						<UserAvatarWithCrown
+							isLoggedIn={isLoggedIn}
+							isMember={isMember}
+							size="md"
+						>
+							<Avatar className="h-8 w-8 rounded-lg">
+								<AvatarImage src={user?.headimgurl} alt={user?.nickname} />
+								<AvatarFallback className="rounded-lg">CN</AvatarFallback>
+							</Avatar>
+						</UserAvatarWithCrown>
 						<div className="grid flex-1 text-left text-sm leading-tight">
 							<span className="truncate font-semibold">{user?.nickname}</span>
 						</div>

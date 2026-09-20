@@ -11,13 +11,13 @@
 import { BlacklistPromoContent } from "@/renderer/components/member-promo/content/blacklist"
 import { ConfigMasterPromoContent } from "@/renderer/components/member-promo/content/config-master"
 import { ExclusivePromoContent } from "@/renderer/components/member-promo/content/exclusive"
-import { FrameworkSourcePromoContent } from "@/renderer/components/member-promo/content/framework-source"
 import { FusionLibraryPromoContent } from "@/renderer/components/member-promo/content/fusion-library"
 import { RandomStrategyPromoContent } from "@/renderer/components/member-promo/content/random-strategy"
 import {
 	MemberPromoPlaceholderBody,
 	MemberPromoTabPanel,
 } from "@/renderer/components/member-promo/promo-tab-panel"
+import { MemberPromoTabNavContext } from "@/renderer/components/member-promo/tab-nav-context"
 import {
 	MEMBER_PROMO_TABS,
 	type MemberPromoTabId,
@@ -46,7 +46,7 @@ import {
 } from "@/renderer/components/ui/tabs"
 import { cn } from "@/renderer/lib/utils"
 import { Sparkles } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 interface MemberPromoDialogProps {
 	open: boolean
@@ -64,7 +64,6 @@ function MemberPromoTabBody({
 }) {
 	if (id === "random-strategy") return <RandomStrategyPromoContent />
 	if (id === "config-master") return <ConfigMasterPromoContent />
-	if (id === "framework-source") return <FrameworkSourcePromoContent />
 	if (id === "blacklist") return <BlacklistPromoContent />
 	if (id === "fusion-library") return <FusionLibraryPromoContent />
 	if (id === "exclusive") return <ExclusivePromoContent />
@@ -88,6 +87,13 @@ export function MemberPromoDialog({
 		if (open) setActiveTab(mappedTab)
 	}, [open, mappedTab])
 
+	const tabNav = useMemo(
+		() => ({
+			goToTab: (tabId: MemberPromoTabId) => setActiveTab(tabId),
+		}),
+		[],
+	)
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className={memberPromoDialogClassName}>
@@ -99,45 +105,47 @@ export function MemberPromoDialog({
 				<div className={memberPromoDialogInnerClassName}>
 					<div aria-hidden className={memberPromoShimmerOverlayClassName} />
 
-					<Tabs
-						value={activeTab}
-						onValueChange={(value) => setActiveTab(value as MemberPromoTabId)}
-						className="relative z-10 flex min-h-0 flex-1 flex-col px-5 pb-4 pt-3"
-					>
-						<div className={cn(memberPromoHeaderClassName, "pr-8")}>
-							<div className={memberPromoIconBadgeClassName}>
-								<Sparkles
-									className="size-3.5 text-violet-500"
-									strokeWidth={1.75}
-								/>
+					<MemberPromoTabNavContext.Provider value={tabNav}>
+						<Tabs
+							value={activeTab}
+							onValueChange={(value) => setActiveTab(value as MemberPromoTabId)}
+							className="relative z-10 flex min-h-0 flex-1 flex-col px-5 pb-4 pt-3"
+						>
+							<div className={cn(memberPromoHeaderClassName, "pr-8")}>
+								<div className={memberPromoIconBadgeClassName}>
+									<Sparkles
+										className="size-3.5 text-violet-500"
+										strokeWidth={1.75}
+									/>
+								</div>
+								<span className="text-sm font-semibold">分享会专享功能</span>
 							</div>
-							<span className="text-sm font-semibold">分享会专享功能</span>
-						</div>
 
-						<TabsList className="h-auto w-full shrink-0 items-end justify-start gap-0 overflow-x-auto bg-transparent p-0">
-							{MEMBER_PROMO_TABS.map((tab) => (
-								<TabsTrigger
-									key={tab.id}
-									value={tab.id}
-									className={memberPromoTabClassName}
-								>
-									{tab.label}
-								</TabsTrigger>
-							))}
-						</TabsList>
+							<TabsList className="h-auto w-full shrink-0 items-end justify-start gap-0 overflow-x-auto bg-transparent p-0">
+								{MEMBER_PROMO_TABS.map((tab) => (
+									<TabsTrigger
+										key={tab.id}
+										value={tab.id}
+										className={memberPromoTabClassName}
+									>
+										{tab.label}
+									</TabsTrigger>
+								))}
+							</TabsList>
 
-						<div className={memberPromoContentPanelClassName}>
-							{MEMBER_PROMO_TABS.map((tab) => (
-								<TabsContent
-									key={tab.id}
-									value={tab.id}
-									className="mt-0 h-full min-h-0 focus-visible:ring-0"
-								>
-									<MemberPromoTabBody id={tab.id} label={tab.label} />
-								</TabsContent>
-							))}
-						</div>
-					</Tabs>
+							<div className={memberPromoContentPanelClassName}>
+								{MEMBER_PROMO_TABS.map((tab) => (
+									<TabsContent
+										key={tab.id}
+										value={tab.id}
+										className="mt-0 h-full min-h-0 focus-visible:ring-0"
+									>
+										<MemberPromoTabBody id={tab.id} label={tab.label} />
+									</TabsContent>
+								))}
+							</div>
+						</Tabs>
+					</MemberPromoTabNavContext.Provider>
 				</div>
 			</DialogContent>
 		</Dialog>

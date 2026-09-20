@@ -8,10 +8,6 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import {
-	MemberPromoBanner,
-	MemberPromoDialog,
-} from "@/renderer/components/member-promo"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
 import {
@@ -31,10 +27,7 @@ import { H4 } from "@/renderer/components/ui/typography"
 import { useBuyBlacklist } from "@/renderer/hooks/useBuyBlacklist"
 import { cn } from "@/renderer/lib/utils"
 import BuyBlacklistAddInput from "@/renderer/page/trading/buy-blacklist/add-input"
-import { userAtom } from "@/renderer/store/user"
 import type { BlacklistItem } from "@/renderer/types/trading"
-import { checkPermission } from "@/shared/lib/permission"
-import { useAtomValue } from "jotai"
 import { CircleSlash2, ShieldBan, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -43,9 +36,6 @@ export default function BuyBlacklist({
 	titleSize,
 }: { titleSize?: string | null }) {
 	const { buyBlacklist: blacklist, removeBlacklistItem } = useBuyBlacklist()
-	const { permissions } = useAtomValue(userAtom)
-	const isMember = checkPermission(permissions, "isMember")
-	const [promoOpen, setPromoOpen] = useState(false)
 	const [deletePopoverOpen, setDeletePopoverOpen] = useState<string | null>(
 		null,
 	)
@@ -102,24 +92,12 @@ export default function BuyBlacklist({
 						<ShieldBan />
 						买入黑名单
 					</div>
-					{!isMember && (
-						<MemberPromoBanner
-							learnMoreLabel="了解条件黑名单？"
-							onLearnMore={() => setPromoOpen(true)}
-						/>
-					)}
 				</div>
 			) : (
 				<div className="flex w-full items-center gap-3">
 					<H4 className="flex shrink-0 items-center gap-2">
 						<ShieldBan size={24} /> 买入黑名单
 					</H4>
-					{!isMember && (
-						<MemberPromoBanner
-							learnMoreLabel="了解条件黑名单？"
-							onLearnMore={() => setPromoOpen(true)}
-						/>
-					)}
 				</div>
 			)}
 
@@ -206,11 +184,6 @@ export default function BuyBlacklist({
 					</TableBody>
 				</Table>
 			)}
-			<MemberPromoDialog
-				open={promoOpen}
-				onOpenChange={setPromoOpen}
-				featureName="条件不买入（涨跌幅限制）"
-			/>
 		</>
 	)
 }

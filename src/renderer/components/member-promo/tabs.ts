@@ -12,11 +12,9 @@ export const MEMBER_PROMO_TAB_IDS = [
 	"intro",
 	"random-strategy",
 	"config-master",
-	"framework-source",
 	"blacklist",
 	"fusion-library",
 	"exclusive",
-	"stock-timing",
 ] as const
 
 export type MemberPromoTabId = (typeof MEMBER_PROMO_TAB_IDS)[number]
@@ -30,11 +28,9 @@ export const MEMBER_PROMO_TABS: MemberPromoTabDef[] = [
 	{ id: "intro", label: "分享会介绍" },
 	{ id: "random-strategy", label: "精心随机策略库" },
 	{ id: "config-master", label: "Config大师" },
-	{ id: "framework-source", label: "框架源码" },
 	{ id: "blacklist", label: "条件黑名单" },
-	{ id: "fusion-library", label: "综合策略库" },
+	{ id: "fusion-library", label: "分享会专属策略库" },
 	{ id: "exclusive", label: "分享会策略专属功能" },
-	{ id: "stock-timing", label: "个股择时" },
 ]
 
 const DEFAULT_TAB: MemberPromoTabId = "intro"
@@ -44,17 +40,17 @@ const FEATURE_TO_TAB: Record<string, MemberPromoTabId> = {
 	精心随机策略库: "random-strategy",
 	Config大师: "config-master",
 	"config 大师": "config-master",
-	框架源码: "framework-source",
 	买入黑名单: "blacklist",
 	"条件不买入（涨跌幅限制）": "blacklist",
 	条件黑名单: "blacklist",
 	综合策略库: "fusion-library",
+	分享会专属策略库: "fusion-library",
 	分享会专属功能: "exclusive",
 	后置过滤因子: "exclusive",
 	截面因子: "exclusive",
 	"择时开仓/离场": "exclusive",
 	换仓时间点: "exclusive",
-	个股择时: "stock-timing",
+	个股择时: "exclusive",
 	分享会介绍: "intro",
 }
 

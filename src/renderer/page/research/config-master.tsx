@@ -8,7 +8,6 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { MemberPromoBanner } from "@/renderer/components/member-promo"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
 import {
@@ -30,9 +29,7 @@ import { cn } from "@/renderer/lib/utils"
 import { getKernelStatus } from "@/renderer/page/home/kernel-status"
 import { isUpdatingAtom } from "@/renderer/store"
 import { monitorProcessesQueryAtom } from "@/renderer/store/query"
-import { userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsAtom } from "@/renderer/store/versions"
-import { checkPermission } from "@/shared/lib/permission"
 import type { RepoDownloadRecord } from "@/shared/types/repo"
 import { useQuery } from "@tanstack/react-query"
 import { useAtom, useAtomValue } from "jotai"
@@ -337,8 +334,6 @@ function ConfigMasterLaunchDialog({
 export default function ResearchConfigMasterPage({
 	className,
 }: ResearchConfigMasterPageProps) {
-	const { permissions } = useAtomValue(userAtom)
-	const isMember = checkPermission(permissions, "isMember")
 	const versions = useAtomValue(versionsAtom)
 	const { refetchLocalVersions } = useLocalVersions()
 	const invokeUpdateKernal = useInvokeUpdateKernal()
@@ -420,9 +415,6 @@ export default function ResearchConfigMasterPage({
 							<PackageCheck className="h-5 w-5 text-muted-foreground" />
 							<h2 className="font-semibold text-xl">config 大师</h2>
 						</div>
-						{!isMember ? (
-							<MemberPromoBanner learnMoreLabel="如何成为Config大师?" />
-						) : null}
 					</div>
 					<p className="text-sm text-muted-foreground">
 						下载并管理 config

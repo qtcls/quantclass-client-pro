@@ -25,48 +25,105 @@ import {
 	CarouselPrevious,
 } from "@/renderer/components/ui/carousel"
 import { cn } from "@/renderer/lib/utils"
-import type { ReactNode } from "react"
+import { type ReactNode, useMemo, useState } from "react"
+import Lightbox from "yet-another-react-lightbox"
+import Captions from "yet-another-react-lightbox/plugins/captions"
+import "yet-another-react-lightbox/plugins/captions.css"
+import "yet-another-react-lightbox/styles.css"
+
+export interface MemberPromoImage {
+	src: string
+	caption?: string
+}
 
 interface MemberPromoTabPanelProps {
 	title: string
-	images?: string[]
+	images?: Array<string | MemberPromoImage>
 	children: ReactNode
 }
 
-function PromoImageCarousel({ images }: { images: string[] }) {
-	if (images.length === 0) {
+function normalizeImages(
+	images: Array<string | MemberPromoImage>,
+): MemberPromoImage[] {
+	return images.map((image) =>
+		typeof image === "string" ? { src: image } : image,
+	)
+}
+
+function PromoImageCarousel({
+	images,
+}: {
+	images: Array<string | MemberPromoImage>
+}) {
+	const items = useMemo(() => normalizeImages(images), [images])
+	const [lightboxIndex, setLightboxIndex] = useState(-1)
+	const slides = useMemo(
+		() =>
+			items.map((item) => ({
+				src: item.src,
+				alt: item.caption ?? "",
+				title: item.caption,
+			})),
+		[items],
+	)
+
+	if (items.length === 0) {
 		return (
 			<div className={memberPromoCarouselPlaceholderClassName}>图片待补充</div>
 		)
 	}
 
-	const hasMultiple = images.length > 1
+	const hasMultiple = items.length > 1
 
 	return (
-		<div className={memberPromoCarouselFrameClassName}>
-			<Carousel opts={{ loop: hasMultiple }} className="w-full px-10">
-				<CarouselContent className="-ml-0">
-					{images.map((src, index) => (
-						<CarouselItem
-							key={`${src}-${index}`}
-							className="flex pl-0 items-center justify-center"
-						>
-							<img
-								src={src}
-								alt=""
-								className="mx-auto max-h-[min(48vh,420px)] max-w-full rounded-lg object-contain"
-							/>
-						</CarouselItem>
-					))}
-				</CarouselContent>
-				{hasMultiple && (
-					<>
-						<CarouselPrevious className="-left-1 top-1/2 h-8 w-8 -translate-y-1/2 bg-white/90 hover:bg-white dark:bg-background/90" />
-						<CarouselNext className="-right-1 top-1/2 h-8 w-8 -translate-y-1/2 bg-white/90 hover:bg-white dark:bg-background/90" />
-					</>
-				)}
-			</Carousel>
-		</div>
+		<>
+			<div className={memberPromoCarouselFrameClassName}>
+				<Carousel opts={{ loop: hasMultiple }} className="w-full px-10">
+					<CarouselContent className="-ml-0">
+						{items.map((item, index) => (
+							<CarouselItem
+								key={`${item.src}-${index}`}
+								className="flex flex-col items-center justify-center gap-2 pl-0"
+							>
+								<button
+									type="button"
+									className="group cursor-zoom-in"
+									onClick={() => setLightboxIndex(index)}
+								>
+									<img
+										src={item.src}
+										alt={item.caption ?? ""}
+										className="mx-auto max-h-[min(48vh,420px)] max-w-full rounded-lg object-contain transition-opacity group-hover:opacity-90"
+									/>
+								</button>
+								{item.caption ? (
+									<p className="text-center text-sm text-muted-foreground">
+										{item.caption}
+									</p>
+								) : null}
+							</CarouselItem>
+						))}
+					</CarouselContent>
+					{hasMultiple && (
+						<>
+							<CarouselPrevious className="-left-1 top-1/2 h-8 w-8 -translate-y-1/2 bg-white/90 hover:bg-white dark:bg-background/90" />
+							<CarouselNext className="-right-1 top-1/2 h-8 w-8 -translate-y-1/2 bg-white/90 hover:bg-white dark:bg-background/90" />
+						</>
+					)}
+				</Carousel>
+			</div>
+
+			<Lightbox
+				open={lightboxIndex >= 0}
+				index={lightboxIndex}
+				close={() => setLightboxIndex(-1)}
+				slides={slides}
+				plugins={[Captions]}
+				captions={{ showToggle: false }}
+				carousel={{ finite: !hasMultiple }}
+				controller={{ closeOnBackdropClick: true }}
+			/>
+		</>
 	)
 }
 
@@ -117,7 +174,9 @@ export function MemberPromoTabPanel({
 				<PromoImageCarousel images={images} />
 			</div>
 
-			<div className="mt-4 text-sm leading-relaxed">{children}</div>
+			<div className="mt-4 text-sm leading-relaxed text-neutral-800 dark:text-neutral-100">
+				{children}
+			</div>
 		</div>
 	)
 }

@@ -8,20 +8,14 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import {
-	MemberPromoBanner,
-	MemberPromoGate,
-} from "@/renderer/components/member-promo"
+import { MemberPromoGate } from "@/renderer/components/member-promo"
 import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { ResearchCenterPage } from "@/renderer/page/research"
 import ResearchConfigMasterPage, {
 	useLaunchConfigMaster,
 } from "@/renderer/page/research/config-master"
-import { userAtom } from "@/renderer/store/user"
-import { checkPermission } from "@/shared/lib/permission"
 import type { RepoDownloadRecord } from "@/shared/types/repo"
-import { useAtomValue } from "jotai"
 import { Loader2, Play } from "lucide-react"
 import { useEffect } from "react"
 
@@ -61,43 +55,27 @@ function LaunchConfigMasterForFrameworkButton({
 }
 
 export default function ResearchFrameworkSourcePage() {
-	const { permissions } = useAtomValue(userAtom)
-	const isMember = checkPermission(permissions, "isMember")
-
 	useEffect(() => {
 		void window.electronAPI.writeFrameworkClientEnv()
 	}, [])
 
 	return (
-		<div className="flex h-full flex-1 flex-col space-y-6">
-			<MemberPromoGate
-				featureName="Config大师"
-				showBanner={false}
-				className="shrink-0"
-			>
-				<ResearchConfigMasterPage />
-			</MemberPromoGate>
-
-			<MemberPromoGate
-				featureName="框架源码"
-				showBanner={false}
-				className="min-h-0 flex-1"
-			>
+		<MemberPromoGate
+			featureName="Config大师"
+			learnMoreLabel="如何成为Config大师?"
+		>
+			<div className="flex h-full flex-1 flex-col space-y-6">
+				<ResearchConfigMasterPage className="shrink-0" />
 				<ResearchCenterPage
 					apiType="basic-code"
 					title="框架源码"
 					description="管理本地已下载的框架源码，或下载新版本到框架库"
 					className="min-h-0 flex-1"
-					headerAddon={
-						!isMember ? (
-							<MemberPromoBanner learnMoreLabel="了解框架源码？" />
-						) : undefined
-					}
 					recordActions={({ record }) => (
 						<LaunchConfigMasterForFrameworkButton record={record} />
 					)}
 				/>
-			</MemberPromoGate>
-		</div>
+			</div>
+		</MemberPromoGate>
 	)
 }

@@ -125,7 +125,10 @@ export default function BuyBlacklistAddConfirm({
 	return (
 		<>
 			<Dialog open={show} onOpenChange={setShow}>
-				<DialogContent className="max-w-lg">
+				<DialogContent
+					className="max-w-lg"
+					onOpenAutoFocus={(e) => e.preventDefault()}
+				>
 					<DialogHeader>
 						<DialogTitle>确认拉黑{stockCode}？</DialogTitle>
 						<DialogDescription>请补充拉黑的条件和细节</DialogDescription>
@@ -149,7 +152,7 @@ export default function BuyBlacklistAddConfirm({
 									</div>
 									{!isMember ? (
 										<MemberPromoBanner
-											learnMoreLabel="有哪些条件？"
+											learnMoreLabel="了解条件黑名单？"
 											onLearnMore={() => setPromoOpen(true)}
 										/>
 									) : null}

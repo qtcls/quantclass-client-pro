@@ -160,13 +160,15 @@ async function openEmbeddedPortalWindow({
 	win = windowManager.createChildWindow(windowId, {
 		width: 960,
 		height: 720,
+		autoHideMenuBar: true,
 		title,
+		frame: true,
+		titleBarStyle: "default",
 		webPreferences: {
 			preload: undefined,
 			nodeIntegration: false,
 			contextIsolation: true,
 			sandbox: true,
-			webSecurity: true,
 		},
 	})
 

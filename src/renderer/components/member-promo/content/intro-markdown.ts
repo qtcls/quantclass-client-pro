@@ -8,9 +8,9 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-export const INTRO_PROMO_MARKDOWN = `如果你一直在等待，又经过之前课程的学习，相信我的交付可以一如既往的超出预期，可以直接点击 **<font color="#F96E57">微信支付</font>** 按钮进行购买。
+export const INTRO_PROMO_LEAD_MARKDOWN = `如果你一直在等待，又经过之前课程的学习，相信我的交付可以一如既往的超出预期，可以直接点击 **<font color="#F96E57">立即购买</font>** 按钮进行购买。`
 
-# 一、策略分享会概览
+export const INTRO_PROMO_MARKDOWN = `# 一、策略分享会概览
 
 策略分享会专注 **<font color="#F96E57">量化策略</font>** 分享、共研、模型和技术服务。
 

@@ -49,7 +49,7 @@ export const memberPromoContentPanelClassName =
 
 export const memberPromoTabBarClassName = cn(
 	"-mx-1 shrink-0 border-border bg-transparent pr-10",
-	"[&>div]:overflow-x-auto [&>div]:flex-nowrap [&>div]:px-0",
+	"[&>div]:flex-nowrap [&>div]:overflow-x-auto [&>div]:overflow-y-hidden [&>div]:px-0",
 	"[&_button.border-foreground]:!bg-transparent [&_button.border-foreground]:!border-b-[3px] [&_button.border-foreground]:-mb-px",
 )
 

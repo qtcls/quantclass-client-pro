@@ -8,12 +8,13 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-export const FEN_CLASS_URL = "https://www.quantclass.cn/fen/class/fen-2026"
+export const FEN_CLASS_URL =
+	"https://pay.quantclass.cn/product/896c3a45-938d-46b6-9755-dbc7aeffa999"
 
 export const FEN_CLASS_URL_BY_YEAR = {
-	2024: "https://www.quantclass.cn/fen/class/fen-2024",
-	2025: "https://www.quantclass.cn/fen/class/fen-2025",
-	2026: "https://www.quantclass.cn/fen/class/fen-2026",
+	2024: "https://bbs.quantclass.cn/thread/46409",
+	2025: "https://pay.quantclass.cn/product/e4bde609-73d7-434b-8e82-5614c4521629",
+	2026: "https://pay.quantclass.cn/product/896c3a45-938d-46b6-9755-dbc7aeffa999",
 } as const
 
 export const FEN_CLASS_LINKS = [

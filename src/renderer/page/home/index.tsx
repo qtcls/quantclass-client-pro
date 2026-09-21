@@ -8,14 +8,14 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { useAlertDialog } from "@/renderer/context/alert-dialog"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
+import { useAlertDialog } from "@/renderer/context/alert-dialog"
+import { BasicCourseHome } from "@/renderer/page/home/basic-course-home"
 import { DataCard } from "@/renderer/page/home/data-card"
 import { OverviewDateBadge } from "@/renderer/page/home/overview-date-badge"
 import { OverviewMetrics } from "@/renderer/page/home/overview-metrics"
 import { ResearchCard } from "@/renderer/page/home/research-card"
 import { TradingCard } from "@/renderer/page/home/trading-card"
-import { BasicCourseHome } from "@/renderer/page/home/basic-course-home"
 import { showFinanceInfoAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import { userAtom } from "@/renderer/store/user"

@@ -8,6 +8,12 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { ThemeCustomizer } from "@/renderer/components/theme-customizer"
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@/renderer/components/ui/avatar"
 import {
 	DATA_SECTION_ROUTE,
 	HOME_PAGE,
@@ -15,12 +21,6 @@ import {
 	SETTINGS_PAGE,
 	TRADING_SECTION_ROUTE,
 } from "@/renderer/constant"
-import { ThemeCustomizer } from "@/renderer/components/theme-customizer"
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@/renderer/components/ui/avatar"
 import { UserMenu } from "@/renderer/layout/UserMenu"
 import { cn } from "@/renderer/lib/utils"
 import { activeTabAtom } from "@/renderer/store"

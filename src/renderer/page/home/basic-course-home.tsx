@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
 import { MemberPromoDialog } from "@/renderer/components/member-promo"
 import {
 	memberPromoBorderClassName,
@@ -17,37 +18,48 @@ import {
 	memberPromoShimmerOverlayClassName,
 	memberPromoTextClassName,
 } from "@/renderer/components/member-promo/theme"
-import { useProductList } from "@/renderer/hooks/useProductList"
 import {
 	DATA_SECTION_ROUTE,
+	BBS_BASE_URL,
 	QUESTION_FEEDBACK_PAGE,
 	TRADING_SECTION_ROUTE,
 } from "@/renderer/constant"
-import { isUpdatingAtom } from "@/renderer/store"
+import { useProductList } from "@/renderer/hooks/useProductList"
+import { cn } from "@/renderer/lib/utils"
+import { isUpdatingAtom, showFinanceInfoAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import {
 	realMarketConfigSchemaAtom,
 	selectStgListAtom,
 } from "@/renderer/store/storage"
-import { cn } from "@/renderer/lib/utils"
 import { canIncrementalUpdate } from "@/renderer/utils/data-sync-status"
 import { useAtom, useAtomValue } from "jotai"
-import { ArrowRight, ExternalLink, RefreshCw, Sparkles } from "lucide-react"
+import { ArrowRight, Eye, EyeOff, ExternalLink, RefreshCw, Sparkles } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router"
+import { toast } from "sonner"
 
-const { openUrl } = window.electronAPI
+const { openUrl, openBbsPortal, openQuantPalPortal } = window.electronAPI
 
-const LEARNING_LINKS = [
+interface LearningLink {
+	label: string
+	desc: string
+	url: string
+	portal?: "bbs" | "quantpal"
+}
+
+const LEARNING_LINKS: LearningLink[] = [
 	{
 		label: "量搭子·QuantPal",
 		desc: "前往回测网站，验证策略思路",
-		url: "https://www.quantclass.cn/backtest",
+		url: "",
+		portal: "quantpal",
 	},
 	{
 		label: "量化论坛",
 		desc: "交流策略思路，讨论学习问题",
-		url: "https://bbs.quantclass.cn/",
+		url: BBS_BASE_URL,
+		portal: "bbs",
 	},
 	{
 		label: "课程主页",
@@ -55,6 +67,26 @@ const LEARNING_LINKS = [
 		url: "https://www.quantclass.cn/",
 	},
 ]
+
+async function openLearningLink(link: LearningLink) {
+	if (link.portal === "bbs") {
+		const result = await openBbsPortal(BBS_BASE_URL)
+		if (!result.success) {
+			toast.error(result.message || "打开量化论坛失败")
+		}
+		return
+	}
+
+	if (link.portal === "quantpal") {
+		const result = await openQuantPalPortal()
+		if (!result.success) {
+			toast.error(result.message || "打开量搭子失败")
+		}
+		return
+	}
+
+	openUrl(link.url)
+}
 
 function DataCenterCard() {
 	const navigate = useNavigate()
@@ -75,14 +107,13 @@ function DataCenterCard() {
 				? "数据就绪"
 				: "待更新"
 
-	const syncStateClass =
-		isUpdating
-			? "text-blue-600"
-			: subscribedCount === 0
-				? "text-muted-foreground"
-				: laggingCount === 0
-					? "text-green-600"
-					: "text-amber-500"
+	const syncStateClass = isUpdating
+		? "text-blue-600"
+		: subscribedCount === 0
+			? "text-muted-foreground"
+			: laggingCount === 0
+				? "text-green-600"
+				: "text-amber-500"
 
 	return (
 		<div className="overflow-hidden rounded-xl border border-border bg-background flex flex-col hover:border-foreground/30 transition-colors">
@@ -157,7 +188,7 @@ function DataCenterCard() {
 	)
 }
 
-function TradingStatusCard() {
+function TradingStatusCard({ showFinanceInfo }: { showFinanceInfo: boolean }) {
 	const navigate = useNavigate()
 	const [{ data: accountData }] = useAtom(loadAccountQueryAtom)
 	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
@@ -173,8 +204,10 @@ function TradingStatusCard() {
 	const availableFunds = accountRecord?.可用资金 ?? null
 	const todayPnl = accountRecord?.今日盈亏 ?? null
 
-	const formatMoney = (value: number | null) =>
-		value != null ? `¥${value.toLocaleString()}` : "—"
+	const formatMoney = (value: number | null) => {
+		if (!showFinanceInfo) return "****"
+		return value != null ? `¥${value.toLocaleString()}` : "—"
+	}
 
 	return (
 		<div className="overflow-hidden rounded-xl border border-border bg-background flex flex-col hover:border-foreground/30 transition-colors">
@@ -189,7 +222,11 @@ function TradingStatusCard() {
 				<div>
 					<div className="text-sm font-semibold">交易账户</div>
 					<div className="mt-0.5 text-xs text-muted-foreground">
-						{hasAccount ? accountId : "尚未连接券商账户"}
+						{hasAccount
+							? showFinanceInfo
+								? accountId
+								: "****"
+							: "尚未连接券商账户"}
 					</div>
 				</div>
 
@@ -253,17 +290,17 @@ function LearningCard() {
 			</div>
 
 			<div className="flex-1 flex flex-col">
-				{LEARNING_LINKS.map(({ label, desc, url }, i) => (
+				{LEARNING_LINKS.map((link, i) => (
 					<button
-						key={label}
+						key={link.label}
 						type="button"
-						onClick={() => openUrl(url)}
+						onClick={() => void openLearningLink(link)}
 						className={`flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 ${i > 0 ? "border-t border-border" : ""}`}
 					>
 						<span className="min-w-0 flex-1">
-							<span className="block text-sm font-semibold">{label}</span>
+							<span className="block text-sm font-semibold">{link.label}</span>
 							<span className="mt-0.5 block text-xs text-muted-foreground">
-								{desc}
+								{link.desc}
 							</span>
 						</span>
 						<ExternalLink
@@ -290,14 +327,26 @@ function BasicCourseHomeFooter() {
 			<div className="flex items-center gap-4">
 				<button
 					type="button"
-					onClick={() => openUrl(QUESTION_FEEDBACK_PAGE)}
+					onClick={() =>
+						void openBbsPortal(QUESTION_FEEDBACK_PAGE).then((result) => {
+							if (!result.success) {
+								toast.error(result.message || "打开量化论坛失败")
+							}
+						})
+					}
 					className="hover:text-foreground transition-colors"
 				>
 					问题反馈
 				</button>
 				<button
 					type="button"
-					onClick={() => openUrl("https://bbs.quantclass.cn/")}
+					onClick={() =>
+						void openBbsPortal(BBS_BASE_URL).then((result) => {
+							if (!result.success) {
+								toast.error(result.message || "打开量化论坛失败")
+							}
+						})
+					}
 					className="hover:text-foreground transition-colors"
 				>
 					社区交流
@@ -309,7 +358,9 @@ function BasicCourseHomeFooter() {
 
 export function BasicCourseHome() {
 	const [promoOpen, setPromoOpen] = useState(false)
-	const [{ refetch: refetchAccount, isFetching }] = useAtom(loadAccountQueryAtom)
+	const [showFinanceInfo, setShowFinanceInfo] = useAtom(showFinanceInfoAtom)
+	const [{ refetch: refetchAccount, isFetching }] =
+		useAtom(loadAccountQueryAtom)
 
 	return (
 		<div className="flex-1 overflow-y-auto px-6 py-5">
@@ -320,19 +371,36 @@ export function BasicCourseHome() {
 						准备数据，运行实盘，继续你的量化学习。
 					</p>
 				</div>
-				<button
-					type="button"
-					onClick={() => void refetchAccount()}
-					className="flex items-center gap-1.5 text-sm border border-border bg-background px-3.5 py-2 rounded-md text-foreground hover:bg-muted/50 transition-colors mt-1"
-				>
-					<RefreshCw size={14} strokeWidth={1.9} className={isFetching ? "animate-spin" : ""} />
-					刷新状态
-				</button>
+				<div className="mt-1 flex items-center gap-2">
+					<ButtonTooltip
+						content={showFinanceInfo ? "隐藏资金相关信息" : "显示资金相关信息"}
+					>
+						<button
+							type="button"
+							onClick={() => setShowFinanceInfo((prev) => !prev)}
+							className="h-9 w-9 rounded-md border border-border bg-background grid place-items-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+						>
+							{showFinanceInfo ? <Eye size={16} /> : <EyeOff size={16} />}
+						</button>
+					</ButtonTooltip>
+					<button
+						type="button"
+						onClick={() => void refetchAccount()}
+						className="flex items-center gap-1.5 text-sm border border-border bg-background px-3.5 py-2 rounded-md text-foreground hover:bg-muted/50 transition-colors"
+					>
+						<RefreshCw
+							size={14}
+							strokeWidth={1.9}
+							className={isFetching ? "animate-spin" : ""}
+						/>
+						刷新状态
+					</button>
+				</div>
 			</div>
 
 			<div className="mb-4 grid grid-cols-3 gap-4">
 				<DataCenterCard />
-				<TradingStatusCard />
+				<TradingStatusCard showFinanceInfo={showFinanceInfo} />
 				<LearningCard />
 			</div>
 
@@ -380,10 +448,7 @@ export function BasicCourseHome() {
 
 			<BasicCourseHomeFooter />
 
-			<MemberPromoDialog
-				open={promoOpen}
-				onOpenChange={setPromoOpen}
-			/>
+			<MemberPromoDialog open={promoOpen} onOpenChange={setPromoOpen} />
 		</div>
 	)
 }

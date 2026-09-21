@@ -20,6 +20,12 @@ export const CRM_BASE_URL =
 /** 支付平台api地址 */
 export const PAYMENT_GATEWAY_URL = "https://api.quantclass.net"
 
+/** 量化论坛 */
+export const BBS_BASE_URL = "https://bbs.quantclass.cn"
+
+/** 量搭子 QuantPal（回测网站） */
+export const QUANTPAL_BASE_URL = "https://quantpal.cn"
+
 // 应用版本信息
 export const CLIENT_VERSION = `v${pkg.version}`
 export const PACKAGE_INFO = pkg

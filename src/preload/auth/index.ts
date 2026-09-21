@@ -32,6 +32,22 @@ export const authIPC = {
 		message?: string
 	}> => ipcRenderer.invoke("auth:open-payment-client-portal"),
 
+	// -- 在内嵌窗口打开量化论坛（token 通过 URL 传递）
+	openBbsPortal: (
+		redirect?: string,
+	): Promise<{
+		success: boolean
+		message?: string
+	}> => ipcRenderer.invoke("auth:open-bbs-portal", redirect),
+
+	// -- 在内嵌窗口打开量搭子 QuantPal（token 通过 URL 传递）
+	openQuantPalPortal: (
+		redirect?: string,
+	): Promise<{
+		success: boolean
+		message?: string
+	}> => ipcRenderer.invoke("auth:open-quantpal-portal", redirect),
+
 	// -- 渲染端订阅主进程推送的会话失效事件
 	onSessionInvalid: (cb: () => void): (() => void) => {
 		const listener = () => cb()

@@ -37,11 +37,7 @@ interface UserMenuProps {
 export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
 	const [{ user, isLoggedIn, permissions }] = useAtom(userAtom)
 	const isMember = checkPermission(permissions, "isMember")
-	const isMemberOrStock = checkPermission(
-		permissions,
-		"isMember",
-		"isStock",
-	)
+	const isMemberOrStock = checkPermission(permissions, "isMember", "isStock")
 	const setStatusExpires = useSetAtom(statusExpiresAtom)
 	const setIsLogin = useSetAtom(isLoginAtom)
 	const { requestLogin, canOpenLogin } = useOpenLoginWindow()
@@ -63,11 +59,7 @@ export const UserMenu = ({ variant = "header" }: UserMenuProps) => {
 	}
 
 	const logoAvatar = isLoggedIn ? (
-		<UserAvatarWithCrown
-			isLoggedIn={isLoggedIn}
-			isMember={isMember}
-			size="lg"
-		>
+		<UserAvatarWithCrown isLoggedIn={isLoggedIn} isMember={isMember} size="lg">
 			<Avatar className="size-9 rounded-[9px] border border-border">
 				<AvatarImage
 					src={user?.headimgurl}

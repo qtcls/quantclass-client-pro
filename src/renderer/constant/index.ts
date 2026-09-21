@@ -53,6 +53,8 @@ export const CREDIT_PAGE = "/credit"
 export const DATA_SECTION_ROUTE = "/data-section"
 export const TRADING_SECTION_ROUTE = "/trading-section"
 export const RESEARCH_SECTION_ROUTE = "/research-section"
+// 量化论坛
+export const BBS_BASE_URL = "https://bbs.quantclass.cn"
 // 问题反馈
 export const QUESTION_FEEDBACK_PAGE = "https://bbs.quantclass.cn/thread/48835"
 

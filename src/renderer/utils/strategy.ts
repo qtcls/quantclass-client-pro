@@ -80,29 +80,12 @@ export const processOffsetList = (offsetListStr: string): number[] => {
 // }
 
 const genSelectStgInfo = (strategy: SelectStgType, includeInfo = true) => {
+	const { info, ...rest } = strategy
+
 	return {
-		name: strategy.name,
-		remark_name: strategy.remark_name ?? "",
-		cap_weight: strategy.cap_weight,
-		hold_period: strategy.hold_period,
-		offset_list: strategy.offset_list,
-		select_num: Number.parseInt(String(strategy.select_num)),
-		factor_list: strategy.factor_list,
-		filter_list: strategy.filter_list,
-		...(strategy.filter_list_post !== undefined
-			? { filter_list_post: strategy.filter_list_post }
-			: {}), // -- 后置过滤配置
-		...(strategy.cross_sections !== undefined
-			? { cross_sections: strategy.cross_sections }
-			: {}), // -- 截面因子配置
-		...(strategy.stock_timing_list !== undefined
-			? { stock_timing_list: strategy.stock_timing_list }
-			: {}), // -- 个股择时配置
-		rebalance_time: strategy.rebalance_time,
-		timing: strategy.timing ?? null,
-		scalein_targets: strategy.scalein_targets ?? null,
-		override: strategy.override ?? null,
-		...(includeInfo ? { info: strategy.info ?? {} } : {}), // -- 根据参数决定是否包含info字段
+		...rest,
+		select_num: Number.parseInt(String(rest.select_num)),
+		...(includeInfo ? { info: info ?? {} } : {}),
 	}
 }
 

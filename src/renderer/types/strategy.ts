@@ -17,27 +17,18 @@ import type {
 import type { TimeValue } from "react-aria"
 import type { z } from "zod"
 
-export type BasicSelectStgType = z.infer<typeof BasicSelectStgSchema> & {
-	type?: "select"
-}
+export type BasicSelectStgType = z.infer<typeof BasicSelectStgSchema>
 
-export type BasicTimingStgType = z.infer<typeof BasicTimingStgSchema> & {
-	type?: "timing"
-}
+export type BasicTimingStgType = z.infer<typeof BasicTimingStgSchema>
 
-export type BasicRotationStgType = z.infer<typeof BasicRotationStgSchema> & {
-	type?: "rotation"
-}
+export type BasicRotationStgType = z.infer<typeof BasicRotationStgSchema>
 
 export type BasicStgType =
 	| BasicSelectStgType
 	| BasicTimingStgType
 	| BasicRotationStgType
 
-export type SelectStgType = z.infer<typeof SelectStgSchema> & {
-	type?: "select"
-	strategy_type: "select"
-}
+export type SelectStgType = z.infer<typeof SelectStgSchema>
 
 export type ReTimingType = {
 	name: string

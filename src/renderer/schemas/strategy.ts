@@ -12,17 +12,6 @@ import { BasicSelectStgSchema } from "@/shared/schemas/basic-strategy.js"
 import type { TimeValue } from "react-aria"
 import { z } from "zod"
 
-export {
-	BasicRotationBlockSchema,
-	BasicRotationStgSchema,
-	BasicSelectStgSchema,
-	BasicStgSharedSchema,
-	BasicTimingBlockSchema,
-	BasicTimingStgSchema,
-} from "@/shared/schemas/basic-strategy.js"
-
-// ===== 基础共享字段 =====
-
 export const NameSchema = z.string().min(1, {
 	message: "请输入策略名称",
 })

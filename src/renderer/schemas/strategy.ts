@@ -125,11 +125,11 @@ export const TimeStringSchema = z.string()
 
 export const TimeValueSchema = z.custom<TimeValue>()
 
-// ===== 核心策略字段组合 =====
+// ===== 分享会选股策略 Schema =====
 /**
- * 分享会选股核心配置：在基础选股字段之上扩展会员专属字段
+ * 在基础选股字段之上扩展会员专属字段
  */
-export const CoreStrategySchema = BasicSelectStgSchema.extend({
+export const SelectStgSchema = BasicSelectStgSchema.extend({
 	remark_name: z.string().optional().default(""),
 	cap_weight: z.number().default(0),
 	offset_list: OffsetListSchema,
@@ -141,14 +141,7 @@ export const CoreStrategySchema = BasicSelectStgSchema.extend({
 	override: TimingSchema, // 提前离场逻辑
 })
 
-export const SelectStgSchema = CoreStrategySchema.extend({
-	buy_time: z.string(),
-	sell_time: z.string(),
-	update_time: z.string().optional(),
-	split_order_amount: SplitOrderAmountSchema,
-}).passthrough() // 允许额外的字段
-
-export const SelectStgFormSchema = CoreStrategySchema.omit({ name: true })
+export const SelectStgFormSchema = SelectStgSchema.omit({ name: true })
 	.extend({
 		select_num: SelectNumFormSchema,
 		offset_list: OffsetListFormSchema,

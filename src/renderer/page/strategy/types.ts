@@ -17,9 +17,5 @@ export interface SelectStgFormProps {
 	name: string
 	submitText?: string
 	defaultValues?: Partial<SelectStgFormData>
-	onSave: (
-		data: Omit<SelectStgFormData, "calc_time" | "end_exchange"> & {
-			split_order_amount?: number
-		},
-	) => void
+	onSave: (data: Omit<SelectStgFormData, "split_order_amount">) => void
 }

@@ -15,7 +15,7 @@ import { getJsonDataFromFile } from "@/main/core/dataList.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
 import { userStore } from "@/main/lib/userStore.js"
 import { parsePythonConfig } from "@/main/pythonRunner.js"
-import store, { rStore } from "@/main/store/index.js"
+import store from "@/main/store/index.js"
 import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
@@ -35,8 +35,6 @@ import {
 	ipcMain,
 	shell,
 } from "electron"
-import { keys } from "lodash-es"
-
 async function strategyResultPathHandler(): Promise<void> {
 	ipcMain.handle("strategy-result-path", async (_, mode = "backtest") => {
 		const folder = mode === "backtest" ? "回测结果" : "实盘选股结果"
@@ -164,35 +162,6 @@ async function openUserDirectoryHandler(): Promise<void> {
 function openUrlHandler() {
 	ipcMain.handle("open-url", async (_, url: string) => {
 		await shell.openExternal(url)
-	})
-}
-
-async function saveRealMarketDataHandler(): Promise<void> {
-	ipcMain.handle(
-		"save-real-market-data",
-		async (_, data: Record<string, any>) => {
-			rStore.set(data)
-		},
-	)
-}
-
-async function cleanRealMarketDataHandler(): Promise<void> {
-	ipcMain.handle("clean-real-market-data", async (_Ipc) => {
-		const rStoreKeys = keys(rStore.store)
-		if (rStoreKeys.length > 0) {
-			for (const key of rStoreKeys) {
-				rStore.delete(key)
-			}
-			logger.info(`[real_market] del keys: ${rStoreKeys}`)
-		} else {
-			logger.info("[real_market] 无数据需要清理")
-		}
-	})
-}
-
-async function clearRealMarketDataHandler(): Promise<void> {
-	ipcMain.handle("clear-real-market-data", async () => {
-		rStore.clear()
 	})
 }
 
@@ -839,9 +808,6 @@ export const regFileSysIPC = () => {
 	// checkpythonLockHandler()
 	importSelectStockHandler()
 	importFusionHandler()
-	saveRealMarketDataHandler()
-	cleanRealMarketDataHandler()
-	clearRealMarketDataHandler()
 	createRealTradingDirHandler()
 	strategyResultPathHandler()
 	importPositionHandler()

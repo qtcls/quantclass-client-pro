@@ -9,7 +9,6 @@
  */
 
 import {
-	selectStgDictAtom,
 	selectStgListAtom,
 	stgSelectionAtom,
 } from "@/renderer/store/storage"
@@ -20,7 +19,6 @@ import { toast } from "sonner"
 
 export function useMigrateStrategyData() {
 	const [selectStockStg, setSelectStockStg] = useAtom(selectStgListAtom)
-	const setSelectStockStgInfo = useSetAtom(selectStgDictAtom)
 	const strategySelection = useSetAtom(stgSelectionAtom)
 
 	useEffect(() => {
@@ -33,7 +31,6 @@ export function useMigrateStrategyData() {
 		if (needsMigration) {
 			// -- 重置所有策略相关的数据
 			setSelectStockStg(RESET)
-			setSelectStockStgInfo(RESET)
 			strategySelection(RESET)
 
 			toast.info("检测到策略数据格式变更，已迁移相关数据，请重新选择实盘策略", {

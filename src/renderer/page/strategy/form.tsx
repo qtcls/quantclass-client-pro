@@ -28,7 +28,10 @@ import type {
 	SelectStgFormProps,
 } from "@/renderer/page/strategy/types"
 import { SelectStgFormSchema } from "@/renderer/schemas/strategy"
-import { rebTimeConfigAtom } from "@/renderer/store/storage"
+import {
+	rebTimeConfigAtom,
+	strategyRuntimeConfigAtom,
+} from "@/renderer/store/storage"
 import { Input } from "@heroui/input"
 import { Select, SelectItem, SelectSection } from "@heroui/select"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -41,7 +44,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@renderer/components/ui/form"
-import { useAtomValue } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import {
 	AlarmClockCheck,
 	ArrowDown,
@@ -71,9 +74,9 @@ function formatRebTimeDisplay(
 }
 
 export function SelectStgForm({
+	name,
 	defaultValues,
 	submitText = "保存策略",
-	// name,
 	onSave,
 }: SelectStgFormProps) {
 	const form = useForm<SelectStgFormData>({
@@ -84,6 +87,7 @@ export function SelectStgForm({
 	const [tabValue, setTabValue] = useState("开仓") //开仓 离场  --择时
 	const [rebTimeConfigModalOpen, setRebTimeConfigModalOpen] = useState(false)
 	const rebTimeConfig = useAtomValue(rebTimeConfigAtom)
+	const [, setRuntimeConfig] = useAtom(strategyRuntimeConfigAtom)
 	const rebalanceTime = form.watch("rebalance_time") ?? "close-open"
 
 	// 初始化 signalTime 状态
@@ -151,11 +155,16 @@ export function SelectStgForm({
 
 		setTimeout(() => {
 			const values = form.getValues()
+			const splitOrderAmount = Number(values.split_order_amount)
+			setRuntimeConfig((prev) => ({
+				...prev,
+				[name]: { ...prev[name], split_order_amount: splitOrderAmount },
+			}))
+			const { split_order_amount: _omit, ...rest } = values as any
 			onSave({
-				...values,
+				...rest,
 				select_num: Number(values.select_num),
 				rebalance_time: values.rebalance_time || "close-open",
-				split_order_amount: Number(values.split_order_amount),
 			})
 			setSaving(false)
 		}, 150)
@@ -848,7 +857,7 @@ export function SelectStgForm({
 											</FormLabel>
 											<Separator />
 											<div className="px-4">
-												{field.value?.length > 0 ? (
+												{(field.value?.length ?? 0) > 0 ? (
 													<Accordion type="multiple" className="w-full pb-4">
 														{field.value?.map((crossItem, index) => (
 															<AccordionItem

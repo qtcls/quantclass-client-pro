@@ -12,9 +12,7 @@ import {
 	fusionAtom,
 	libraryTypeAtom,
 	rebTimeConfigAtom,
-	selectStgDictAtom,
 	selectStgListAtom,
-	// stgSelectionAtom,
 } from "@/renderer/store/storage"
 import type {
 	PosStrategyType,
@@ -25,23 +23,16 @@ import {
 	saveStrategyList,
 	saveStrategyListFusion,
 } from "@/renderer/utils/strategy"
-// import { userAtom } from "@/renderer/store/user"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { useCallback } from "react"
 
 export function useStgSync() {
-	// const { user } = useAtomValue(userAtom)
-	// const { membershipInfo = [], isMember = false } = user ?? {}
 	const [selectStgList, setSelectStgList] = useAtom(selectStgListAtom)
-	// const setStgSelection = useSetAtom(stgSelectionAtom)
-	const setSelectStgDict = useSetAtom(selectStgDictAtom)
 	const [fusion, setFusion] = useAtom(fusionAtom)
 	const [rebTimeConfig, setRebTimeConfig] = useAtom(rebTimeConfigAtom)
 	const libraryType = useAtomValue(libraryTypeAtom)
-	const syncStrategies = async () => {
-		// console.log(selectStgList)
-		// -- 处理选股策略
 
+	const syncStrategies = async () => {
 		return updateStrategies(selectStgList)
 	}
 
@@ -49,9 +40,8 @@ export function useStgSync() {
 		async (strategies: SelectStgType[]) => {
 			setSelectStgList(strategies)
 			if (libraryType !== "pos") {
-				const { strategyDict, rebTimeConfig: newRebTimeConfig } =
+				const { rebTimeConfig: newRebTimeConfig } =
 					await saveStrategyList(strategies, rebTimeConfig)
-				setSelectStgDict(strategyDict)
 				setRebTimeConfig(newRebTimeConfig)
 			}
 			return strategies
@@ -63,9 +53,8 @@ export function useStgSync() {
 		async (strategies: (SelectStgType | StgGroupType | PosStrategyType)[]) => {
 			setFusion(strategies)
 			if (libraryType === "pos") {
-				const { strategyDict, rebTimeConfig: newRebTimeConfig } =
+				const { rebTimeConfig: newRebTimeConfig } =
 					await saveStrategyListFusion(strategies, rebTimeConfig)
-				setSelectStgDict(strategyDict)
 				setRebTimeConfig(newRebTimeConfig)
 			}
 			return strategies
@@ -77,9 +66,8 @@ export function useStgSync() {
 		async (strategies: (SelectStgType | StgGroupType | PosStrategyType)[]) => {
 			setFusion([...fusion, ...strategies])
 			if (libraryType === "pos") {
-				const { strategyDict, rebTimeConfig: newRebTimeConfig } =
+				const { rebTimeConfig: newRebTimeConfig } =
 					await saveStrategyListFusion(strategies, rebTimeConfig)
-				setSelectStgDict(strategyDict)
 				setRebTimeConfig(newRebTimeConfig)
 			}
 			return strategies

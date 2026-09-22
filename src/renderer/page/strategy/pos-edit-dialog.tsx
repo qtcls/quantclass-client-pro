@@ -20,7 +20,9 @@ import {
 	PosStrategyForm,
 	type PosStrategyFormData,
 } from "@/renderer/page/strategy/pos-form"
+import { strategyRuntimeConfigAtom } from "@/renderer/store/storage"
 import type { PosStrategyType } from "@/renderer/types/strategy"
+import { useAtomValue } from "jotai"
 import { useState } from "react"
 
 export default function PosStrategyEditDialog({
@@ -32,11 +34,12 @@ export default function PosStrategyEditDialog({
 }) {
 	const [open, setOpen] = useState(false)
 	const [isHovered, setIsHovered] = useState(false)
+	const runtimeConfig = useAtomValue(strategyRuntimeConfigAtom)
 
 	const defaultValues: PosStrategyFormData = {
 		remark_name: posStrategy.remark_name ?? "",
 		split_order_amount:
-			posStrategy.split_order_amount ??
+			runtimeConfig[posStrategy.name]?.split_order_amount ??
 			Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
 	}
 

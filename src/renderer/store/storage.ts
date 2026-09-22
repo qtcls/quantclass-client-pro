@@ -83,14 +83,6 @@ export const reTimingAtom = atomWithStorage<{
 	params: any[]
 } | null>("reTiming", null, undefined, { getOnInit: true })
 
-// 选股策略信息，可以认为是dict版本的list，是list的另一种形态
-export const selectStgDictAtom = atomWithStorage<Record<string, any>>(
-	"selectStockStrategyInfo25",
-	{},
-	undefined,
-	{ getOnInit: true },
-)
-
 // 仓位策略
 export const fusionAtom = atomWithStorage<any[]>("fusion", [], undefined, {
 	getOnInit: true,
@@ -103,6 +95,14 @@ export const rebTimeConfigAtom = atomWithStorage<Record<string, RebTimeConfig>>(
 	undefined,
 	{ getOnInit: true },
 )
+
+// 策略运行时配置（按策略名索引，存放拆单金额等运行参数）
+export interface StrategyRuntimeConfig {
+	split_order_amount?: number
+}
+export const strategyRuntimeConfigAtom = atomWithStorage<
+	Record<string, StrategyRuntimeConfig>
+>("strategyRuntimeConfig", {}, undefined, { getOnInit: true })
 
 export const libraryTypeAtom = atomWithStorage<string>(
 	"libraryType",

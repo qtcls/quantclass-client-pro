@@ -19,7 +19,7 @@ import fs from "node:fs"
 import { updateKernal } from "@/main/core/runpy.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
 import { userStore } from "@/main/lib/userStore.js"
-import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
+import store, { CONFIG_PATH } from "@/main/store/index.js"
 import {
 	isKernalRunning,
 	isPidRunning,
@@ -300,7 +300,6 @@ export const execBin = async (
 		logger.info(`export FUEL_CODE_PATH=${fuelCodePath}`)
 		logger.info(`export FUEL_CLIENT_CONFIG_PATH=${CONFIG_PATH}`)
 		logger.info(`export FUEL_PRO_TRADING_PATH=${fuelProTradingPath}`)
-		logger.info(`export ROCKET_STR_INFO_PATH=${ROCKET_STR_INFO_PATH}`)
 		logger.info(`~% ${kernel} ${args.join(" ")}`)
 
 		const useOpenSell = _store.get("real_market_config.use_open_sell", "0")
@@ -314,8 +313,6 @@ export const execBin = async (
 			process.env.FUEL_PRO_TRADING_PATH = fuelProTradingPath
 			// -- 内核目录
 			process.env.PYTHONPATH = fuelCodePath
-			// -- 实盘 rocket 路径
-			process.env.ROCKET_STR_INFO_PATH = ROCKET_STR_INFO_PATH
 			process.env.PYTHON8 = "1"
 			process.env.PYTHONUNBUFFERED = "1"
 			process.env.PYTHONIOENCODING = "utf8"

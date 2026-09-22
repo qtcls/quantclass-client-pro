@@ -10,7 +10,7 @@
 
 import { getJsonDataFromFile } from "@/main/core/dataList.js"
 import { userStore } from "@/main/lib/userStore.js"
-import store, { rStore } from "@/main/store/index.js"
+import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { ROCKET_STATS_PATH, SELECT_STATS_PATH } from "@/main/vars.js"
 import { STOCK_QUANT_STRATEGY_CONFIG } from "@/shared/constants.js"
@@ -19,6 +19,7 @@ import { checkPermission, getSelectKernal } from "@/shared/lib/permission.js"
 import {
 	getFusionGroupSubRealMarketStrategyName,
 	getFusionTopRealMarketStrategyName,
+	getSelectRealMarketStrategyName,
 } from "@/shared/lib/real-market-strategy-name.js"
 import type {
 	StrategyStatus,
@@ -750,16 +751,15 @@ async function getStrategyStatusListForSelect(
 			return []
 		}
 
-		// 读取 real_market_25.json 获取每个策略的买入/卖出时间
 		const result: StrategyStatus[][] = await Promise.all(
 			strategyList.map(async (strategy: any, index: number) => {
-				const strategyKey = `strategy_${index}`
-				const strategyConfig = rStore.get(strategyKey) as any
+				const strategyName =
+					strategy.remark_name?.trim() ||
+					getSelectRealMarketStrategyName(index, strategy)
 
-				const strategyName = strategyConfig?.name ?? ""
-
-				const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
-				const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
+				// TODO: 买卖时间原从 real_market_25.json 读取，后续从新落盘来源接入
+				const sellTimeStr = ""
+				const buyTimeStr = ""
 
 				const { latestTime, hasTimingOrOverride } = getStrategyTiming(strategy)
 
@@ -816,16 +816,6 @@ async function getStrategyStatusListForPos(
 			return []
 		}
 
-		// 通过 strategyName 去real_market_25.json筛选对应策略
-		const findStrategyConfigByName = (strategyName: string): any => {
-			for (const [, config] of Object.entries(rStore.store)) {
-				if ((config as any)?.name === strategyName) {
-					return config
-				}
-			}
-			return null
-		}
-
 		interface PosStrategy {
 			name: string
 			latestTime: string
@@ -856,10 +846,9 @@ async function getStrategyStatusListForPos(
 
 			if (type === "pos") {
 				// pos 类型：只生成一个元素
-				const strategyConfig = findStrategyConfigByName(strategyName)
-
-				const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
-				const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
+				// TODO: 买卖时间原从 real_market_25.json 读取，后续从新落盘来源接入
+				const sellTimeStr = ""
+				const buyTimeStr = ""
 
 				// 检查 strategy_pool 中是否有任何子策略包含 timing 或 override
 				let posHasTimingOrOverride = false
@@ -928,10 +917,9 @@ async function getStrategyStatusListForPos(
 							subStrategies.length,
 						)
 
-					const strategyConfig = findStrategyConfigByName(dictKey)
-
-					const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
-					const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
+					// TODO: 买卖时间原从 real_market_25.json 读取，后续从新落盘来源接入
+					const sellTimeStr = ""
+					const buyTimeStr = ""
 
 					const { latestTime, hasTimingOrOverride } =
 						getStrategyTiming(subStrategy)
@@ -959,10 +947,9 @@ async function getStrategyStatusListForPos(
 				}
 			} else {
 				// select 类型：单个策略
-				const strategyConfig = findStrategyConfigByName(strategyName)
-
-				const sellTimeStr = strategyConfig?.sell?.[1] ?? ""
-				const buyTimeStr = strategyConfig?.buy?.[1] ?? ""
+				// TODO: 买卖时间原从 real_market_25.json 读取，后续从新落盘来源接入
+				const sellTimeStr = ""
+				const buyTimeStr = ""
 
 				const { latestTime, hasTimingOrOverride } = getStrategyTiming(strategy)
 				const rebalanceTime = strategy.rebalance_time

@@ -14,7 +14,7 @@ import { createRequire } from "node:module"
 import path from "node:path"
 import { execBin } from "@/main/lib/process.js"
 import { repoStore } from "@/main/lib/repoStore.js"
-import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
+import store, { CONFIG_PATH } from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import { resolveRepoFolderNameFromLink } from "@/shared/lib/repo-folder.js"
 import type {
@@ -235,7 +235,6 @@ export async function writeFrameworkClientEnv(): Promise<WriteClientEnvResult> {
 		const content = [
 			`FUEL_CLIENT_CONFIG_PATH=${CONFIG_PATH}`,
 			`FUEL_PRO_TRADING_PATH=${fuelProTradingPath}`,
-			`ROCKET_STR_INFO_PATH=${ROCKET_STR_INFO_PATH}`,
 			`FUEL_CODE_PATH=${fuelCodePath}`,
 			"",
 		].join("\n")

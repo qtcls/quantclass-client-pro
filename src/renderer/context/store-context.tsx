@@ -13,7 +13,6 @@ import {
 	libraryTypeAtom,
 	reTimingAtom,
 	rebTimeConfigAtom,
-	selectStgDictAtom,
 	selectStgListAtom,
 } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
@@ -30,7 +29,7 @@ import {
 } from "@/renderer/utils/strategy"
 import { checkPermission } from "@/shared/lib/permission"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { RESET, useAtomCallback } from "jotai/utils"
+import { useAtomCallback } from "jotai/utils"
 import {
 	createContext,
 	useCallback,
@@ -40,7 +39,6 @@ import {
 	useRef,
 } from "react"
 import { autoInitAtoms } from "../store/electron"
-import { generateNonStrategySelectStrategyConfig } from "../utils"
 import { useElectronStoreInit } from "../utils/store"
 
 interface StoreContextType {
@@ -73,15 +71,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 	const libraryType = useAtomValue(libraryTypeAtom)
 	const { permissions } = useAtomValue(userAtom)
 	const isMember = checkPermission(permissions, "isMember")
-	const setSelectStgDict = useSetAtom(selectStgDictAtom)
 	const setReTiming = useSetAtom(reTimingAtom)
-	const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null) // 防抖时间控制器
-	const {
-		clearRealMarketData,
-		saveRealMarketData,
-		cleanRealMarketData,
-		setStoreValue,
-	} = window.electronAPI
+	const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+	const { setStoreValue } = window.electronAPI
 
 	/**
 	 * 初始化各种electron-store
@@ -90,39 +82,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 		useElectronStoreInit(_atom as any)
 	}
 
-	// 常量：非策略选股配置（避免在 effect 中重复计算）
-	const NON_STRATEGY_CONFIG = useMemo(
-		() =>
-			generateNonStrategySelectStrategyConfig([
-				"5_0",
-				"5_1",
-				"5_2",
-				"5_3",
-				"5_4",
-				5,
-			]),
-		[],
-	)
-
 	// 仅跟踪当前启用库对应的列表，避免无关列表变化也触发 effect
 	const relevantList = libraryType === "pos" ? fusion : selectStgList
 
 	// Fusion 相关方法
 	const resetFusion = useCallback(() => {
 		setFusion([])
-		if (libraryType === "pos") {
-			setSelectStgDict(RESET)
-			clearRealMarketData()
-		}
 		return []
-	}, [setFusion, libraryType, setSelectStgDict])
+	}, [setFusion])
 
 	const syncFusion = useAtomCallback(async (get, set) => {
 		const currentFusion = get(fusionAtom)
 		const currentRebTimeConfig = get(rebTimeConfigAtom)
-		const { strategyDict, rebTimeConfig: newRebTimeConfig } =
-			await saveStrategyListFusion(currentFusion, currentRebTimeConfig)
-		set(selectStgDictAtom, strategyDict)
+		const { rebTimeConfig: newRebTimeConfig } = await saveStrategyListFusion(
+			currentFusion,
+			currentRebTimeConfig,
+		)
 		set(rebTimeConfigAtom, newRebTimeConfig)
 	})
 
@@ -130,19 +105,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 	const resetSelectStgList = useCallback(() => {
 		setSelectStgList([])
 		if (libraryType !== "pos") {
-			setSelectStgDict(RESET)
-			// 清除资金曲线再择时
 			setReTiming(null)
 			setStoreValue("select_stock.re_timing", null)
 		}
 		return []
-	}, [
-		setSelectStgList,
-		libraryType,
-		setSelectStgDict,
-		setReTiming,
-		setStoreValue,
-	])
+	}, [setSelectStgList, libraryType, setReTiming, setStoreValue])
 
 	const syncSelectStgList = useAtomCallback(async (get, set) => {
 		const currentSelectStgList = get(selectStgListAtom)
@@ -151,11 +118,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 		const persist = checkPermission(permissions, "isMember")
 			? saveStrategyList
 			: saveStockQuantStrategies
-		const { strategyDict, rebTimeConfig: newRebTimeConfig } = await persist(
+		const { rebTimeConfig: newRebTimeConfig } = await persist(
 			currentSelectStgList,
 			currentRebTimeConfig,
 		)
-		set(selectStgDictAtom, strategyDict)
 		set(rebTimeConfigAtom, newRebTimeConfig)
 	})
 
@@ -171,13 +137,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 		// 设置防抖定时器
 		saveTimeoutRef.current = setTimeout(async () => {
 			const saveData = async () => {
-				let selectStgDict: Record<string, any> = {}
 				let newRebTimeConfig: Record<string, RebTimeConfig> = {}
 
 				switch (libraryType) {
 					case "pos": {
 						const result = await saveStrategyListFusion(fusion, rebTimeConfig)
-						selectStgDict = result.strategyDict
 						newRebTimeConfig = result.rebTimeConfig
 						break
 					}
@@ -186,7 +150,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 							? saveStrategyList
 							: saveStockQuantStrategies
 						const result = await persist(selectStgList, rebTimeConfig)
-						selectStgDict = result.strategyDict
 						newRebTimeConfig = result.rebTimeConfig
 						break
 					}
@@ -194,32 +157,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 						break
 				}
 
-				setSelectStgDict(selectStgDict)
 				setRebTimeConfig(newRebTimeConfig)
-
-				// 修正：确保 selectStgDict 是对象，且避免类型报错，使用 Object.keys
-				const parsedData: Record<string, any> = {}
-				Object.entries({
-					...(selectStgDict ?? {}),
-					非策略选股: NON_STRATEGY_CONFIG,
-				}).forEach(([key, value], index) => {
-					parsedData[`strategy_${index}`] = { ...(value ?? {}), name: key }
-				})
-				const strategyKeys = Object.keys(parsedData)
-				await cleanRealMarketData(strategyKeys)
-				await saveRealMarketData(parsedData)
-				console.log(libraryType, selectStgDict, parsedData, newRebTimeConfig)
 			}
+
 			await saveData()
 		}, 300) // 300ms 防抖延迟
-
 		// 清理函数
 		return () => {
 			if (saveTimeoutRef.current) {
 				clearTimeout(saveTimeoutRef.current)
 			}
 		}
-	}, [relevantList, libraryType, isMember, setSelectStgDict, setRebTimeConfig])
+	}, [relevantList, libraryType, isMember, setRebTimeConfig])
 
 	const contextValue = useMemo(
 		() => ({

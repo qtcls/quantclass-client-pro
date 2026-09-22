@@ -14,7 +14,7 @@ import {
 	spawn,
 } from "node:child_process"
 import fs from "node:fs"
-import store, { CONFIG_PATH, ROCKET_STR_INFO_PATH } from "@/main/store/index.js"
+import store, { CONFIG_PATH } from "@/main/store/index.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
 import { getKernalPath } from "@/main/utils/common.js"
 import logger from "@/main/utils/wiston.js"
@@ -73,7 +73,6 @@ export async function runFuelProbe(
 		FUEL_CLIENT_CONFIG_PATH: CONFIG_PATH,
 		FUEL_PRO_TRADING_PATH: fuelProTradingPath,
 		PYTHONPATH: fuelCodePath,
-		ROCKET_STR_INFO_PATH: ROCKET_STR_INFO_PATH,
 		PYTHON8: "1",
 		PYTHONUNBUFFERED: "1",
 		PYTHONIOENCODING: "utf8",

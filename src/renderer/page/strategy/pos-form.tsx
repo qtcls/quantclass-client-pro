@@ -22,11 +22,14 @@ import {
 } from "@/renderer/components/ui/form"
 import { Input as InputUI } from "@/renderer/components/ui/input"
 import { useFusionManager } from "@/renderer/hooks/useFusionManager"
-import { rebTimeConfigAtom } from "@/renderer/store/storage"
+import {
+	rebTimeConfigAtom,
+	strategyRuntimeConfigAtom,
+} from "@/renderer/store/storage"
 import type { PosStrategyType } from "@/renderer/types/strategy"
 import { collectFusionRemarkNames } from "@/renderer/utils/strategy"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useAtomValue } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { Biohazard, CircleHelp, Loader, Shuffle } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -73,6 +76,7 @@ export function PosStrategyForm({
 	const [rebTimeConfigModalOpen, setRebTimeConfigModalOpen] = useState(false)
 	const { fusion, updateFusionPosStrategy } = useFusionManager()
 	const rebTimeConfig = useAtomValue(rebTimeConfigAtom)
+	const [, setRuntimeConfig] = useAtom(strategyRuntimeConfigAtom)
 	const rebalanceTime = posStrategy.rebalance_time ?? "close-open"
 	const form = useForm<PosStrategyFormData>({
 		resolver: zodResolver(schema),
@@ -97,8 +101,11 @@ export function PosStrategyForm({
 			}
 		}
 		const num = Number(data.split_order_amount)
+		setRuntimeConfig((prev) => ({
+			...prev,
+			[posStrategy.name]: { ...prev[posStrategy.name], split_order_amount: num },
+		}))
 		updateFusionPosStrategy(fusionIndex, {
-			split_order_amount: num,
 			remark_name: data.remark_name,
 		})
 		toast.success(`已更新 ${posStrategy.name}（仓位策略）配置`)

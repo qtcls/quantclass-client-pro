@@ -31,11 +31,7 @@ import {
 } from "@/renderer/components/ui/tooltip"
 import { cn } from "@/renderer/lib/utils"
 import {
-	fusionAtom,
-	libraryTypeAtom,
 	rebTimeConfigAtom,
-	selectStgDictAtom,
-	selectStgListAtom,
 } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
 import type {
@@ -43,20 +39,14 @@ import type {
 	RebTimeConfig,
 	SelectStgType,
 } from "@/renderer/types/strategy"
-import { generateNonStrategySelectStrategyConfig } from "@/renderer/utils"
-import {
-	regenerateRebTime,
-	saveStrategyList,
-	saveStrategyListFusion,
-} from "@/renderer/utils/strategy"
+import { regenerateRebTime } from "@/renderer/utils/strategy"
 import { checkPermission } from "@/shared/lib/permission"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { ArrowUpRight, Clock, InfoIcon, RefreshCw } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
-const { saveRealMarketData, cleanRealMarketData, checkKernalRunning } =
-	window.electronAPI
+const { checkKernalRunning } = window.electronAPI
 
 interface RebTimeConfigModalProps {
 	open: boolean
@@ -162,28 +152,10 @@ function RebTimeConfigInfoBanner({ isMember }: { isMember: boolean }) {
 
 function RebTimeConfigBody() {
 	const [rebTimeConfig, setRebTimeConfig] = useAtom(rebTimeConfigAtom)
-	const setSelectStgDict = useSetAtom(selectStgDictAtom)
-	const libraryType = useAtomValue(libraryTypeAtom)
-	const fusion = useAtomValue(fusionAtom)
-	const selectStgList = useAtomValue(selectStgListAtom)
 	const { permissions } = useAtomValue(userAtom)
 	const isMember = checkPermission(permissions, "isMember")
 	const [regeneratingRebTime, setRegeneratingRebTime] = useState<string | null>(
 		null,
-	)
-
-	// 非策略选股配置
-	const NON_STRATEGY_CONFIG = useMemo(
-		() =>
-			generateNonStrategySelectStrategyConfig([
-				"5_0",
-				"5_1",
-				"5_2",
-				"5_3",
-				"5_4",
-				5,
-			]),
-		[],
 	)
 
 	const handleRegenerateRebTime = async (rebTime: string) => {
@@ -197,41 +169,7 @@ function RebTimeConfigBody() {
 
 		try {
 			const newRebTimeConfig = regenerateRebTime(rebTimeConfig, rebTime)
-
-			let selectStgDict: Record<string, any> = {}
-			let finalRebTimeConfig: Record<string, RebTimeConfig> = {}
-
-			switch (libraryType) {
-				case "pos": {
-					const result = await saveStrategyListFusion(fusion, newRebTimeConfig)
-					selectStgDict = result.strategyDict
-					finalRebTimeConfig = result.rebTimeConfig
-					break
-				}
-				case "select": {
-					const result = await saveStrategyList(selectStgList, newRebTimeConfig)
-					selectStgDict = result.strategyDict
-					finalRebTimeConfig = result.rebTimeConfig
-					break
-				}
-				default:
-					break
-			}
-
-			setSelectStgDict(selectStgDict)
-			setRebTimeConfig(finalRebTimeConfig)
-
-			const parsedData: Record<string, any> = {}
-			Object.entries({
-				...(selectStgDict ?? {}),
-				非策略选股: NON_STRATEGY_CONFIG,
-			}).forEach(([key, value], index) => {
-				parsedData[`strategy_${index}`] = { ...(value ?? {}), name: key }
-			})
-			const strategyKeys = Object.keys(parsedData)
-			await cleanRealMarketData(strategyKeys)
-			await saveRealMarketData(parsedData)
-
+			setRebTimeConfig(newRebTimeConfig)
 			toast.success(`已重新生成 "${rebTime}" 的换仓时间`)
 		} catch (error) {
 			console.error("重新生成换仓时间失败:", error)

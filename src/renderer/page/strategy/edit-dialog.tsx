@@ -25,8 +25,10 @@ import {
 	collectFusionRemarkNames,
 	collectSelectRemarkNames,
 } from "@/renderer/utils/strategy"
+import { useAtomValue } from "jotai"
 import { useState } from "react"
 import { toast } from "sonner"
+import { strategyRuntimeConfigAtom } from "@/renderer/store/storage"
 
 export default function StrategyEditDialog({
 	strategy,
@@ -39,6 +41,7 @@ export default function StrategyEditDialog({
 }) {
 	const [open, setOpen] = useState(false)
 	const [isHovered, setIsHovered] = useState(false)
+	const runtimeConfig = useAtomValue(strategyRuntimeConfigAtom)
 
 	const { selectStgList, updateSelectStg } = useStrategyManager()
 
@@ -144,9 +147,9 @@ export default function StrategyEditDialog({
 								factor_list: strategy.factor_list,
 								select_num: strategy.select_num,
 								rebalance_time: strategy.rebalance_time ?? "close-open",
-								split_order_amount:
-									strategy?.split_order_amount ||
-									Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
+							split_order_amount:
+								runtimeConfig[strategy.name]?.split_order_amount ||
+								Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000,
 								timing: strategy.timing,
 								override: strategy.override,
 								scalein_targets: strategy.scalein_targets,

@@ -18,13 +18,6 @@ export const storeIPC = {
 		ipcRenderer.invoke("get-store", key, defaultValue),
 	deleteStoreValue: (key: string) => ipcRenderer.invoke("delete-store", key),
 
-	// 从renderer/ipc/store.ts迁移的实盘数据方法
-	saveRealMarketData: (data: Record<string, any>) =>
-		ipcRenderer.invoke("save-real-market-data", data),
-	clearRealMarketData: () => ipcRenderer.invoke("clear-real-market-data"),
-	cleanRealMarketData: (keys: string[]) =>
-		ipcRenderer.invoke("clean-real-market-data", keys),
-
 	// aqua trading info
 	loadAquaTradingInfo: () => ipcRenderer.invoke("load-aqua-trading-info"),
 }

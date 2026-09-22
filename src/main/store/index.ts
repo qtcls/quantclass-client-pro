@@ -14,20 +14,8 @@ import { app } from "electron"
 import Store from "electron-store"
 
 const store = new Store()
-// -- rocket 读取策略配置
-export const rStore = new Store({ name: "real_market_25" })
-
-// -- 删除一下老的rocket的配置，如有
-const real_market_old = path.join(app.getPath("userData"), "real_market.json")
-if (fs.existsSync(real_market_old)) {
-	fs.unlinkSync(real_market_old)
-}
 
 export const CONFIG_PATH = path.join(app.getPath("userData"), "config.json")
-export const ROCKET_STR_INFO_PATH = path.join(
-	app.getPath("userData"),
-	"real_market_25.json",
-)
 export const EXEC_FUEL_PATH = path.join(app.getPath("userData"), "fuel")
 
 const setValue = (key: string, value: any) => {

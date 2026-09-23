@@ -19,7 +19,6 @@ import store from "@/main/store/index.js"
 import { killKernalByForce, sendErrorToClient } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
 import { BASE_URL, CLIENT_VERSION } from "@/main/vars.js"
-import { LIBRARY_TYPE } from "@/shared/constants.js"
 import {
 	isPresentStrategy,
 	validateBasicStockQuantImport,
@@ -491,9 +490,14 @@ async function parseCsvFileHandler(): Promise<void> {
 			}
 
 			try {
-				const libraryType = await store.getValue(LIBRARY_TYPE, "pos")
+				const userAccount = await userStore.getUserAccount()
+				const isMember = checkPermission(
+					userAccount?.permissions ?? [],
+					"isMember",
+				)
+				const configPrefix = isMember ? "pos_mgmt" : "select_stock"
 				const backtestName = await store.getValue(
-					`${libraryType === "pos" ? "pos_mgmt" : "select_stock"}.backtest_name`,
+					`${configPrefix}.backtest_name`,
 					"策略库",
 				)
 				const filePath = await store.getAllDataPath([

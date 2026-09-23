@@ -210,10 +210,14 @@ const FusionStrategyLibrary = () => {
 											toast.error("资金占比总和不能超过 100%")
 											return
 										}
-										updateFusion(updatedFusion) // 更新仓位管理策略
-										toast.success(
-											`分配权重成功，${strategyGroup.name}为${val}%`,
-										)
+										try {
+											await updateFusion(updatedFusion)
+											toast.success(
+												`分配权重成功，${strategyGroup.name}为${val}%`,
+											)
+										} catch {
+											toast.error("保存策略失败")
+										}
 									}}
 								/>
 							</div>
@@ -244,12 +248,16 @@ const FusionStrategyLibrary = () => {
 									strategy={strategyGroup as PosStrategyType}
 									strategyType="pos"
 									buttonClassName="rounded-full size-6"
-									onReplace={(newStg) => {
-										updateFusion(
-											fusion.map((item, i) =>
-												i === strategyIndex ? newStg : item,
-											),
-										)
+									onReplace={async (newStg) => {
+										try {
+											await updateFusion(
+												fusion.map((item, i) =>
+													i === strategyIndex ? newStg : item,
+												),
+											)
+										} catch {
+											toast.error("保存策略失败")
+										}
 									}}
 								/>
 							</>
@@ -287,9 +295,13 @@ const FusionStrategyLibrary = () => {
 										<Button
 											variant="destructive"
 											size="sm"
-											onClick={() => {
-												removeFusionStrategy(strategyIndex)
-												setIsDeletePopoverOpen(false)
+											onClick={async () => {
+												try {
+													await removeFusionStrategy(strategyIndex)
+													setIsDeletePopoverOpen(false)
+												} catch {
+													toast.error("删除失败")
+												}
 											}}
 										>
 											确认删除

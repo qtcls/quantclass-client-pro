@@ -105,11 +105,15 @@ export function PosStrategyForm({
 			...prev,
 			[posStrategy.name]: { ...prev[posStrategy.name], split_order_amount: num },
 		}))
-		updateFusionPosStrategy(fusionIndex, {
-			remark_name: data.remark_name,
-		})
-		toast.success(`已更新 ${posStrategy.name}（仓位策略）配置`)
-		onSuccess()
+		try {
+			await updateFusionPosStrategy(fusionIndex, {
+				remark_name: data.remark_name,
+			})
+			toast.success(`已更新 ${posStrategy.name}（仓位策略）配置`)
+			onSuccess()
+		} catch {
+			toast.error("保存策略失败")
+		}
 	}
 
 	return (

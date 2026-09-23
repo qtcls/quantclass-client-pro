@@ -19,7 +19,6 @@ import {
 	killKernalByForce,
 } from "@/main/utils/tools.js"
 import logger from "@/main/utils/wiston.js"
-import { LIBRARY_TYPE } from "@/shared/constants.js"
 import { checkPermission, getSelectKernal } from "@/shared/lib/permission.js"
 import {
 	getLocalCalendarYmd,
@@ -107,7 +106,6 @@ function getCurrent15m(): string {
 const setupScheduler = async (): Promise<schedule.Job> => {
 	// -- 重置已存在的调度任务
 	cancelScheduler()
-	const libraryType = (await _store.get(LIBRARY_TYPE, "pos")) as string
 	const mw = windowManager.getWindow()
 	try {
 		mw?.webContents.send("send-schedule-status", "init")
@@ -204,7 +202,6 @@ const setupScheduler = async (): Promise<schedule.Job> => {
 				`[scheduler-select] 选股模块定时任务: ${selectModuleTimes}, 当前时间: ${current15m}, 是否更新: ${isScheduleSelectModule}`,
 			)
 
-			logger.info(`[libraryType] 策略类型${libraryType}`)
 			if (await isKernalBusy(selectKernal)) {
 				logger.info(`[${selectKernal}] 内核正忙，跳过本轮调度`)
 			} else if (!isScheduleSelectModule) {

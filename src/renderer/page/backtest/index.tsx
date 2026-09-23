@@ -13,7 +13,8 @@ import { H2 } from "@/renderer/components/ui/typography"
 import { BacktestResultProvider } from "@/renderer/page/backtest/context"
 import { RunResultTable } from "@/renderer/page/backtest/results"
 import { BacktestSettings } from "@/renderer/page/backtest/settings"
-import { libraryTypeAtom } from "@/renderer/store/storage"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { useAtomValue } from "jotai"
 import { BacktestControls } from "./controls"
 
@@ -28,11 +29,12 @@ export default function StrategyRun() {
 }
 
 function StrategyRunContent() {
-	const libraryType = useAtomValue(libraryTypeAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	return (
 		<div className="h-full flex-1 flex-col md:flex pt-3">
 			<div className="flex items-end mb-1">
-				<H2>{libraryType === "pos" ? "仓位管理" : "选股"}策略回测</H2>
+				<H2>{isMember ? "仓位管理" : "选股"}策略回测</H2>
 			</div>
 			<div className="flex flex-col w-full space-y-1">
 				{/* <p className="text-muted-foreground">

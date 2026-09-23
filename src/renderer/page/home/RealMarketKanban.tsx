@@ -32,7 +32,6 @@ import { loadAccountQueryAtom } from "@/renderer/store/query"
 import {
 	accountKeyAtom,
 	realMarketConfigSchemaAtom,
-	// libraryTypeAtom,
 	showMoneyAtom,
 	totalWeightAtom,
 } from "@/renderer/store/storage"
@@ -68,7 +67,6 @@ export const RealMarketKanban = () => {
 	const accountId = realMarketConfig?.account_id ?? ""
 	const brokerName = getBrokerNameByAccountId(accountId)
 	const brokerOrAccountLabel = brokerName || accountId.trim()
-	// const libraryType = useAtomValue(libraryTypeAtom)
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies:
 	useEffect(() => {
@@ -224,20 +222,6 @@ export const RealMarketKanban = () => {
 						</span>
 					</div>
 				</div>
-
-				{/* <div className="flex items-center gap-2"></div> */}
-
-				{/* {libraryType !== "pos" && (
-					<Card className="p-0">
-						<CardContent className="p-2">
-							<FinPieChart
-								withTitle={false}
-								totalCap={data?.总资产 ?? -1}
-								availCap={data?.可用资金 ?? -1}
-							/>
-						</CardContent>
-					</Card>
-				)} */}
 
 				<StatusTimeline />
 				<StockTimingView />

@@ -55,6 +55,7 @@ import {
 	Trash2,
 } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 type BasicStrategyType = "select" | "timing" | "rotation"
 
@@ -537,11 +538,15 @@ export function StrategyCard({
 						<EditableNumberCell
 							className="w-24 h-9 text-sm tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 							value={capWeightPercent}
-							onChange={(newValue) => {
-								updateSelectStg(index, {
-									...strategy,
-									cap_weight: newValue / 100,
-								} as SelectStgType)
+							onChange={async (newValue) => {
+								try {
+									await updateSelectStg(index, {
+										...strategy,
+										cap_weight: newValue / 100,
+									} as SelectStgType)
+								} catch {
+									toast.error("保存策略失败")
+								}
 							}}
 						/>
 					</div>

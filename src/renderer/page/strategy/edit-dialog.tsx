@@ -11,7 +11,7 @@
 import { Button } from "@/renderer/components/ui/button"
 import { EditIcon } from "@/renderer/icons/EditIcon"
 import { SelectStgForm } from "@/renderer/page/strategy/form"
-import type { SelectStgType } from "@/renderer/types/strategy"
+import type { BasicStgType, SelectStgType } from "@/renderer/types/strategy"
 
 import {
 	Dialog,
@@ -87,10 +87,13 @@ export default function StrategyEditDialog({
 			rebalance_time: values.rebalance_time,
 		} as SelectStgType
 
-		updateSelectStg(rowIndex, updatedStg)
-		console.log("library-row-save", updatedStg)
-
-		toast.success(`🔥 ${strategy.name} 配置成功`)
+		try {
+			await updateSelectStg(rowIndex, updatedStg as BasicStgType)
+			console.log("library-row-save", updatedStg)
+			toast.success(`🔥 ${strategy.name} 配置成功`)
+		} catch {
+			toast.error("保存策略失败")
+		}
 	}
 
 	/**
@@ -100,8 +103,17 @@ export default function StrategyEditDialog({
 	const handleSavePos = async (values: any) => {
 		if (!checkRemarkNameUnique(values.remark_name)) return
 
-		const newStg = updateFusionStgInRow(fusionIndex, values, strategy, rowIndex)
-		console.log("fusion-row-save", newStg)
+		try {
+			const newStg = await updateFusionStgInRow(
+				fusionIndex,
+				values,
+				strategy,
+				rowIndex,
+			)
+			console.log("fusion-row-save", newStg)
+		} catch {
+			toast.error("保存策略失败")
+		}
 	}
 
 	return (

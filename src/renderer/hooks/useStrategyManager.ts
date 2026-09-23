@@ -8,62 +8,99 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import {
+	reTimingAtom,
+	rebTimeConfigAtom,
+	selectStgListAtom,
+} from "@/renderer/store/storage"
+import type { BasicStgType } from "@/renderer/types/strategy"
+import { saveStockQuantStrategies } from "@/renderer/utils/strategy"
+import { useAtom, useSetAtom } from "jotai"
+import { useAtomCallback } from "jotai/utils"
 import { useCallback } from "react"
-import { useStore } from "@/renderer/context/store-context"
-import type { SelectStgType } from "@/renderer/types/strategy"
+
+const { setStoreValue } = window.electronAPI
 
 export function useStrategyManager() {
-	const {
-		selectStgList,
-		setSelectStgList,
-		syncSelectStgList,
-		resetSelectStgList,
-	} = useStore()
+	const [selectStgList, setSelectStgList] = useAtom(selectStgListAtom)
+	const [rebTimeConfig, setRebTimeConfig] = useAtom(rebTimeConfigAtom)
+	const setReTiming = useSetAtom(reTimingAtom)
+
+	const persistSelectStgList = useCallback(
+		async (strategies: BasicStgType[]) => {
+			const { rebTimeConfig: newRebTimeConfig } =
+				await saveStockQuantStrategies(strategies, rebTimeConfig)
+			setRebTimeConfig(newRebTimeConfig)
+		},
+		[rebTimeConfig, setRebTimeConfig],
+	)
+
+	const resetSelectStgList = useCallback(async () => {
+		setSelectStgList([])
+		setReTiming(null)
+		setStoreValue("select_stock.re_timing", null)
+		await persistSelectStgList([])
+		return []
+	}, [setSelectStgList, setReTiming, persistSelectStgList])
+
+	const syncSelectStgList = useAtomCallback(async (get, set) => {
+		const currentSelectStgList = get(selectStgListAtom)
+		const currentRebTimeConfig = get(rebTimeConfigAtom)
+		const { rebTimeConfig: newRebTimeConfig } = await saveStockQuantStrategies(
+			currentSelectStgList,
+			currentRebTimeConfig,
+		)
+		set(rebTimeConfigAtom, newRebTimeConfig)
+	})
 
 	const updateSelectStgList = useCallback(
-		(strategies: SelectStgType[]) => {
+		async (strategies: BasicStgType[]) => {
 			setSelectStgList(strategies)
+			await persistSelectStgList(strategies)
 			return strategies
 		},
-		[setSelectStgList],
+		[setSelectStgList, persistSelectStgList],
 	)
 
 	const addSelectStgList = useCallback(
-		(strategies: SelectStgType[]) => {
-			setSelectStgList([...selectStgList, ...strategies])
+		async (strategies: BasicStgType[]) => {
+			const newList = [...selectStgList, ...strategies]
+			setSelectStgList(newList)
+			await persistSelectStgList(newList)
 			return strategies
 		},
-		[selectStgList, setSelectStgList],
+		[selectStgList, setSelectStgList, persistSelectStgList],
 	)
 
 	const removeSelectStg = useCallback(
-		(strategyIndex: number) => {
-			setSelectStgList([
+		async (strategyIndex: number) => {
+			const newList = [
 				...selectStgList.slice(0, strategyIndex),
 				...selectStgList.slice(strategyIndex + 1),
-			])
+			]
+			setSelectStgList(newList)
+			await persistSelectStgList(newList)
 			return 1
 		},
-		[selectStgList, setSelectStgList],
+		[selectStgList, setSelectStgList, persistSelectStgList],
 	)
 
 	const updateSelectStg = useCallback(
-		(strategyIndex: number, strategy: SelectStgType) => {
-			setSelectStgList([
+		async (strategyIndex: number, strategy: BasicStgType) => {
+			const newList = [
 				...selectStgList.slice(0, strategyIndex),
 				strategy,
 				...selectStgList.slice(strategyIndex + 1),
-			])
+			]
+			setSelectStgList(newList)
+			await persistSelectStgList(newList)
 			return 1
 		},
-		[selectStgList, setSelectStgList],
+		[selectStgList, setSelectStgList, persistSelectStgList],
 	)
 
 	return {
-		// -- 选股策略列表
 		selectStgList,
-
-		// -- 更新选股策略列表
 		syncSelectStgList,
 		updateSelectStgList,
 		addSelectStgList,

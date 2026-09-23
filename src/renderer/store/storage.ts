@@ -8,7 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 import type { RealMarketConfigSchema } from "@/renderer/page/trading/config-form"
-import type { RebTimeConfig, SelectStgType } from "@/renderer/types/strategy"
+import type { BasicStgType, RebTimeConfig } from "@/renderer/types/strategy"
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import type { z } from "zod"
@@ -69,8 +69,8 @@ export const stgSelectionAtom = atomWithStorage<Record<string, boolean>>(
 	{ getOnInit: true },
 )
 
-// 选股策略
-export const selectStgListAtom = atomWithStorage<SelectStgType[]>(
+// 基础课程选股策略
+export const selectStgListAtom = atomWithStorage<BasicStgType[]>(
 	"selectStockStrategy25",
 	[],
 	undefined,
@@ -103,13 +103,6 @@ export interface StrategyRuntimeConfig {
 export const strategyRuntimeConfigAtom = atomWithStorage<
 	Record<string, StrategyRuntimeConfig>
 >("strategyRuntimeConfig", {}, undefined, { getOnInit: true })
-
-export const libraryTypeAtom = atomWithStorage<string>(
-	"libraryType",
-	"pos",
-	undefined,
-	{ getOnInit: true },
-)
 
 export const accountKeyAtom = atomWithStorage<{
 	apiKey: string

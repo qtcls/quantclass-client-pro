@@ -38,6 +38,7 @@ import { CheckCircledIcon, InfoCircledIcon } from "@radix-ui/react-icons"
 import type { ColumnDef } from "@tanstack/react-table"
 import { useAtomValue } from "jotai"
 import { HelpCircleIcon } from "lucide-react"
+import { toast } from "sonner"
 import { totalWeightAtom } from "../store/storage"
 
 export const useGenLibraryColumn = (
@@ -150,18 +151,22 @@ export const useGenLibraryColumn = (
 						onChange={async (newValue) => {
 							// 保存时转换为小数（除以 100）
 							const decimalValue = newValue / 100
-							if (fusionIndex === -1) {
-								updateSelectStg(row.index, {
-									...selectStgList[row.index],
-									cap_weight: decimalValue,
-								})
-							} else {
-								updateFusionStgInRow(
-									fusionIndex,
-									{ cap_weight: decimalValue },
-									row.original,
-									row.index,
-								)
+							try {
+								if (fusionIndex === -1) {
+									await updateSelectStg(row.index, {
+										...selectStgList[row.index],
+										cap_weight: decimalValue,
+									})
+								} else {
+									await updateFusionStgInRow(
+										fusionIndex,
+										{ cap_weight: decimalValue },
+										row.original,
+										row.index,
+									)
+								}
+							} catch {
+								toast.error("保存策略失败")
 							}
 						}}
 					/>
@@ -464,35 +469,39 @@ export const useGenLibraryColumn = (
 										<StrategyReplaceDialog
 											strategy={row.original as SelectStgType}
 											strategyType="select"
-											onReplace={(newStg) => {
-												if (fusionIndex < 0) {
-													updateSelectStg(row.index, newStg)
-												} else {
-													const stgInFusion = fusion[fusionIndex]
-													if (!stgInFusion) return
-													let updated: any
-													if (stgInFusion.type === "group") {
-														updated = {
-															...stgInFusion,
-															strategy_list: stgInFusion.strategy_list.map(
-																(s, i) => (i === row.index ? newStg : s),
-															),
-														}
-													} else if (stgInFusion.type === "pos") {
-														updated = {
-															...stgInFusion,
-															strategy_pool: stgInFusion.strategy_pool.map(
-																(s, i) => (i === row.index ? newStg : s),
-															),
-														}
+											onReplace={async (newStg) => {
+												try {
+													if (fusionIndex < 0) {
+														await updateSelectStg(row.index, newStg)
 													} else {
-														updated = newStg
+														const stgInFusion = fusion[fusionIndex]
+														if (!stgInFusion) return
+														let updated: any
+														if (stgInFusion.type === "group") {
+															updated = {
+																...stgInFusion,
+																strategy_list: stgInFusion.strategy_list.map(
+																	(s, i) => (i === row.index ? newStg : s),
+																),
+															}
+														} else if (stgInFusion.type === "pos") {
+															updated = {
+																...stgInFusion,
+																strategy_pool: stgInFusion.strategy_pool.map(
+																	(s, i) => (i === row.index ? newStg : s),
+																),
+															}
+														} else {
+															updated = newStg
+														}
+														await updateFusion(
+															fusion.map((item, i) =>
+																i === fusionIndex ? updated : item,
+															),
+														)
 													}
-													updateFusion(
-														fusion.map((item, i) =>
-															i === fusionIndex ? updated : item,
-														),
-													)
+												} catch {
+													toast.error("保存策略失败")
 												}
 											}}
 										/>

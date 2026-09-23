@@ -30,10 +30,11 @@ import { isMinDataUpdatingAtom, isUpdatingAtom } from "@/renderer/store"
 import {
 	accountKeyAtom,
 	fusionAtom,
-	libraryTypeAtom,
 	realMarketConfigSchemaAtom,
 	selectStgListAtom,
 } from "@/renderer/store/storage"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import type {
 	PosStrategyType,
 	SelectStgType,
@@ -58,20 +59,20 @@ export function TradingCard() {
 	const { selectScheduleTimes } = useScheduleTimes()
 	const handleTimeTask = useHandleTimeTask()
 	const { startMinDataSchedule } = useMinDataSchedule()
-	const libraryType = useAtomValue(libraryTypeAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const selectStgList = useAtomValue(selectStgListAtom)
 	const fusion = useAtomValue(fusionAtom)
 	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
 
 	const runningStrategyCount = useMemo(() => {
-		const strategies =
-			libraryType === "pos"
-				? (fusion as (SelectStgType | StgGroupType | PosStrategyType)[])
-				: selectStgList
+		const strategies = isMember
+			? (fusion as (SelectStgType | StgGroupType | PosStrategyType)[])
+			: selectStgList
 
 		return strategies.filter((strategy) => (strategy.cap_weight ?? 0) !== 0)
 			.length
-	}, [libraryType, selectStgList, fusion])
+	}, [isMember, selectStgList, fusion])
 
 	const accountSubtitle = useMemo(() => {
 		const accountId = realMarketConfig?.account_id ?? ""

@@ -19,10 +19,7 @@ import type { FC } from "react"
 import { HashRouter, Route, Routes } from "react-router"
 import { CSSTransition, TransitionGroup } from "react-transition-group"
 
-// 策略库的数据
-// import { StrategiesProvider } from "@/renderer/context/strategies-context"
-// 策略管理 Provider
-import { StoreProvider } from "@/renderer/context/store-context"
+import { ElectronStoreInitProvider } from "@/renderer/components/electron-store-init-provider"
 // 客户端版本更新
 import { UpdateProvider } from "@/renderer/context/update-context"
 // HeroUI需要的Provider
@@ -57,7 +54,7 @@ const App: FC = () => {
 				<Provider>
 					<HydrateAtoms>
 						{/* <StrategiesProvider> */}
-						<StoreProvider>
+						<ElectronStoreInitProvider>
 							<UpdateProvider>
 								<TransitionGroup>
 									<CSSTransition
@@ -82,8 +79,7 @@ const App: FC = () => {
 									</CSSTransition>
 								</TransitionGroup>
 							</UpdateProvider>
-						</StoreProvider>
-						{/* </StrategiesProvider> */}
+						</ElectronStoreInitProvider>
 					</HydrateAtoms>
 					{VITE_XBX_ENV === "development" && (
 						<>

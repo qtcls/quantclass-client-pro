@@ -36,7 +36,6 @@ export const settingsAtom = atomWithElectronStore<SettingsType>("settings", {
 	data_white_list: [],
 	hid: "",
 	api_key: "",
-	libraryType: "pos",
 	performance_mode: "EQUAL",
 	user_choice: false,
 	accelerated_data_source: false,

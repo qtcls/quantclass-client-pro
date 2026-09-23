@@ -8,87 +8,90 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { useStrategy } from "@/renderer/context/store-context"
-import type { SelectStgType } from "@/renderer/types/strategy"
+import { useFusionManager } from "@/renderer/hooks/useFusionManager"
+import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
+import { userAtom } from "@/renderer/store/user"
+import type { BasicStgType, SelectStgType } from "@/renderer/types/strategy"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtomValue } from "jotai"
+import { toast } from "sonner"
 
 /**
- * 示例：如何在组件中使用 Strategy Provider
- *
- * 这个 Provider 提供了以下功能：
- * 1. 自动监听 atom 变化
- * 2. 自动与 IPC 联动保存数据
- * 3. 提供统一的策略管理接口
+ * 示例：如何在组件中使用策略管理 hooks
  */
-
 export function useStrategyExample() {
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+
 	const {
-		// 状态
-		fusion,
 		selectStgList,
-		libraryType,
-
-		// Fusion 操作方法
-		updateFusion,
-		addFusionStrategies,
-		removeFusionStrategy,
-		updateFusionStgInRow,
-		resetFusion,
-		syncFusion,
-
-		// SelectStgList 操作方法
 		updateSelectStgList,
 		addSelectStgList,
 		removeSelectStg,
 		updateSelectStg,
 		resetSelectStgList,
 		syncSelectStgList,
-	} = useStrategy()
+	} = useStrategyManager()
 
-	// 示例：添加选股策略
-	const handleAddSelectStrategy = (strategy: SelectStgType) => {
-		addSelectStgList([strategy])
-		// 数据会自动保存到 IPC，无需手动调用 syncSelectStgList
+	const {
+		fusion,
+		updateFusion,
+		addFusionStrategies,
+		removeFusionStrategy,
+		updateFusionStgInRow,
+		resetFusion,
+		syncFusion,
+	} = useFusionManager()
+
+	const handleAddSelectStrategy = async (strategy: BasicStgType) => {
+		try {
+			await addSelectStgList([strategy])
+		} catch {
+			toast.error("写入策略失败")
+		}
 	}
 
-	// 示例：删除 Fusion 策略
-	const handleRemoveFusionStrategy = (index: number) => {
-		removeFusionStrategy(index)
-		// 数据会自动保存到 IPC，无需手动调用 syncFusion
+	const handleRemoveFusionStrategy = async (index: number) => {
+		try {
+			await removeFusionStrategy(index)
+		} catch {
+			toast.error("删除失败")
+		}
 	}
 
-	// 示例：更新 Fusion 策略中的单个策略
-	const handleUpdateFusionStrategy = (
+	const handleUpdateFusionStrategy = async (
 		fusionIndex: number,
 		values: any,
 		strategy: SelectStgType,
 		rowIndex: number,
 	) => {
-		updateFusionStgInRow(fusionIndex, values, strategy, rowIndex)
-		// 数据会自动保存到 IPC
+		try {
+			await updateFusionStgInRow(fusionIndex, values, strategy, rowIndex)
+		} catch {
+			toast.error("保存策略失败")
+		}
 	}
 
-	// 示例：重置所有策略
-	const handleResetAll = () => {
-		if (libraryType === "pos") {
-			resetFusion()
-		} else {
-			resetSelectStgList()
+	const handleResetAll = async () => {
+		try {
+			if (isMember) {
+				await resetFusion()
+			} else {
+				await resetSelectStgList()
+			}
+		} catch {
+			toast.error("清空失败")
 		}
 	}
 
 	return {
-		// 状态
 		fusion,
 		selectStgList,
-		libraryType,
-
-		// 操作方法
+		isMember,
 		handleAddSelectStrategy,
 		handleRemoveFusionStrategy,
 		handleUpdateFusionStrategy,
 		handleResetAll,
-
-		// 原始方法（如果需要）
 		updateFusion,
 		addFusionStrategies,
 		removeFusionStrategy,
@@ -103,38 +106,3 @@ export function useStrategyExample() {
 		syncSelectStgList,
 	}
 }
-
-/**
- * 使用示例：
- *
- * function MyComponent() {
- *   const {
- *     fusion,
- *     selectStgList,
- *     libraryType,
- *     handleAddSelectStrategy,
- *     handleRemoveFusionStrategy,
- *     handleResetAll
- *   } = useStrategyExample()
- *
- *   return (
- *     <div>
- *       <p>当前库类型: {libraryType}</p>
- *       <p>Fusion 策略数量: {fusion.length}</p>
- *       <p>选股策略数量: {selectStgList.length}</p>
- *
- *       <button onClick={() => handleAddSelectStrategy(newStrategy)}>
- *         添加选股策略
- *       </button>
- *
- *       <button onClick={() => handleRemoveFusionStrategy(0)}>
- *         删除第一个 Fusion 策略
- *       </button>
- *
- *       <button onClick={handleResetAll}>
- *         重置所有策略
- *       </button>
- *     </div>
- *   )
- * }
- */

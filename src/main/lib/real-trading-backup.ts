@@ -17,7 +17,7 @@ import { loadTradingDaysFromPeriodOffsetCsv } from "@/main/utils/common.js"
 import logger from "@/main/utils/wiston.js"
 import { STOCK_QUANT_STRATEGY_CONFIG } from "@/shared/constants.js"
 import { stockQuantToStrategyList } from "@/shared/lib/basic-strategy-import.js"
-import { checkPermission, getSelectKernal } from "@/shared/lib/permission.js"
+import { getSelectKernal } from "@/shared/lib/permission.js"
 import {
 	getLocalCalendarYmd,
 	getLocalMidnightOfNthTradingDayBefore,
@@ -222,23 +222,6 @@ async function getStockQuantStrategyNames(): Promise<string[]> {
 		.filter((s) => s.length > 0)
 }
 
-async function getSelectStockStrategyNames(): Promise<string[]> {
-	const userAccount = await userStore.getUserAccount()
-	const isMember = checkPermission(userAccount?.permissions ?? [], "isMember")
-
-	if (!isMember) {
-		return getStockQuantStrategyNames()
-	}
-
-	const list = (await store.getValue(
-		"select_stock.strategy_list",
-		[],
-	)) as Array<{ name?: unknown }>
-	return Array.isArray(list)
-		? list.map((x) => String(x?.name ?? "").trim()).filter((s) => s.length > 0)
-		: []
-}
-
 function childMatchesKeywords(childName: string, keywords: string[]): boolean {
 	if (keywords.length === 0) return false
 	const lower = childName.toLowerCase()
@@ -300,7 +283,7 @@ async function addFilteredRealTradingToArchive(
 	ymd: string,
 ): Promise<CopyStats> {
 	const posNames = await getPosStrategyNames()
-	const selectNames = await getSelectStockStrategyNames()
+	const selectNames = await getStockQuantStrategyNames()
 	const userAccount = await userStore.getUserAccount()
 	const selectKernal = getSelectKernal(userAccount?.permissions ?? [])
 	const stats: CopyStats = { copiedItems: 0, skippedMissing: [] }

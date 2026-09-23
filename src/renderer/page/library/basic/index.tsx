@@ -144,7 +144,7 @@ export default function BasicStrategyLibrary() {
 					size="sm"
 					className="h-8 lg:flex"
 					disabled={isAutoRocket || selectStgList.length === 0}
-					onClick={() => {
+					onClick={async () => {
 						if (selectStgList.length === 0) {
 							toast.warning("请先导入策略")
 							return
@@ -152,14 +152,17 @@ export default function BasicStrategyLibrary() {
 						const avgCapWeight = Number.parseFloat(
 							(1 / selectStgList.length).toFixed(7),
 						)
-						const strategies = selectStgList.map((s: SelectStgType) => ({
+						const strategies = selectStgList.map((s) => ({
 							...s,
 							cap_weight: avgCapWeight,
 						}))
 
-						updateSelectStgList(strategies)
-
-						toast.success(`平均分配权重，每个策略为${avgCapWeight * 100}%`)
+						try {
+							await updateSelectStgList(strategies)
+							toast.success(`平均分配权重，每个策略为${avgCapWeight * 100}%`)
+						} catch {
+							toast.error("保存策略失败")
+						}
 					}}
 				>
 					<AlignVerticalSpaceAround className="size-4 mr-2" />

@@ -10,17 +10,15 @@
 
 import { NumberTicker } from "@/renderer/components/ui/number-ticker"
 import { usePermissionCheck } from "@/renderer/hooks"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { useKernelModulesStatus } from "@/renderer/hooks/useKernelModulesStatus"
 import { useProductList } from "@/renderer/hooks/useProductList"
 import { cn } from "@/renderer/lib/utils"
 import type { PositionStrategyInfoType } from "@/renderer/page/position/types"
 import { unreadNotificationCountAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
-import {
-	fusionAtom,
-	libraryTypeAtom,
-	selectStgListAtom,
-} from "@/renderer/store/storage"
+import { fusionAtom, selectStgListAtom } from "@/renderer/store/storage"
 import type {
 	PosStrategyType,
 	SelectStgType,
@@ -40,15 +38,15 @@ interface OverviewMetricsProps {
 }
 
 function useStrategyRunStats() {
-	const libraryType = useAtomValue(libraryTypeAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const selectStgList = useAtomValue(selectStgListAtom)
 	const fusion = useAtomValue(fusionAtom)
 
 	return useMemo(() => {
-		const strategies =
-			libraryType === "pos"
-				? (fusion as (SelectStgType | StgGroupType | PosStrategyType)[])
-				: selectStgList
+		const strategies = isMember
+			? (fusion as (SelectStgType | StgGroupType | PosStrategyType)[])
+			: selectStgList
 
 		const total = strategies.length
 		const running = strategies.filter(
@@ -57,7 +55,7 @@ function useStrategyRunStats() {
 		const paused = total - running
 
 		return { total, running, paused }
-	}, [libraryType, selectStgList, fusion])
+	}, [isMember, selectStgList, fusion])
 }
 
 export function OverviewMetrics({ showFinanceInfo }: OverviewMetricsProps) {

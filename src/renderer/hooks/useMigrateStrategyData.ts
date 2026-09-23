@@ -23,10 +23,8 @@ export function useMigrateStrategyData() {
 
 	useEffect(() => {
 		const needsMigration =
-			(selectStockStg.length > 0 &&
-				!("enable_real_market" in selectStockStg[0])) ||
-			(selectStockStg.length > 0 &&
-				!("enable_real_market" in selectStockStg[0]))
+			selectStockStg.length > 0 &&
+			!("enable_real_market" in selectStockStg[0])
 
 		if (needsMigration) {
 			// -- 重置所有策略相关的数据

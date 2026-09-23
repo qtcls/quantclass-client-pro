@@ -705,18 +705,16 @@ async function generateSingleStrategyStatus(
 
 /**
  * 生成策略状态列表（二维数组）
- * 根据 libraryType 选择对应的状态列表函数
+ * 会员走仓位管理，非会员走基础课程选股
  */
 export async function getStrategyStatusList(
 	date: string,
 ): Promise<StrategyStatus[][]> {
 	try {
-		const libraryType = (await store.getValue(
-			"settings.libraryType",
-			"pos",
-		)) as string
+		const userAccount = await userStore.getUserAccount()
+		const isMember = checkPermission(userAccount?.permissions ?? [], "isMember")
 
-		if (libraryType === "pos") {
+		if (isMember) {
 			return await getStrategyStatusListForPos(date)
 		}
 
@@ -727,24 +725,13 @@ export async function getStrategyStatusList(
 	}
 }
 
-async function getSelectModeStrategyList(): Promise<any[]> {
-	const userAccount = await userStore.getUserAccount()
-	const isMember = checkPermission(userAccount?.permissions ?? [], "isMember")
-
-	if (!isMember) {
-		const stockQuant = await store.getValue(STOCK_QUANT_STRATEGY_CONFIG, {})
-		return stockQuantToStrategyList(stockQuant) as any[]
-	}
-
-	return (await store.getValue("select_stock.strategy_list", [])) as any[]
-}
-
 // 选股模式状态列表函数
 async function getStrategyStatusListForSelect(
 	date: string,
 ): Promise<StrategyStatus[][]> {
 	try {
-		const strategyList = await getSelectModeStrategyList()
+		const stockQuant = await store.getValue(STOCK_QUANT_STRATEGY_CONFIG, {})
+		const strategyList = stockQuantToStrategyList(stockQuant) as any[]
 
 		if (strategyList.length === 0) {
 			logger.warn("[strategy-status] strategy_list 为空")

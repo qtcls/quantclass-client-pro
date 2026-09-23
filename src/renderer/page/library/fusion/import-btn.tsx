@@ -188,10 +188,16 @@ export default function ImportStrategyButton() {
 
 			const processedStrategies = processStrategies(strategies)
 
-			addFusionStrategies(processedStrategies)
+			try {
+				await addFusionStrategies(processedStrategies)
+			} catch {
+				toast.error("导入失败")
+				return
+			}
 
 			setStoreValue("pos_mgmt.backtest_name", backtestName)
 			setImportOpen(false)
+			toast.success("导入成功")
 		},
 		onError: () => {
 			toast.dismiss()
@@ -383,11 +389,14 @@ export default function ImportStrategyButton() {
 							<Button
 								variant={"destructive"}
 								onClick={async () => {
-									resetFusion() // 清空策略库
-									handleToggleAutoRocket(false, true, true).then(() => {
+									try {
+										await resetFusion()
+										await handleToggleAutoRocket(false, true, true)
 										setDeleteOpen(false)
 										toast.success("清空成功")
-									})
+									} catch {
+										toast.error("清空失败")
+									}
 								}}
 							>
 								<Eraser className="mr-2" /> 清空策略库，继续
@@ -413,9 +422,12 @@ export default function ImportStrategyButton() {
 							...s,
 							cap_weight: avgCapWeight,
 						}))
-						updateFusion(_fusion)
-
-						toast.success(`平均分配权重，每个策略为${avgCapWeight * 100}%`)
+						try {
+							await updateFusion(_fusion)
+							toast.success(`平均分配权重，每个策略为${avgCapWeight * 100}%`)
+						} catch {
+							toast.error("保存策略失败")
+						}
 					}}
 				>
 					<AlignVerticalSpaceAround className="size-4 mr-2" />

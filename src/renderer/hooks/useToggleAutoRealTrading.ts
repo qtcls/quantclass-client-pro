@@ -13,11 +13,9 @@ import {
 	isMinDataUpdatingAtom,
 	isUpdatingAtom,
 } from "@/renderer/store"
-import {
-	fusionAtom,
-	libraryTypeAtom,
-	selectStgListAtom,
-} from "@/renderer/store/storage"
+import { fusionAtom, selectStgListAtom } from "@/renderer/store/storage"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import type {
 	PosStrategyType,
 	SelectStgType,
@@ -32,16 +30,17 @@ export const useToggleAutoRealTrading = () => {
 	const isUpdating = useAtomValue(isUpdatingAtom) // -- 获取历史数据是否自动更新
 	const isMinDataUpdating = useAtomValue(isMinDataUpdatingAtom) // -- 获取实时数据是否自动更新
 	const [isAutoRocket, setIsAutoRocket] = useAtom(isAutoRocketAtom) // -- 获取是否自动实盘
-	const selectStgList = useAtomValue(selectStgListAtom) // -- 获取选择的策略
-	const libraryType = useAtomValue(libraryTypeAtom)
+	const selectStgList = useAtomValue(selectStgListAtom)
 	const fusion = useAtomValue(fusionAtom)
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 
 	const { setAutoTrading, getStoreValue, setStoreValue, killRocket } =
 		window.electronAPI
 
 	const strategies = useMemo(() => {
-		return libraryType === "pos" ? fusion : selectStgList
-	}, [libraryType, selectStgList, fusion])
+		return isMember ? fusion : selectStgList
+	}, [isMember, selectStgList, fusion])
 
 	/**
 	 * @description 启动自动实盘

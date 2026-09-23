@@ -26,9 +26,10 @@ import {
 import { SettingsGearIcon } from "@/renderer/icons/SettingsGearIcon"
 import {
 	backtestConfigAtom,
-	libraryTypeAtom,
 	realMarketConfigSchemaAtom,
 } from "@/renderer/store/storage"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import dayjs from "dayjs"
 import { useDebounceFn, useMount } from "etc-hooks"
 import { useAtom, useAtomValue } from "jotai"
@@ -48,13 +49,11 @@ export function BacktestSettings() {
 	const startDate = backtestConfig.start_date
 	const endDate = backtestConfig.end_date
 	const [editSettings, setEditSettings] = useState(false)
-	const libraryType = useAtomValue(libraryTypeAtom)
-	// 新增一个变量configKey，根据libraryType的变化自动切换是选股还是仓位管理
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const configKey = useMemo(() => {
-		return libraryType === "pos"
-			? POS_MGMT_STRATEGY_CONFIG
-			: SELECT_STOCK_STRATEGY_CONFIG
-	}, [libraryType])
+		return isMember ? POS_MGMT_STRATEGY_CONFIG : SELECT_STOCK_STRATEGY_CONFIG
+	}, [isMember])
 
 	const debouncedSetEstimatedFund = useDebounceFn(
 		(value: number) => {

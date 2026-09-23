@@ -29,7 +29,7 @@ import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
 import { backtestConfigAtom, reTimingAtom } from "@/renderer/store/storage"
 import { userAtom } from "@/renderer/store/user"
-import type { SelectStgType } from "@/renderer/types/strategy"
+import type { BasicStgType } from "@/renderer/types/strategy"
 import { openRealTradingFolder } from "@/renderer/utils"
 import { BASIC_SELECT_STRATEGY_IMPORT_LIMIT } from "@/shared/lib/basic-strategy-import"
 import { checkPermission } from "@/shared/lib/permission"
@@ -117,14 +117,19 @@ const StgImportButton = forwardRef<StgImportHandle>((_props, ref) => {
 					backtest_name: backtestName,
 				}))
 
-				if (!isMember) {
-					const remaining =
-						BASIC_SELECT_STRATEGY_IMPORT_LIMIT - selectStgList.length
-					addSelectStgList(
-						(strategyListWithCap0 as SelectStgType[]).slice(0, remaining),
-					)
-				} else {
-					addSelectStgList(strategyListWithCap0 as SelectStgType[])
+				try {
+					if (!isMember) {
+						const remaining =
+							BASIC_SELECT_STRATEGY_IMPORT_LIMIT - selectStgList.length
+						await addSelectStgList(
+							(strategyListWithCap0 as BasicStgType[]).slice(0, remaining),
+						)
+					} else {
+						await addSelectStgList(strategyListWithCap0 as BasicStgType[])
+					}
+				} catch {
+					toast.error("导入失败")
+					return
 				}
 			}
 			setImportOpen(false)
@@ -332,11 +337,14 @@ const StgImportButton = forwardRef<StgImportHandle>((_props, ref) => {
 						<Button
 							variant={"destructive"}
 							onClick={async () => {
-								resetSelectStgList() // 清空策略库
-								handleToggleAutoRocket(false, true, true).then(() => {
+								try {
+									await resetSelectStgList()
+									await handleToggleAutoRocket(false, true, true)
 									setDeleteOpen(false)
 									toast.success("清空成功")
-								})
+								} catch {
+									toast.error("清空失败")
+								}
 							}}
 						>
 							<Eraser className="mr-2" /> 清空策略库，继续

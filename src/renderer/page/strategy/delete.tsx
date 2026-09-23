@@ -60,14 +60,14 @@ export function DeleteStrategy<T extends BaseStrategy>({
 	const doDelete = async () => {
 		console.log("doDelete", rowIndex, strategy)
 		try {
-			removeSelectStg(rowIndex)
+			await removeSelectStg(rowIndex)
 			toast.success(`策略 "${strategy.name}" 已删除`)
 			onSuccess?.()
+			setShowDialog(false)
 		} catch (error) {
 			toast.error("删除失败")
 			console.error(error)
 		}
-		setShowDialog(false)
 	}
 
 	const { mutateAsync: deleteStrategy, isPending: deleting } = useMutation({

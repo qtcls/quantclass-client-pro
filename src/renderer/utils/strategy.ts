@@ -9,6 +9,7 @@
  */
 
 import type {
+	BasicStgType,
 	PosStrategyType,
 	RebTimeConfig,
 	SelectStgType,
@@ -24,7 +25,7 @@ const { setStoreValue } = window.electronAPI
 const addStrategyToRebTimeConfig = (
 	rebTimeConfig: Record<string, RebTimeConfig>,
 	rebTime: string,
-	strategy: SelectStgType | PosStrategyType,
+	strategy: BasicStgType | SelectStgType | PosStrategyType,
 ): void => {
 	rebTimeConfig[rebTime] ??= {
 		...autoTradeTimeByRebTime(rebTime),
@@ -79,23 +80,30 @@ export const processOffsetList = (offsetListStr: string): number[] => {
 // 	}
 // }
 
-const genSelectStgInfo = (strategy: SelectStgType, includeInfo = true) => {
+const genSelectStgInfo = (
+	strategy: BasicStgType | SelectStgType,
+	includeInfo = true,
+) => {
 	const { info, ...rest } = strategy
 
 	return {
 		...rest,
-		select_num: Number.parseInt(String(rest.select_num)),
+		...("select_num" in rest && rest.select_num != null
+			? { select_num: Number.parseInt(String(rest.select_num)) }
+			: {}),
 		...(includeInfo ? { info: info ?? {} } : {}),
 	}
 }
 
-function buildSelectStrategyPersistPayload(
-	strategies: SelectStgType[],
+export const saveStockQuantStrategies = async (
+	strategies: BasicStgType[],
 	existingRebTimeConfig?: Record<string, RebTimeConfig>,
-) {
+) => {
 	const strategiesWithAdjustedWeight = strategies.map((strategy) => ({
 		...strategy,
-		calc_time: strategy.calc_time ?? "08:00:00",
+		...("calc_time" in strategy
+			? { calc_time: strategy.calc_time ?? "08:00:00" }
+			: {}),
 	}))
 
 	const rebTimeConfig: Record<string, RebTimeConfig> = {}
@@ -124,27 +132,6 @@ function buildSelectStrategyPersistPayload(
 	const selectStrategyList = strategiesWithAdjustedWeight.map((stg) =>
 		genSelectStgInfo(stg, false),
 	)
-
-	return { rebTimeConfig, selectStrategyList }
-}
-
-export const saveStrategyList = async (
-	strategies: SelectStgType[],
-	existingRebTimeConfig?: Record<string, RebTimeConfig>,
-) => {
-	const { rebTimeConfig, selectStrategyList } =
-		buildSelectStrategyPersistPayload(strategies, existingRebTimeConfig)
-	await setStoreValue("select_stock.strategy_list", selectStrategyList)
-
-	return { rebTimeConfig }
-}
-
-export const saveStockQuantStrategies = async (
-	strategies: SelectStgType[],
-	existingRebTimeConfig?: Record<string, RebTimeConfig>,
-) => {
-	const { rebTimeConfig, selectStrategyList } =
-		buildSelectStrategyPersistPayload(strategies, existingRebTimeConfig)
 
 	if (selectStrategyList.length === 0) {
 		await setStoreValue(STOCK_QUANT_STRATEGY_CONFIG, {})
@@ -261,7 +248,7 @@ export const saveStrategyListFusion = async (
 
 // 收集选股策略的 remark_name
 export function collectSelectRemarkNames(
-	list: SelectStgType[],
+	list: Array<{ remark_name?: string }>,
 	excludeIndex?: number,
 ): Set<string> {
 	const names = new Set<string>()

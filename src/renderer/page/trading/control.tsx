@@ -13,7 +13,7 @@ import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { csvFileNameAtom, realConfigEditModalAtom } from "@/renderer/store"
-import { backtestConfigAtom, libraryTypeAtom } from "@/renderer/store/storage"
+import { backtestConfigAtom } from "@/renderer/store/storage"
 import { useQuery } from "@tanstack/react-query"
 import { useAtomValue, useSetAtom } from "jotai"
 import { Settings } from "lucide-react"
@@ -35,7 +35,6 @@ export default function TradingControl() {
 		queryFn: () => loadAquaTradingInfo(),
 		refetchInterval: 7 * 1000,
 	})
-	const libraryType = useAtomValue(libraryTypeAtom)
 	const csvFileName = useAtomValue(csvFileNameAtom)
 
 	useEffect(() => {

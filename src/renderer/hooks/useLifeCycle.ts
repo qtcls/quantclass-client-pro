@@ -28,12 +28,12 @@ import {
 	accountKeyAtom,
 	backtestConfigAtom,
 	isAutoLoginAtom,
-	libraryTypeAtom,
 	reTimingAtom,
 	realMarketConfigSchemaAtom,
 } from "@/renderer/store/storage"
-import { macAddressAtom } from "@/renderer/store/user"
+import { macAddressAtom, userAtom } from "@/renderer/store/user"
 import { useLocalVersions, versionsEffectAtom } from "@/renderer/store/versions"
+import { checkPermission } from "@/shared/lib/permission"
 import { useMount, useUnmount, useUpdateEffect } from "etc-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { toast } from "sonner"
@@ -47,12 +47,11 @@ const {
 	subscribeScheduleStatus,
 	removeReportErrorListener,
 	unSubscribeSendScheduleStatusListener,
-	// checkDBFile,
 	getMacAddress,
 	setAutoLaunch,
 	getStoreValue,
+	getUserAccount,
 	setStoreValue,
-	// deleteStoreValue,
 } = window.electronAPI
 
 /**
@@ -65,12 +64,11 @@ export const useLifeCycle = () => {
 	const { refetchLocalVersions } = useLocalVersions()
 	const isUpdating = useAtomValue(isUpdatingAtom)
 	const isAutoLogin = useAtomValue(isAutoLoginAtom)
-	useAtom(versionsEffectAtom) // -- 监听版本更新
-	useAppVersions() // -- 检查远程版本
-	useSettings() // -- 监听设置更新
+	useAtom(versionsEffectAtom)
+	useAppVersions()
+	useSettings()
 
-	// -- 自定义 Hooks
-	useUserInfoSync() // -- 同步用户信息，一分钟轮询一次
+	useUserInfoSync()
 	const { syncSelectStgList } = useStrategyManager()
 	const { syncFusion } = useFusionManager()
 	const { handleToggleAutoRocket } = useToggleAutoRealTrading()
@@ -78,10 +76,9 @@ export const useLifeCycle = () => {
 	// const { mutateAsync } = useExtraWorkStatus()
 	const handleTimeTask = useHandleTimeTask()
 
-	// -- Setters
+	const setUser = useSetAtom(userAtom)
+
 	const setters = {
-		setLibraryType: useSetAtom(libraryTypeAtom),
-		// setExtraWorkStatus: useSetAtom(extraWorkStatusAtom),
 		setMacAddress: useSetAtom(macAddressAtom),
 		setLoading: useSetAtom(loadingAnimeAtom),
 		setIsFullscreen: useSetAtom(isFullscreenAtom),
@@ -139,10 +136,9 @@ export const useLifeCycle = () => {
 	 * -- 初始化账户信息
 	 */
 	const initAccountInfo = async () => {
-		const [apiKey, uuid, libraryType, macAddress] = await Promise.all([
+		const [apiKey, uuid, macAddress] = await Promise.all([
 			getStoreValue("settings.api_key", ""),
 			getStoreValue("settings.hid", ""),
-			getStoreValue("settings.libraryType", "pos"),
 			getMacAddress(),
 		])
 
@@ -162,19 +158,13 @@ export const useLifeCycle = () => {
 			uuid: uuid as string,
 		})
 
-		setters.setLibraryType(libraryType === "pos" ? "pos" : "select") // -- 设置策略库类型
-
-		return { apiKey, uuid, libraryType, macAddress }
+		return { apiKey, uuid, macAddress }
 	}
 
-	/**
-	 * -- 初始化回测配置
-	 */
-	const initBacktestConfig = async (libraryType: string) => {
-		const configKey =
-			libraryType === "pos"
-				? POS_MGMT_STRATEGY_CONFIG
-				: SELECT_STOCK_STRATEGY_CONFIG
+	const initBacktestConfig = async (member: boolean) => {
+		const configKey = member
+			? POS_MGMT_STRATEGY_CONFIG
+			: SELECT_STOCK_STRATEGY_CONFIG
 
 		const [initialCash, startDate, endDate, backtestName, reTiming] =
 			await Promise.all([
@@ -247,31 +237,31 @@ export const useLifeCycle = () => {
 		}
 	}
 
-	// -- 生命周期钩子
 	useMount(async () => {
-		// versionCheck.start()
-		const [_, { apiKey, uuid, libraryType }] = await Promise.all([
+		const [_, { apiKey, uuid }] = await Promise.all([
 			initScheduleTask(),
 			initAccountInfo(),
 		])
 
-		// -- 初始化回测配置
-		await initBacktestConfig(libraryType)
+		const userAccount = await getUserAccount()
+		if (userAccount) {
+			setUser(userAccount)
+		}
+		const isMember = userAccount
+			? checkPermission(userAccount.permissions ?? [], "isMember")
+			: false
 
-		// -- 初始化监听器
+		await initBacktestConfig(isMember)
+
 		onPowerStatus(handlePowerStatusChange)
 		subscribeScheduleStatus(
 			(_event, status) => status === "done" && refetchLocalVersions(),
 		)
 
-		// -- 初始化其他状态
 		const initialFullscreenState = await fetchFullscreenState()
 		setters.setIsFullscreen(initialFullscreenState)
 
-		// -- 清理实时市场数据，这个虽然useMarket的过程中会清理，但是这里是为了保险起见，初始化时再清理一次
-		// await cleanMarketData()
-		const syncActiveStrategyLibrary =
-			libraryType === "pos" ? syncFusion : syncSelectStgList
+		const syncActiveStrategyLibrary = isMember ? syncFusion : syncSelectStgList
 
 		await Promise.all([
 			syncActiveStrategyLibrary(),

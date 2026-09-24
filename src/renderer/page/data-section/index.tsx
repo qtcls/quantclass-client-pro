@@ -1,7 +1,9 @@
-import { MemberPromoGate } from "@/renderer/components/member-promo"
 import { SectionPage } from "@/renderer/components/section-tabs"
 import Data from "@/renderer/page/data"
 import RealtimeData from "@/renderer/page/realtime-data"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
+import { useAtomValue } from "jotai"
 import type { FC } from "react"
 
 const TABS = [
@@ -12,20 +14,23 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"]
 
 const DataSectionPage: FC = () => {
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+
+	if (!isMember) {
+		return (
+			<div className="h-full overflow-auto pt-4">
+				<Data />
+			</div>
+		)
+	}
+
 	return (
 		<SectionPage tabs={TABS} defaultTab="history">
 			{(activeTab: TabKey) => (
 				<>
 					{activeTab === "history" && <Data />}
-					{activeTab === "realtime" && (
-						<MemberPromoGate
-							featureName="实时数据"
-							className="h-full"
-							learnMoreLabel="了解实时数据？"
-						>
-							<RealtimeData />
-						</MemberPromoGate>
-					)}
+					{activeTab === "realtime" && <RealtimeData />}
 				</>
 			)}
 		</SectionPage>

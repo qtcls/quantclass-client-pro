@@ -133,7 +133,7 @@ export default function BasicStrategyLibrary() {
 			</div>
 			<div
 				className={cn(
-					"relative flex w-full items-center gap-4 overflow-hidden rounded-xl border px-4 py-3",
+					"relative flex w-fit max-w-full items-center gap-4 overflow-hidden rounded-full border px-5 py-3",
 					memberPromoGradientClassName,
 					memberPromoBorderClassName,
 				)}
@@ -149,7 +149,7 @@ export default function BasicStrategyLibrary() {
 					</span>
 				</div>
 
-				<div className="relative z-10 flex flex-1 min-w-0 flex-col gap-1.5">
+				<div className="relative z-10 flex w-56 shrink-0 flex-col gap-1.5">
 					<div className="flex items-center justify-between">
 						<span
 							className={cn("text-xs font-medium", memberPromoTextClassName)}
@@ -174,7 +174,7 @@ export default function BasicStrategyLibrary() {
 						/>
 					</div>
 					<span className={cn("text-[11px]", memberPromoMutedTextClassName)}>
-						基础身份最多导入 {BASIC_SELECT_STRATEGY_IMPORT_LIMIT} 个策略
+						基础课程最多导入 {BASIC_SELECT_STRATEGY_IMPORT_LIMIT} 个策略
 					</span>
 				</div>
 

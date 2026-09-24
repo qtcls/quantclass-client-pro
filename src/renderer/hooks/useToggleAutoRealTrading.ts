@@ -48,13 +48,16 @@ export const useToggleAutoRealTrading = () => {
 	const handleToggleAutoRocket = useCallback(
 		async (enable: boolean, showToast = true, ignoreUpdateCheck = false) => {
 			if (enable) {
-				if (
-					!ignoreUpdateCheck &&
-					(!isUpdating || !isMinDataUpdating)
-				) {
+				const dataUpdateReady = isMember
+					? isUpdating && isMinDataUpdating
+					: isUpdating
+
+				if (!ignoreUpdateCheck && !dataUpdateReady) {
 					showToast &&
 						toast.warning(
-							"请在首页，先启动自动更新历史数据和实时数据",
+							isMember
+								? "请在首页，先启动自动更新历史数据和实时数据"
+								: "请在首页，先启动自动更新历史数据",
 						)
 					return
 				}
@@ -114,7 +117,18 @@ export const useToggleAutoRealTrading = () => {
 
 			return true
 		},
-		[isUpdating, isMinDataUpdating],
+		[
+			isUpdating,
+			isMinDataUpdating,
+			isMember,
+			strategies,
+			isAutoRocket,
+			setAutoTrading,
+			setIsAutoRocket,
+			getStoreValue,
+			setStoreValue,
+			killRocket,
+		],
 	)
 
 	return {

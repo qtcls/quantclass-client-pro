@@ -21,12 +21,17 @@ import type {
 	BuyTableRef,
 	SellTableRef,
 } from "@/renderer/page/trading/plan/types"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import { ReloadIcon } from "@radix-ui/react-icons"
+import { useAtomValue } from "jotai"
 import { CircleHelpIcon, NotepadText } from "lucide-react"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
 
 export default function TradingPlan() {
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
 	const [tab, setTab] = useState<"buy" | "sell">("buy")
 	const [showOriginal, setShowOriginal] = useState(true)
 	const [showGeguZeshi, setShowGeguZeshi] = useState(true)
@@ -64,32 +69,36 @@ export default function TradingPlan() {
 							<TabsTrigger value="sell">卖出计划</TabsTrigger>
 						</TabsList>
 					</Tabs>
-					<div className="flex items-center gap-3">
-						<label
-							htmlFor="show-original"
-							className="flex items-center gap-1.5 cursor-pointer select-none"
-						>
-							<Checkbox
-								id="show-original"
-								checked={showOriginal}
-								onCheckedChange={(checked) => setShowOriginal(checked === true)}
-							/>
-							<span className="text-sm">原始策略</span>
-						</label>
-						<label
-							htmlFor="show-gegu-zeshi"
-							className="flex items-center gap-1.5 cursor-pointer select-none"
-						>
-							<Checkbox
-								id="show-gegu-zeshi"
-								checked={showGeguZeshi}
-								onCheckedChange={(checked) =>
-									setShowGeguZeshi(checked === true)
-								}
-							/>
-							<span className="text-sm">个股择时</span>
-						</label>
-					</div>
+					{isMember && (
+						<div className="flex items-center gap-3">
+							<label
+								htmlFor="show-original"
+								className="flex items-center gap-1.5 cursor-pointer select-none"
+							>
+								<Checkbox
+									id="show-original"
+									checked={showOriginal}
+									onCheckedChange={(checked) =>
+										setShowOriginal(checked === true)
+									}
+								/>
+								<span className="text-sm">原始策略</span>
+							</label>
+							<label
+								htmlFor="show-gegu-zeshi"
+								className="flex items-center gap-1.5 cursor-pointer select-none"
+							>
+								<Checkbox
+									id="show-gegu-zeshi"
+									checked={showGeguZeshi}
+									onCheckedChange={(checked) =>
+										setShowGeguZeshi(checked === true)
+									}
+								/>
+								<span className="text-sm">个股择时</span>
+							</label>
+						</div>
+					)}
 				</div>
 
 				<div className="flex items-center gap-2">
@@ -138,14 +147,14 @@ export default function TradingPlan() {
 					{tab === "buy" ? (
 						<BuyTable
 							ref={buyTableRef}
-							showOriginal={showOriginal}
-							showGeguZeshi={showGeguZeshi}
+							showOriginal={isMember ? showOriginal : true}
+							showGeguZeshi={isMember && showGeguZeshi}
 						/>
 					) : (
 						<SellTable
 							ref={sellTableRef}
-							showOriginal={showOriginal}
-							showGeguZeshi={showGeguZeshi}
+							showOriginal={isMember ? showOriginal : true}
+							showGeguZeshi={isMember && showGeguZeshi}
 						/>
 					)}
 				</div>

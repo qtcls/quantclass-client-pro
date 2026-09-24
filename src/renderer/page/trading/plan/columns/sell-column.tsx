@@ -9,13 +9,19 @@
  */
 
 import type { SellRoot } from "@/renderer/page/trading/plan/types"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import type { ColumnDef } from "@tanstack/react-table"
 import dayjs from "dayjs"
+import { useAtomValue } from "jotai"
 import { useMemo } from "react"
 
 export const useSellColumns = (): ColumnDef<SellRoot>[] => {
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+
 	return useMemo(() => {
-		return [
+		const columns: ColumnDef<SellRoot>[] = [
 			{
 				accessorKey: "交易日期",
 				header: "交易日期",
@@ -28,11 +34,15 @@ export const useSellColumns = (): ColumnDef<SellRoot>[] => {
 					)
 				},
 			},
-			{
-				accessorKey: "个股择时",
-				header: "个股择时",
-				size: 90,
-			},
+			...(isMember
+				? ([
+						{
+							accessorKey: "个股择时",
+							header: "个股择时",
+							size: 90,
+						},
+					] satisfies ColumnDef<SellRoot>[])
+				: []),
 			{
 				accessorKey: "策略名称",
 				header: "策略名称",
@@ -74,5 +84,7 @@ export const useSellColumns = (): ColumnDef<SellRoot>[] => {
 				),
 			},
 		]
-	}, [])
+
+		return columns
+	}, [isMember])
 }

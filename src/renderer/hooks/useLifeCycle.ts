@@ -198,7 +198,11 @@ export const useLifeCycle = () => {
 		}
 	}
 
-	const initAutoLauncher = async (apiKey: string, uuid: string) => {
+	const initAutoLauncher = async (
+		apiKey: string,
+		uuid: string,
+		isMember: boolean,
+	) => {
 		if (!apiKey || !uuid) return
 		const [isAutoLaunchUpdate, isAutoLaunchRealTrading, isAutoLaunchMinData] =
 			await Promise.all([
@@ -211,12 +215,14 @@ export const useLifeCycle = () => {
 			await handleTimeTask(false, false)
 		}
 
-		if (isAutoLaunchMinData) {
+		if (isMember && isAutoLaunchMinData) {
 			await startMinDataSchedule(false)
 		}
 
 		const shouldStartRocket =
-			isAutoLaunchRealTrading && isAutoLaunchUpdate && isAutoLaunchMinData
+			isAutoLaunchRealTrading &&
+			isAutoLaunchUpdate &&
+			(isMember ? isAutoLaunchMinData : true)
 
 		if (shouldStartRocket) {
 			await handleToggleAutoRocket(true, false, true)
@@ -226,7 +232,7 @@ export const useLifeCycle = () => {
 
 		const parts: string[] = []
 		if (isAutoLaunchUpdate) parts.push("自动更新历史数据")
-		if (isAutoLaunchMinData) parts.push("自动更新实时数据")
+		if (isMember && isAutoLaunchMinData) parts.push("自动更新实时数据")
 		if (shouldStartRocket) parts.push("自动实盘")
 		if (parts.length > 0) {
 			toast.success(`已为您开启：${parts.join("、")}`)
@@ -257,7 +263,7 @@ export const useLifeCycle = () => {
 		const initialFullscreenState = await fetchFullscreenState()
 		setters.setIsFullscreen(initialFullscreenState)
 
-		await initAutoLauncher(apiKey, uuid)
+		await initAutoLauncher(apiKey, uuid, isMember)
 	})
 
 	// -- 更新效果

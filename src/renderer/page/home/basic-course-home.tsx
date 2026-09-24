@@ -8,7 +8,15 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import { Button } from "@/renderer/components/ui/button"
 import ButtonTooltip from "@/renderer/components/ui/button-tooltip"
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/renderer/components/ui/dialog"
 import { MemberPromoDialog } from "@/renderer/components/member-promo"
 import {
 	memberPromoBorderClassName,
@@ -24,18 +32,34 @@ import {
 	QUESTION_FEEDBACK_PAGE,
 	TRADING_SECTION_ROUTE,
 } from "@/renderer/constant"
+import {
+	useAuthUpdate,
+	useHandleTimeTask,
+	usePermissionCheck,
+	useScheduleTimes,
+} from "@/renderer/hooks"
+import { useToggleAutoRealTrading } from "@/renderer/hooks/useToggleAutoRealTrading"
 import { useProductList } from "@/renderer/hooks/useProductList"
 import { cn } from "@/renderer/lib/utils"
 import { isUpdatingAtom, showFinanceInfoAtom } from "@/renderer/store"
 import { loadAccountQueryAtom } from "@/renderer/store/query"
 import {
+	accountKeyAtom,
 	realMarketConfigSchemaAtom,
 	selectStgListAtom,
 } from "@/renderer/store/storage"
 import { canIncrementalUpdate } from "@/renderer/utils/data-sync-status"
 import { useAtom, useAtomValue } from "jotai"
-import { ArrowRight, Eye, EyeOff, ExternalLink, RefreshCw, Sparkles } from "lucide-react"
-import { useMemo, useState } from "react"
+import {
+	ArrowRight,
+	Eye,
+	EyeOff,
+	ExternalLink,
+	Play,
+	RefreshCw,
+	Sparkles,
+} from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
 
@@ -90,8 +114,19 @@ async function openLearningLink(link: LearningLink) {
 
 function DataCenterCard() {
 	const navigate = useNavigate()
+	const disabled = useAuthUpdate()
+	const [confirmStartAutoUpdate, setConfirmStartAutoUpdate] = useState(false)
+	const { apiKey, uuid } = useAtomValue(accountKeyAtom)
 	const { productList } = useProductList()
 	const isUpdating = useAtomValue(isUpdatingAtom)
+	const handleTimeTask = useHandleTimeTask()
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional one-shot on mount
+	useEffect(() => {
+		if (apiKey === "" && uuid === "" && isUpdating) {
+			handleTimeTask(true)
+		}
+	}, [apiKey, uuid])
 
 	const subscribedCount = productList.length
 	const laggingCount = useMemo(
@@ -116,13 +151,33 @@ function DataCenterCard() {
 				: "text-amber-500"
 
 	return (
-		<div className="overflow-hidden rounded-xl border border-border bg-background flex flex-col hover:border-foreground/30 transition-colors">
-			<div className="flex items-center justify-between border-b border-border px-4 py-3.5">
-				<span className="text-sm font-semibold">数据中心</span>
-				<span className="text-xs font-mono font-semibold text-muted-foreground/50">
-					01
-				</span>
-			</div>
+		<>
+			<div className="overflow-hidden rounded-xl border border-border bg-background flex flex-col hover:border-foreground/30 transition-colors">
+				<div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+					<span className="text-sm font-semibold">数据中心</span>
+					{isUpdating ? (
+						<ButtonTooltip content="停止自动更新数据">
+							<button
+								type="button"
+								disabled={disabled}
+								onClick={() => handleTimeTask(true)}
+								className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 text-green-600 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+							>
+								<RefreshCw className="size-5 animate-spin" />
+							</button>
+						</ButtonTooltip>
+					) : (
+						<ButtonTooltip content="启动自动更新数据">
+							<button
+								type="button"
+								onClick={() => setConfirmStartAutoUpdate(true)}
+								className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 text-foreground hover:bg-muted transition-colors"
+							>
+								<Play className="size-5 fill-current" />
+							</button>
+						</ButtonTooltip>
+					)}
+				</div>
 
 			<div className="px-4 py-3.5 flex-1 flex flex-col">
 				<div>
@@ -176,23 +231,83 @@ function DataCenterCard() {
 				</p>
 			</div>
 
-			<button
-				type="button"
-				onClick={() => navigate(DATA_SECTION_ROUTE)}
-				className="flex items-center justify-between px-4 py-3 border-t border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors w-full text-left"
+				<button
+					type="button"
+					onClick={() => navigate(DATA_SECTION_ROUTE)}
+					className="flex items-center justify-between px-4 py-3 border-t border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors w-full text-left"
+				>
+					<span>查看数据状态</span>
+					<ArrowRight size={15} strokeWidth={2} />
+				</button>
+			</div>
+
+			<Dialog
+				open={confirmStartAutoUpdate}
+				onOpenChange={setConfirmStartAutoUpdate}
 			>
-				<span>查看数据状态</span>
-				<ArrowRight size={15} strokeWidth={2} />
-			</button>
-		</div>
+				<DialogContent className="max-w-lg p-4">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Play size={20} />
+							启动自动更新数据
+						</DialogTitle>
+					</DialogHeader>
+					<div className="text-primary">
+						启动后，会<span className="font-bold"> 实时检查 </span>并
+						<span className="font-bold"> 更新数据 </span>
+						，自动完成数据的处理与存储，尽量保证本地数据是最新的。
+					</div>
+					<DialogFooter>
+						<Button
+							className="hover:cursor-pointer w-full"
+							variant="success"
+							onClick={async () => {
+								await handleTimeTask(false)
+								setConfirmStartAutoUpdate(false)
+							}}
+						>
+							<Play className="mr-2 size-4" />
+							启动
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</>
 	)
 }
 
 function TradingStatusCard({ showFinanceInfo }: { showFinanceInfo: boolean }) {
 	const navigate = useNavigate()
+	const [confirmStartAutoTrading, setConfirmStartAutoTrading] = useState(false)
+	const { checkWithToast } = usePermissionCheck()
+	const { apiKey, uuid } = useAtomValue(accountKeyAtom)
+	const isUpdating = useAtomValue(isUpdatingAtom)
+	const { isAutoRocket, handleToggleAutoRocket } = useToggleAutoRealTrading()
+	const { selectScheduleTimes } = useScheduleTimes()
+	const handleTimeTask = useHandleTimeTask()
 	const [{ data: accountData }] = useAtom(loadAccountQueryAtom)
 	const realMarketConfig = useAtomValue(realMarketConfigSchemaAtom)
 	const selectStgList = useAtomValue(selectStgListAtom)
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional one-shot on mount
+	useEffect(() => {
+		if (apiKey === "" && uuid === "" && isAutoRocket) {
+			void handleToggleAutoRocket(false)
+		}
+	}, [apiKey, uuid])
+
+	const handleTradeCtrlClick = () => {
+		if (
+			!checkWithToast({
+				requireMemberOrStock: true,
+				windowsOnly: true,
+			}).isValid
+		) {
+			return
+		}
+
+		setConfirmStartAutoTrading(true)
+	}
 
 	const accountId = realMarketConfig?.account_id?.trim() ?? ""
 	const hasAccount = accountId !== ""
@@ -210,13 +325,44 @@ function TradingStatusCard({ showFinanceInfo }: { showFinanceInfo: boolean }) {
 	}
 
 	return (
-		<div className="overflow-hidden rounded-xl border border-border bg-background flex flex-col hover:border-foreground/30 transition-colors">
-			<div className="flex items-center justify-between border-b border-border px-4 py-3.5">
-				<span className="text-sm font-semibold">我的实盘</span>
-				<span className="text-xs font-mono font-semibold text-muted-foreground/50">
-					02
-				</span>
-			</div>
+		<>
+			<div className="overflow-hidden rounded-xl border border-border bg-background flex flex-col hover:border-foreground/30 transition-colors">
+				<div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+					<span className="text-sm font-semibold">我的实盘</span>
+					{isAutoRocket ? (
+						<ButtonTooltip
+							content={
+								selectScheduleTimes.length > 0
+									? "点击暂停定时实盘（只在指定时间运行）"
+									: "点击暂停自动实盘"
+							}
+						>
+							<button
+								type="button"
+								onClick={() => void handleToggleAutoRocket(false)}
+								className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 text-green-600 hover:bg-green-500/10 transition-colors"
+							>
+								<RefreshCw className="size-5 animate-spin" />
+							</button>
+						</ButtonTooltip>
+					) : (
+						<ButtonTooltip
+							content={
+								selectScheduleTimes.length > 0
+									? "启动定时实盘（只在指定时间运行）"
+									: "启动自动实盘"
+							}
+						>
+							<button
+								type="button"
+								onClick={handleTradeCtrlClick}
+								className="w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 text-foreground hover:bg-muted transition-colors"
+							>
+								<Play className="size-5 fill-current" />
+							</button>
+						</ButtonTooltip>
+					)}
+				</div>
 
 			<div className="px-4 py-3.5 flex-1 flex flex-col">
 				<div>
@@ -267,15 +413,66 @@ function TradingStatusCard({ showFinanceInfo }: { showFinanceInfo: boolean }) {
 				</div>
 			</div>
 
-			<button
-				type="button"
-				onClick={() => navigate(TRADING_SECTION_ROUTE)}
-				className="flex items-center justify-between px-4 py-3 border-t border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors w-full text-left"
+				<button
+					type="button"
+					onClick={() => navigate(TRADING_SECTION_ROUTE)}
+					className="flex items-center justify-between px-4 py-3 border-t border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors w-full text-left"
+				>
+					<span>查看实盘状态</span>
+					<ArrowRight size={15} strokeWidth={2} />
+				</button>
+			</div>
+
+			<Dialog
+				open={confirmStartAutoTrading}
+				onOpenChange={setConfirmStartAutoTrading}
 			>
-				<span>查看实盘状态</span>
-				<ArrowRight size={15} strokeWidth={2} />
-			</button>
-		</div>
+				<DialogContent className="max-w-lg p-4">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Play size={20} />
+							启动自动实盘
+						</DialogTitle>
+					</DialogHeader>
+					<div className="text-primary leading-relaxed space-y-2">
+						{!isUpdating && (
+							<p>
+								<span className="font-bold">自动更新历史数据</span>
+								：会实时检查并自动完成数据的处理与存储，尽量保证本地数据是最新的。
+							</p>
+						)}
+						<p>
+							<span className="font-bold">自动选股</span>
+							：会根据你策略库中的配置，自动实时计算选股结果。
+						</p>
+						<p>
+							<span className="font-bold">自动交易</span>
+							：成功配置 QMT 后，会根据最新选股指令进行自动交易
+						</p>
+					</div>
+					<DialogFooter>
+						<Button
+							className="hover:cursor-pointer w-full"
+							onClick={async () => {
+								const wasUpdating = isUpdating
+								if (!wasUpdating) {
+									await handleTimeTask(false)
+								}
+								if (!wasUpdating) {
+									await handleToggleAutoRocket(true, true, true)
+								} else {
+									await handleToggleAutoRocket(true)
+								}
+								setConfirmStartAutoTrading(false)
+							}}
+						>
+							<Play className="h-5 w-5 mr-0.5" />
+							启动自动实盘
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</>
 	)
 }
 
@@ -284,9 +481,7 @@ function LearningCard() {
 		<div className="overflow-hidden rounded-xl border border-border bg-background flex flex-col hover:border-foreground/30 transition-colors">
 			<div className="flex items-center justify-between border-b border-border px-4 py-3.5">
 				<span className="text-sm font-semibold">投研与学习</span>
-				<span className="text-xs font-mono font-semibold text-muted-foreground/50">
-					03
-				</span>
+				<span className="w-10 h-10 flex-shrink-0" aria-hidden />
 			</div>
 
 			<div className="flex-1 flex flex-col">

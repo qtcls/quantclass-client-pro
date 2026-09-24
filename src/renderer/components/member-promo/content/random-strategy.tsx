@@ -11,6 +11,10 @@
 import randomStrategy1 from "@/renderer/assets/member-promo/random-strategy/1.png"
 import randomStrategy2 from "@/renderer/assets/member-promo/random-strategy/2.png"
 import randomStrategy3 from "@/renderer/assets/member-promo/random-strategy/3.png"
+import randomStrategy4 from "@/renderer/assets/member-promo/random-strategy/4.png"
+import randomStrategy5 from "@/renderer/assets/member-promo/random-strategy/5.png"
+import randomStrategy6 from "@/renderer/assets/member-promo/random-strategy/6.png"
+import randomStrategy7 from "@/renderer/assets/member-promo/random-strategy/7.png"
 import {
 	FEN_CLASS_LINKS,
 	FEN_CLASS_URL_BY_YEAR,
@@ -28,6 +32,16 @@ export function RandomStrategyPromoContent() {
 				{ src: randomStrategy1, caption: "精心随机策略库 - 客户端界面" },
 				{ src: randomStrategy2, caption: "精心随机策略库 - 本地文件" },
 				{ src: randomStrategy3, caption: "某精心随机策略回测结果" },
+				{ src: randomStrategy4, caption: "分享会专属策略库 — 旗舰策略混合" },
+				{ src: randomStrategy5, caption: "2024期策略分享会旗舰策略 — 风火轮" },
+				{
+					src: randomStrategy6,
+					caption: "2025期策略分享会旗舰策略 — 定风波 + 选股策略随机混合",
+				},
+				{
+					src: randomStrategy7,
+					caption: "选股策略精心随机 + 2026期策略分享会旗舰策略 — 凌烟阁",
+				},
 			]}
 		>
 			<section className="space-y-2">

@@ -9,14 +9,20 @@
  */
 
 import type { BuyRoot } from "@/renderer/page/trading/plan/types"
+import { userAtom } from "@/renderer/store/user"
+import { checkPermission } from "@/shared/lib/permission"
 import type { ColumnDef } from "@tanstack/react-table"
 import dayjs from "dayjs"
+import { useAtomValue } from "jotai"
 import { useMemo } from "react"
 import BuyBlacklistAddBtn from "../../buy-blacklist/add-btn"
 
 export const useBuyColumns = (): ColumnDef<BuyRoot>[] => {
+	const { permissions } = useAtomValue(userAtom)
+	const isMember = checkPermission(permissions, "isMember")
+
 	return useMemo(() => {
-		return [
+		const columns: ColumnDef<BuyRoot>[] = [
 			{
 				id: "拉黑",
 				accessorFn: (row) => row.证券代码,
@@ -32,11 +38,15 @@ export const useBuyColumns = (): ColumnDef<BuyRoot>[] => {
 				),
 				size: 120,
 			},
-			{
-				accessorKey: "个股择时",
-				header: "个股择时",
-				size: 90,
-			},
+			...(isMember
+				? ([
+						{
+							accessorKey: "个股择时",
+							header: "个股择时",
+							size: 90,
+						},
+					] satisfies ColumnDef<BuyRoot>[])
+				: []),
 			{
 				accessorKey: "证券代码",
 				header: "证券代码",
@@ -124,5 +134,7 @@ export const useBuyColumns = (): ColumnDef<BuyRoot>[] => {
 				),
 			},
 		]
-	}, [])
+
+		return columns
+	}, [isMember])
 }

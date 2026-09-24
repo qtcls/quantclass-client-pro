@@ -24,13 +24,21 @@ import {
 import { TradingConfigForm } from "@/renderer/page/trading/config-form"
 import { realConfigEditModalAtom } from "@/renderer/store"
 import { useAtom } from "jotai"
-import { Clock, Settings, TvMinimalPlay } from "lucide-react"
+import { Clock, Monitor, Settings, TvMinimalPlay } from "lucide-react"
+import { useState } from "react"
 
 export function RealConfigDialog() {
 	const [open, setOpen] = useAtom(realConfigEditModalAtom)
+	const [tab, setTab] = useState("config")
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog
+			open={open}
+			onOpenChange={(nextOpen) => {
+				setOpen(nextOpen)
+				if (!nextOpen) setTab("config")
+			}}
+		>
 			<DialogContent className="p-4 max-w-4xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
@@ -38,20 +46,22 @@ export function RealConfigDialog() {
 						<span>实盘配置</span>
 					</DialogTitle>
 				</DialogHeader>
-				<Tabs defaultValue="config" className="w-full">
-					<TabsList className="grid w-full grid-cols-2">
+				<Tabs value={tab} onValueChange={setTab} className="w-full">
+					<TabsList className="grid w-full grid-cols-3">
 						<TabsTrigger value="config" className="gap-1">
 							<Settings className="size-4" />
 							实盘配置
+						</TabsTrigger>
+						<TabsTrigger value="qmt" className="gap-1">
+							<Monitor className="size-4" />
+							QMT配置
 						</TabsTrigger>
 						<TabsTrigger value="rebtime" className="gap-1">
 							<Clock className="size-4" />
 							换仓时间配置
 						</TabsTrigger>
 					</TabsList>
-					<TabsContent value="config" className="mt-4">
-						<TradingConfigForm />
-					</TabsContent>
+					<TradingConfigForm onGoToQmt={() => setTab("qmt")} />
 					<TabsContent value="rebtime" className="mt-4">
 						<RebTimeConfigContent />
 					</TabsContent>

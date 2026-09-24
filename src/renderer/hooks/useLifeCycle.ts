@@ -98,6 +98,9 @@ export const useLifeCycle = () => {
 			qmt_path: "",
 			account_id: "",
 			qmt_port: "58610",
+			qmt_mode: "mini_qmt",
+			ws_host: "",
+			ws_port: "",
 			message_robot_url: "",
 			performance_mode: "EQUAL",
 			date_start: new Date(
@@ -119,6 +122,10 @@ export const useLifeCycle = () => {
 				qmt_path: realMarketConfig?.qmt_path ?? "",
 				account_id: realMarketConfig?.account_id ?? "",
 				qmt_port: realMarketConfig?.qmt_port ?? "58610",
+				qmt_mode:
+					realMarketConfig?.qmt_mode === "qmt" ? "qmt" : "mini_qmt",
+				ws_host: realMarketConfig?.ws_host ?? "",
+				ws_port: realMarketConfig?.ws_port ?? "",
 				message_robot_url: realMarketConfig?.message_robot_url ?? "",
 				performance_mode: (realMarketConfig.performance_mode || "EQUAL") as
 					| "EQUAL"

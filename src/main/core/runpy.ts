@@ -200,8 +200,11 @@ export async function downloadKernal(
 		}
 
 		// 解压zip文件，从2025年5月27日开始，所有内核采用onedir的打包方式，所以需要解压zip文件
+		// macOS 使用系统 unzip（保留可执行权限）；-q 避免文件列表撑爆默认 maxBuffer
 		if (platform.isMacOS) {
-			await execFileAsync("unzip", ["-o", kernalZipPath, "-d", codeFolder])
+			await execFileAsync("unzip", ["-oq", kernalZipPath, "-d", codeFolder], {
+				maxBuffer: 10 * 1024 * 1024,
+			})
 		} else {
 			const zip = new AdmZip(kernalZipPath)
 			zip.extractAllTo(codeFolder, true)

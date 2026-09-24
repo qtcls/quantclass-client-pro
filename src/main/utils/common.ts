@@ -53,6 +53,14 @@ export enum Channels {
 	AppUpdaterProgress = "AppUpdaterProgress",
 	AppUpdaterAbort = "AppUpdaterAbort",
 }
+
+export type RocketQmtMode = "mini_qmt" | "qmt"
+
+export async function getRocketQmtMode(): Promise<RocketQmtMode> {
+	const mode = await store.getValue("real_market_config.qmt_mode", "mini_qmt")
+	return mode === "qmt" ? "qmt" : "mini_qmt"
+}
+
 /**
  * 获取内核路径
  * @param kernel 内核名称
@@ -60,7 +68,10 @@ export enum Channels {
  */
 export const getKernalPath = async (kernel: string) => {
 	const codePath = await store.getAllDataPath("code", true)
-	let kernalPath: string = path.join(codePath, kernel, kernel)
+	let kernalPath: string =
+		kernel === "rocket"
+			? path.join(codePath, "rocket", await getRocketQmtMode(), "rocket")
+			: path.join(codePath, kernel, kernel)
 
 	if (platform.isWindows) {
 		kernalPath = `${kernalPath}.exe`

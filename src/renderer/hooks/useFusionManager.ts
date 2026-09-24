@@ -8,7 +8,11 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-import { fusionAtom, rebTimeConfigAtom } from "@/renderer/store/storage"
+import {
+	fusionAtom,
+	rebTimeConfigAtom,
+	strategyRuntimeConfigAtom,
+} from "@/renderer/store/storage"
 import type {
 	PosStrategyType,
 	SelectStgType,
@@ -24,14 +28,22 @@ type FusionStrategy = SelectStgType | StgGroupType | PosStrategyType
 export function useFusionManager() {
 	const [fusion, setFusion] = useAtom(fusionAtom)
 	const [rebTimeConfig, setRebTimeConfig] = useAtom(rebTimeConfigAtom)
+	const [runtimeConfig, setRuntimeConfig] = useAtom(strategyRuntimeConfigAtom)
 
 	const persistFusion = useCallback(
 		async (strategies: FusionStrategy[]) => {
-			const { rebTimeConfig: newRebTimeConfig } =
-				await saveStrategyListFusion(strategies, rebTimeConfig)
+			const {
+				rebTimeConfig: newRebTimeConfig,
+				strategyRuntimeConfig: newRuntimeConfig,
+			} = await saveStrategyListFusion(
+				strategies,
+				rebTimeConfig,
+				runtimeConfig,
+			)
 			setRebTimeConfig(newRebTimeConfig)
+			setRuntimeConfig(newRuntimeConfig)
 		},
-		[rebTimeConfig, setRebTimeConfig],
+		[rebTimeConfig, runtimeConfig, setRebTimeConfig, setRuntimeConfig],
 	)
 
 	const resetFusion = useCallback(async () => {
@@ -43,11 +55,17 @@ export function useFusionManager() {
 	const syncFusion = useAtomCallback(async (get, set) => {
 		const currentFusion = get(fusionAtom)
 		const currentRebTimeConfig = get(rebTimeConfigAtom)
-		const { rebTimeConfig: newRebTimeConfig } = await saveStrategyListFusion(
+		const currentRuntimeConfig = get(strategyRuntimeConfigAtom)
+		const {
+			rebTimeConfig: newRebTimeConfig,
+			strategyRuntimeConfig: newRuntimeConfig,
+		} = await saveStrategyListFusion(
 			currentFusion,
 			currentRebTimeConfig,
+			currentRuntimeConfig,
 		)
 		set(rebTimeConfigAtom, newRebTimeConfig)
+		set(strategyRuntimeConfigAtom, newRuntimeConfig)
 	})
 
 	const updateFusion = useCallback(

@@ -12,6 +12,7 @@ import {
 	reTimingAtom,
 	rebTimeConfigAtom,
 	selectStgListAtom,
+	strategyRuntimeConfigAtom,
 } from "@/renderer/store/storage"
 import type { BasicStgType } from "@/renderer/types/strategy"
 import { saveStockQuantStrategies } from "@/renderer/utils/strategy"
@@ -24,15 +25,23 @@ const { setStoreValue } = window.electronAPI
 export function useStrategyManager() {
 	const [selectStgList, setSelectStgList] = useAtom(selectStgListAtom)
 	const [rebTimeConfig, setRebTimeConfig] = useAtom(rebTimeConfigAtom)
+	const [runtimeConfig, setRuntimeConfig] = useAtom(strategyRuntimeConfigAtom)
 	const setReTiming = useSetAtom(reTimingAtom)
 
 	const persistSelectStgList = useCallback(
 		async (strategies: BasicStgType[]) => {
-			const { rebTimeConfig: newRebTimeConfig } =
-				await saveStockQuantStrategies(strategies, rebTimeConfig)
+			const {
+				rebTimeConfig: newRebTimeConfig,
+				strategyRuntimeConfig: newRuntimeConfig,
+			} = await saveStockQuantStrategies(
+				strategies,
+				rebTimeConfig,
+				runtimeConfig,
+			)
 			setRebTimeConfig(newRebTimeConfig)
+			setRuntimeConfig(newRuntimeConfig)
 		},
-		[rebTimeConfig, setRebTimeConfig],
+		[rebTimeConfig, runtimeConfig, setRebTimeConfig, setRuntimeConfig],
 	)
 
 	const resetSelectStgList = useCallback(async () => {
@@ -46,11 +55,17 @@ export function useStrategyManager() {
 	const syncSelectStgList = useAtomCallback(async (get, set) => {
 		const currentSelectStgList = get(selectStgListAtom)
 		const currentRebTimeConfig = get(rebTimeConfigAtom)
-		const { rebTimeConfig: newRebTimeConfig } = await saveStockQuantStrategies(
+		const currentRuntimeConfig = get(strategyRuntimeConfigAtom)
+		const {
+			rebTimeConfig: newRebTimeConfig,
+			strategyRuntimeConfig: newRuntimeConfig,
+		} = await saveStockQuantStrategies(
 			currentSelectStgList,
 			currentRebTimeConfig,
+			currentRuntimeConfig,
 		)
 		set(rebTimeConfigAtom, newRebTimeConfig)
+		set(strategyRuntimeConfigAtom, newRuntimeConfig)
 	})
 
 	const updateSelectStgList = useCallback(

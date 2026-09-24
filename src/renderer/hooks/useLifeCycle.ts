@@ -38,9 +38,7 @@ import { useMount, useUnmount, useUpdateEffect } from "etc-hooks"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { toast } from "sonner"
 import { useAppVersions } from "./useAppVersion"
-import { useFusionManager } from "./useFusionManager"
 import { useSettings } from "./useSettings"
-import { useStrategyManager } from "./useStrategyManager"
 import { useUserInfoSync } from "./useUserInfoSync"
 const {
 	fetchFullscreenState,
@@ -69,8 +67,6 @@ export const useLifeCycle = () => {
 	useSettings()
 
 	useUserInfoSync()
-	const { syncSelectStgList } = useStrategyManager()
-	const { syncFusion } = useFusionManager()
 	const { handleToggleAutoRocket } = useToggleAutoRealTrading()
 	const { startMinDataSchedule } = useMinDataSchedule()
 	// const { mutateAsync } = useExtraWorkStatus()
@@ -261,12 +257,7 @@ export const useLifeCycle = () => {
 		const initialFullscreenState = await fetchFullscreenState()
 		setters.setIsFullscreen(initialFullscreenState)
 
-		const syncActiveStrategyLibrary = isMember ? syncFusion : syncSelectStgList
-
-		await Promise.all([
-			syncActiveStrategyLibrary(),
-			initAutoLauncher(apiKey, uuid),
-		])
+		await initAutoLauncher(apiKey, uuid)
 	})
 
 	// -- 更新效果

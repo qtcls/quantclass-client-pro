@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import type { StrategyRuntimeConfig } from "@/renderer/store/storage"
 import type {
 	BasicStgType,
 	PosStrategyType,
@@ -32,6 +33,60 @@ const addStrategyToRebTimeConfig = (
 		strategies: [],
 	}
 	rebTimeConfig[rebTime].strategies.push(strategy)
+}
+
+const randomSplitOrderAmount = () =>
+	Math.floor(Math.random() * (12000 - 6000 + 1)) + 6000
+
+const buildStrategyRuntimeConfig = (
+	names: string[],
+	existing?: Record<string, StrategyRuntimeConfig>,
+): Record<string, StrategyRuntimeConfig> => {
+	const config: Record<string, StrategyRuntimeConfig> = {}
+	for (const name of names) {
+		config[name] = existing?.[name] ?? {
+			split_order_amount: randomSplitOrderAmount(),
+		}
+	}
+	return config
+}
+
+const collectSelectRuntimeNames = (strategies: BasicStgType[]): string[] =>
+	strategies
+		.map((s) => (s as { name?: string }).name)
+		.filter((name): name is string => Boolean(name))
+
+const collectFusionRuntimeNames = (
+	fusion: (SelectStgType | StgGroupType | PosStrategyType)[],
+): string[] => {
+	const names: string[] = []
+	const add = (name?: string) => {
+		if (name) names.push(name)
+	}
+
+	for (const item of fusion) {
+		if (item.type === "pos") {
+			const pos = item as PosStrategyType
+			add(pos.name)
+			for (const poolItem of pos.strategy_pool) {
+				if (poolItem.type === "group") {
+					for (const stg of (poolItem as StgGroupType).strategy_list) {
+						add(stg.name)
+					}
+				} else {
+					add((poolItem as SelectStgType).name)
+				}
+			}
+		} else if (item.type === "group") {
+			for (const stg of (item as StgGroupType).strategy_list) {
+				add(stg.name)
+			}
+		} else {
+			add((item as SelectStgType).name)
+		}
+	}
+
+	return names
 }
 
 /**
@@ -98,6 +153,7 @@ const genSelectStgInfo = (
 export const saveStockQuantStrategies = async (
 	strategies: BasicStgType[],
 	existingRebTimeConfig?: Record<string, RebTimeConfig>,
+	existingRuntimeConfig?: Record<string, StrategyRuntimeConfig>,
 ) => {
 	const strategiesWithAdjustedWeight = strategies.map((strategy) => ({
 		...strategy,
@@ -132,10 +188,14 @@ export const saveStockQuantStrategies = async (
 	const selectStrategyList = strategiesWithAdjustedWeight.map((stg) =>
 		genSelectStgInfo(stg, false),
 	)
+	const strategyRuntimeConfig = buildStrategyRuntimeConfig(
+		collectSelectRuntimeNames(strategiesWithAdjustedWeight),
+		existingRuntimeConfig,
+	)
 
 	if (selectStrategyList.length === 0) {
 		await setStoreValue(STOCK_QUANT_STRATEGY_CONFIG, {})
-		return { rebTimeConfig }
+		return { rebTimeConfig, strategyRuntimeConfig }
 	}
 
 	const payload = buildStockQuantPayload(selectStrategyList)
@@ -143,13 +203,14 @@ export const saveStockQuantStrategies = async (
 		await setStoreValue(STOCK_QUANT_STRATEGY_CONFIG, payload)
 	}
 
-	return { rebTimeConfig }
+	return { rebTimeConfig, strategyRuntimeConfig }
 }
 
 // 仓位管理生成dict
 export const saveStrategyListFusion = async (
 	fusionStrategies: (SelectStgType | StgGroupType | PosStrategyType)[],
 	existingRebTimeConfig?: Record<string, RebTimeConfig>,
+	existingRuntimeConfig?: Record<string, StrategyRuntimeConfig>,
 ) => {
 	/**
 	 * @description 保存仓位管理策略列表
@@ -225,7 +286,11 @@ export const saveStrategyListFusion = async (
 	for (const strategy of strategiesWithAdjustedWeight) {
 		if (strategy.type === "pos") {
 			const rebTime = strategy.rebalance_time ?? "close-open"
-			addStrategyToRebTimeConfig(rebTimeConfig, rebTime, strategy as PosStrategyType)
+			addStrategyToRebTimeConfig(
+				rebTimeConfig,
+				rebTime,
+				strategy as PosStrategyType,
+			)
 		} else if (strategy.type === "group") {
 			for (const subStrategy of strategy.strategy_list) {
 				const rebTime = subStrategy.rebalance_time ?? "close-open"
@@ -233,7 +298,11 @@ export const saveStrategyListFusion = async (
 			}
 		} else {
 			const rebTime = strategy.rebalance_time ?? "close-open"
-			addStrategyToRebTimeConfig(rebTimeConfig, rebTime, strategy as SelectStgType)
+			addStrategyToRebTimeConfig(
+				rebTimeConfig,
+				rebTime,
+				strategy as SelectStgType,
+			)
 		}
 	}
 
@@ -243,7 +312,12 @@ export const saveStrategyListFusion = async (
 		}
 	}
 
-	return { rebTimeConfig }
+	const strategyRuntimeConfig = buildStrategyRuntimeConfig(
+		collectFusionRuntimeNames(strategiesWithAdjustedWeight),
+		existingRuntimeConfig,
+	)
+
+	return { rebTimeConfig, strategyRuntimeConfig }
 }
 
 // 收集选股策略的 remark_name

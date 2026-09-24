@@ -10,27 +10,37 @@
 
 import { ReTimingDisplay } from "@/renderer/components/ReTimingDisplay"
 import { useBacktestDialog } from "@/renderer/components/backtest-dialog"
+import { MemberPromoDialog } from "@/renderer/components/member-promo"
+import {
+	memberPromoBorderClassName,
+	memberPromoGradientClassName,
+	memberPromoMutedTextClassName,
+	memberPromoShimmerOverlayClassName,
+	memberPromoTextClassName,
+} from "@/renderer/components/member-promo/theme"
 import { Button } from "@/renderer/components/ui/button"
 import { Input } from "@/renderer/components/ui/input"
 import { H2 } from "@/renderer/components/ui/typography"
 import { TRADING_SECTION_ROUTE } from "@/renderer/constant"
 import { useToggleAutoRealTrading } from "@/renderer/hooks"
 import { useStrategyManager } from "@/renderer/hooks/useStrategyManager"
+import { cn } from "@/renderer/lib/utils"
 import { RatioIntro } from "@/renderer/page/FAQ/ratioIntro"
 import { StrategyCard } from "@/renderer/page/library/basic/strategy-card"
 import StgImportButton, {
 	type StgImportHandle,
 } from "@/renderer/page/library/import-btn"
 import { backtestConfigAtom, reTimingAtom } from "@/renderer/store/storage"
-import type { SelectStgType } from "@/renderer/types/strategy"
 import { BASIC_SELECT_STRATEGY_IMPORT_LIMIT } from "@/shared/lib/basic-strategy-import"
 import { useUnmount } from "etc-hooks"
 import { useAtom, useAtomValue } from "jotai"
 import {
 	AlignVerticalSpaceAround,
+	Crown,
 	Edit,
 	PencilRuler,
 	Plus,
+	Sparkles,
 	TvMinimalPlay,
 } from "lucide-react"
 import { useRef, useState } from "react"
@@ -60,6 +70,7 @@ function AddStrategyCard({
 export default function BasicStrategyLibrary() {
 	const { setStoreValue } = window.electronAPI
 	const [isEditing, setIsEditing] = useState(false)
+	const [promoOpen, setPromoOpen] = useState(false)
 	const [backtestConfig, setBacktestConfig] = useAtom(backtestConfigAtom)
 	const { selectStgList, updateSelectStgList } = useStrategyManager()
 	const { isAutoRocket } = useToggleAutoRealTrading()
@@ -75,7 +86,13 @@ export default function BasicStrategyLibrary() {
 	})
 
 	return (
-		<div className="h-full flex-1 flex-col space-y-4 md:flex pt-3">
+		<div className="flex flex-col gap-4 pt-3">
+			<MemberPromoDialog
+				open={promoOpen}
+				onOpenChange={setPromoOpen}
+				featureName="分享会专属策略库"
+			/>
+
 			<div className="w-full">
 				<div className="flex items-center gap-2 w-auto">
 					{isEditing ? (
@@ -110,12 +127,80 @@ export default function BasicStrategyLibrary() {
 						</>
 					)}
 				</div>
-				<p className="text-muted-foreground">
+				<p className="text-sm text-muted-foreground">
 					导入、查看、编辑各类策略。并设置策略的实盘资金占比
-					<span className="text-warning">
-						（基础身份最多导入 {BASIC_SELECT_STRATEGY_IMPORT_LIMIT} 个策略）
-					</span>
 				</p>
+			</div>
+			<div
+				className={cn(
+					"relative flex w-full items-center gap-4 overflow-hidden rounded-xl border px-4 py-3",
+					memberPromoGradientClassName,
+					memberPromoBorderClassName,
+				)}
+			>
+				<div aria-hidden className={memberPromoShimmerOverlayClassName} />
+				<div className="relative z-10 flex shrink-0 flex-col items-center gap-1">
+					<Crown
+						className="size-6 text-muted-foreground/50"
+						strokeWidth={1.5}
+					/>
+					<span className="text-[10px] font-medium text-muted-foreground/70 leading-none">
+						基础课程
+					</span>
+				</div>
+
+				<div className="relative z-10 flex flex-1 min-w-0 flex-col gap-1.5">
+					<div className="flex items-center justify-between">
+						<span
+							className={cn("text-xs font-medium", memberPromoTextClassName)}
+						>
+							策略导入进度
+						</span>
+						<span
+							className={cn(
+								"text-xs font-semibold tabular-nums",
+								memberPromoTextClassName,
+							)}
+						>
+							{selectStgList.length} / {BASIC_SELECT_STRATEGY_IMPORT_LIMIT}
+						</span>
+					</div>
+					<div className="h-1.5 w-full overflow-hidden rounded-full bg-blue-200/60 dark:bg-blue-900/40">
+						<div
+							className="h-full rounded-full bg-blue-500 dark:bg-blue-400 transition-all duration-300"
+							style={{
+								width: `${Math.min((selectStgList.length / BASIC_SELECT_STRATEGY_IMPORT_LIMIT) * 100, 100)}%`,
+							}}
+						/>
+					</div>
+					<span className={cn("text-[11px]", memberPromoMutedTextClassName)}>
+						基础身份最多导入 {BASIC_SELECT_STRATEGY_IMPORT_LIMIT} 个策略
+					</span>
+				</div>
+
+				<div className="relative z-10 flex shrink-0 items-center gap-2 border-l border-blue-300/50 pl-4 dark:border-blue-700/50">
+					<Sparkles
+						className="size-4 shrink-0 text-violet-500"
+						strokeWidth={1.75}
+					/>
+					<div className="flex flex-col gap-0.5">
+						<span
+							className={cn("text-xs font-semibold", memberPromoTextClassName)}
+						>
+							分享会专属策略库
+						</span>
+						<button
+							type="button"
+							onClick={() => setPromoOpen(true)}
+							className={cn(
+								"text-left text-[11px] underline underline-offset-2 transition-opacity hover:opacity-80",
+								memberPromoMutedTextClassName,
+							)}
+						>
+							了解更多 →
+						</button>
+					</div>
+				</div>
 			</div>
 
 			<div className="flex flex-wrap items-center gap-2">

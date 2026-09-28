@@ -50,13 +50,13 @@ const { openPaymentClientPortal } = window.electronAPI
 const CREDIT_CONSUMPTION_RULES = [
 	{
 		label: "全量恢复",
-		value: "5 积分/次",
-		description: "单个产品完整重新下载",
+		value: "原价 80%",
+		description: "按原产品价格的 80% 扣除积分",
 	},
 	{
 		label: "增量更新",
-		value: "1 积分/次",
-		description: "单个产品增量补齐",
+		value: "约原价 1%",
+		description: "按实际数据文件大小定价",
 	},
 ] as const
 

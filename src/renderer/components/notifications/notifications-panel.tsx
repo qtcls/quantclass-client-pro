@@ -102,6 +102,7 @@ const SOURCE_LABEL: Record<string, string> = {
 	fuel: "Fuel",
 	rocket: "Rocket",
 	fusion: "Fusion",
+	client: "客户端",
 }
 
 /** 三条来源各一色，与 event 同行展示 */
@@ -111,6 +112,8 @@ const SOURCE_BADGE_CLASS: Record<NotificationSource, string> = {
 		"border-violet-600/55 bg-violet-500/15 text-violet-950 shadow-none dark:border-violet-400/45 dark:bg-violet-500/20 dark:text-violet-50",
 	fusion:
 		"border-sky-600/55 bg-sky-500/15 text-sky-950 shadow-none dark:border-sky-400/45 dark:bg-sky-500/20 dark:text-sky-50",
+	client:
+		"border-emerald-600/55 bg-emerald-500/15 text-emerald-950 shadow-none dark:border-emerald-400/45 dark:bg-emerald-500/20 dark:text-emerald-50",
 }
 
 const LEVEL_LABEL: Record<string, string> = {

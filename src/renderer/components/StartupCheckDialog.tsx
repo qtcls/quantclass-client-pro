@@ -43,11 +43,19 @@ interface StepState {
 	error?: string
 }
 
+export interface StartupCheckFinishedStep {
+	title: string
+	ok: boolean
+	warning?: boolean
+	detail?: string
+}
+
 export interface StartupCheckDialogProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	steps: StartupCheckStep[]
 	autoCloseDelayMs?: number
+	onFinished?: (results: StartupCheckFinishedStep[]) => void
 }
 
 export function StartupCheckDialog({
@@ -55,6 +63,7 @@ export function StartupCheckDialog({
 	onOpenChange,
 	steps,
 	autoCloseDelayMs = 2000,
+	onFinished,
 }: StartupCheckDialogProps) {
 	const [states, setStates] = useState<StepState[]>(() =>
 		steps.map(() => ({ status: "pending" as StepStatus })),
@@ -66,6 +75,8 @@ export function StartupCheckDialog({
 	const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const stepsRef = useRef(steps)
 	stepsRef.current = steps
+	const onFinishedRef = useRef(onFinished)
+	onFinishedRef.current = onFinished
 	// -- 触发重新执行检查的版本号；每次 +1 即重跑
 	const [runVersion, setRunVersion] = useState(0)
 
@@ -99,6 +110,8 @@ export function StartupCheckDialog({
 			})
 		}
 		;(async () => {
+			const finishedSteps: StartupCheckFinishedStep[] = []
+
 			for (let i = 0; i < currentSteps.length; i++) {
 				if (abortedRef.current) break
 
@@ -119,16 +132,30 @@ export function StartupCheckDialog({
 								? (result.detail ?? "检查未通过")
 								: undefined,
 					})
+					finishedSteps.push({
+						title: currentSteps[i].title,
+						ok: result.ok,
+						warning: result.warning,
+						detail: result.detail,
+					})
 				} catch (e) {
 					if (abortedRef.current) break
 					const msg = e instanceof Error ? e.message : String(e)
 					updateStep(i, { status: "error", error: msg })
+					finishedSteps.push({
+						title: currentSteps[i].title,
+						ok: false,
+						detail: msg,
+					})
 				}
 			}
 
 			if (!abortedRef.current) {
 				setIsRunning(false)
 				setIsFinished(true)
+				if (finishedSteps.length > 0) {
+					onFinishedRef.current?.(finishedSteps)
+				}
 			}
 		})()
 

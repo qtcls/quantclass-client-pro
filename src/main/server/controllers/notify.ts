@@ -33,7 +33,7 @@ type SqliteDb = InstanceType<typeof SqliteConstructor>
 /** 按连接实例记录是否已跑过 client_notifications DDL */
 const notificationDdlEnsured = new WeakMap<SqliteDb, true>()
 
-interface NotifyBody {
+export interface NotifyBody {
 	source: NotificationSource
 	level: NotificationLevel
 	message: string
@@ -103,6 +103,76 @@ function selectNotificationById(
 		.get(id) as ClientNotification | undefined
 }
 
+export async function publishClientNotification(
+	body: NotifyBody,
+): Promise<ClientNotification | null> {
+	const db = await getNotifyDb()
+	if (!db) {
+		logger.warn("[notify] DB 未就绪，无法写入通知")
+		return null
+	}
+
+	try {
+		ensureTable(db)
+
+		const createdAt = new Date().toISOString()
+		const payloadJson =
+			body.payload === undefined ? null : JSON.stringify(body.payload)
+		const silentInt = body.silent === true ? 1 : 0
+
+		const insert = db.prepare(
+			`INSERT INTO client_notifications (
+				source, level, title, message, event, payload, silent, created_at, read_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+		)
+		const result = insert.run(
+			body.source,
+			body.level,
+			body.title ?? null,
+			body.message,
+			body.event ?? null,
+			payloadJson,
+			silentInt,
+			createdAt,
+		)
+		const id = Number(result.lastInsertRowid)
+		if (!Number.isFinite(id) || id <= 0) {
+			logger.error("[notify] INSERT 未得到有效 id")
+			return null
+		}
+
+		const row = selectNotificationById(db, id)
+		if (!row) {
+			logger.error("[notify] INSERT 后读取新行失败")
+			return null
+		}
+
+		const mainWindow = windowManager.getWindow()
+
+		mainWindow?.webContents.send("notification:new", row)
+
+		if (body.silent !== true) {
+			mainWindow?.webContents.send("report-msg", {
+				code: NOTIFICATION_REPORT_CODE,
+				msgType: body.level,
+				message: body.message,
+				source: body.source,
+				title: body.title,
+			})
+			void sendWeComRobotTextForNotification(row)
+		}
+
+		logger.info(
+			`[notify] 收到来自 ${body.source} 的 ${body.level} 通知 #${row.id}`,
+		)
+
+		return row
+	} catch (error) {
+		logger.error(`[notify] 写入通知异常: ${error}`)
+		return null
+	}
+}
+
 // -- POST /notify
 export async function createNotification(c: Context<Env>) {
 	let body: Partial<NotifyBody>
@@ -132,72 +202,12 @@ export async function createNotification(c: Context<Env>) {
 		return c.json({ message: "message 不能为空" }, 400)
 	}
 
-	const db = await getNotifyDb()
-	if (!db) {
-		logger.warn("[notify] DB 未就绪，无法写入通知")
-		return c.json({ message: "客户端 DB 未就绪" }, 503)
-	}
-
-	try {
-		ensureTable(db)
-
-		const createdAt = new Date().toISOString()
-		const payloadJson =
-			body.payload === undefined ? null : JSON.stringify(body.payload)
-		const silentInt = body.silent === true ? 1 : 0
-
-		const insert = db.prepare(
-			`INSERT INTO client_notifications (
-				source, level, title, message, event, payload, silent, created_at, read_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-		)
-		const result = insert.run(
-			body.source,
-			body.level,
-			body.title ?? null,
-			body.message,
-			body.event ?? null,
-			payloadJson,
-			silentInt,
-			createdAt,
-		)
-		const id = Number(result.lastInsertRowid)
-		if (!Number.isFinite(id) || id <= 0) {
-			logger.error("[notify] INSERT 未得到有效 id")
-			return c.json({ message: "写入通知失败" }, 500)
-		}
-
-		const row = selectNotificationById(db, id)
-		if (!row) {
-			logger.error("[notify] INSERT 后读取新行失败")
-			return c.json({ message: "写入通知失败" }, 500)
-		}
-
-		const mainWindow = windowManager.getWindow()
-
-		// -- 始终推送一条 notification:new，前端用来更新未读数 / 列表
-		mainWindow?.webContents.send("notification:new", row)
-
-		if (body.silent !== true) {
-			mainWindow?.webContents.send("report-msg", {
-				code: NOTIFICATION_REPORT_CODE,
-				msgType: body.level,
-				message: body.message,
-				source: body.source,
-				title: body.title,
-			})
-			void sendWeComRobotTextForNotification(row)
-		}
-
-		logger.info(
-			`[notify] 收到来自 ${body.source} 的 ${body.level} 通知 #${row.id}`,
-		)
-
-		return c.json({ data: { id: row.id } }, 201)
-	} catch (error) {
-		logger.error(`[notify] 写入通知异常: ${error}`)
+	const row = await publishClientNotification(body as NotifyBody)
+	if (!row) {
 		return c.json({ message: "写入通知失败" }, 500)
 	}
+
+	return c.json({ data: { id: row.id } }, 201)
 }
 
 function notificationListWhere(params: NotificationListParams): {

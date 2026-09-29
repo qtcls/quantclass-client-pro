@@ -18,6 +18,17 @@ import {
 	removeFromRecycleBin,
 	type StartupCheckResult,
 } from "@/main/lib/startup-check/index.js"
+import {
+	getStartupCheckScheduleConfig,
+	publishStartupCheckReport,
+	setStartupCheckDailyEnabled,
+	setStartupCheckDailyTime,
+	setStartupCheckPushResultEnabled,
+} from "@/main/lib/startup-check/schedule.js"
+import type {
+	StartupCheckReportPayload,
+	StartupCheckScheduleConfig,
+} from "@/shared/types/startup-check-schedule.js"
 import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin.js"
 import type {
 	DataConsistencyActionResult,
@@ -29,6 +40,8 @@ export type {
 	StartupCheckResult,
 	DataConsistencyReport,
 	DataConsistencyActionResult,
+	StartupCheckScheduleConfig,
+	StartupCheckReportPayload,
 }
 
 export const regStartupCheckIPC = () => {
@@ -103,6 +116,43 @@ export const regStartupCheckIPC = () => {
 				const error = e instanceof Error ? e.message : String(e)
 				return { ok: false, error }
 			}
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:get-schedule-config",
+		async (): Promise<StartupCheckScheduleConfig> => {
+			return getStartupCheckScheduleConfig()
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:set-daily-enabled",
+		async (_event, enabled: boolean) => {
+			return setStartupCheckDailyEnabled(Boolean(enabled))
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:set-daily-time",
+		async (_event, timeHHmm: string) => {
+			return setStartupCheckDailyTime(String(timeHHmm ?? ""))
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:set-push-result-enabled",
+		async (_event, enabled: boolean) => {
+			return setStartupCheckPushResultEnabled(Boolean(enabled))
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:report-result",
+		async (_event, payload: StartupCheckReportPayload) => {
+			if (!payload?.steps?.length) return { ok: true }
+			await publishStartupCheckReport(payload.steps)
+			return { ok: true }
 		},
 	)
 

@@ -11,6 +11,10 @@
 import type { StartupCheckResult } from "@/preload/startup-check/startup-check-ipc.js"
 import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin.js"
 import type {
+	StartupCheckReportPayload,
+	StartupCheckScheduleConfig,
+} from "@/shared/types/startup-check-schedule.js"
+import type {
 	DataConsistencyActionResult,
 	DataConsistencyReport,
 } from "@/shared/types/startup-check.js"
@@ -20,6 +24,8 @@ export type {
 	StartupCheckResult,
 	DataConsistencyReport,
 	DataConsistencyActionResult,
+	StartupCheckScheduleConfig,
+	StartupCheckReportPayload,
 }
 
 export const startupCheckIPC = {
@@ -50,4 +56,28 @@ export const startupCheckIPC = {
 			"startup-check:data:recycle-bin:purge",
 			names,
 		) as Promise<DataConsistencyActionResult>,
+	getStartupCheckScheduleConfig: () =>
+		ipcRenderer.invoke(
+			"startup-check:get-schedule-config",
+		) as Promise<StartupCheckScheduleConfig>,
+	setStartupCheckDailyEnabled: (enabled: boolean) =>
+		ipcRenderer.invoke(
+			"startup-check:set-daily-enabled",
+			enabled,
+		) as Promise<{ ok: true }>,
+	setStartupCheckDailyTime: (timeHHmm: string) =>
+		ipcRenderer.invoke(
+			"startup-check:set-daily-time",
+			timeHHmm,
+		) as Promise<{ ok: boolean; error?: string }>,
+	setStartupCheckPushResultEnabled: (enabled: boolean) =>
+		ipcRenderer.invoke(
+			"startup-check:set-push-result-enabled",
+			enabled,
+		) as Promise<{ ok: true }>,
+	reportStartupCheckResult: (payload: StartupCheckReportPayload) =>
+		ipcRenderer.invoke(
+			"startup-check:report-result",
+			payload,
+		) as Promise<{ ok: true }>,
 }

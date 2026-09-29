@@ -21,6 +21,7 @@ import { useVersionCheck } from "@/renderer/hooks/useVersionCheck"
 import { KernelModuleQueueChip } from "@/renderer/layout/KernelModuleQueueChip"
 import { LogMenuButton } from "@/renderer/layout/LogMenuButton"
 import { NotificationsPopover } from "@/renderer/layout/NotificationsPopover"
+import { StartupCheckChip } from "@/renderer/layout/StartupCheckChip"
 import { SystemVersionChip } from "@/renderer/layout/SystemVersionChip"
 import { cn } from "@/renderer/lib/utils"
 import { activeTabAtom } from "@/renderer/store"
@@ -220,6 +221,7 @@ export function MonitorStrip() {
 			<div className="flex items-center gap-2 ml-2">
 				<SystemVersionChip level={systemLevel} />
 				<KernelModuleQueueChip />
+				<StartupCheckChip />
 
 				{monitorChips.map((chip) => (
 					<MonitorChipButton

@@ -64,6 +64,7 @@ const CHANGE_TYPE_LABELS: Record<string, string> = {
 	purchase: "购买",
 	consumption: "消耗",
 	gift: "赠送",
+	refund: "退款",
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const

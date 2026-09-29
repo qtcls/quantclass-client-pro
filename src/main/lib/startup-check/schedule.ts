@@ -21,17 +21,20 @@ import schedule from "node-schedule"
 
 const scheduleStore = new Store<{
 	startupCheckDailyEnabled?: boolean
+	startupCheckDailyTimes?: string[]
 	startupCheckDailyTime?: string
 	startupCheckPushResultEnabled?: boolean
 }>()
 
 const DAILY_ENABLED_KEY = "startupCheckDailyEnabled" as const
-const DAILY_TIME_KEY = "startupCheckDailyTime" as const
+const DAILY_TIMES_KEY = "startupCheckDailyTimes" as const
+const LEGACY_DAILY_TIME_KEY = "startupCheckDailyTime" as const
 const PUSH_RESULT_KEY = "startupCheckPushResultEnabled" as const
 
-export const DEFAULT_STARTUP_CHECK_DAILY_TIME = "09:00"
+export const DEFAULT_STARTUP_CHECK_DAILY_TIME = "09:15"
+export const DEFAULT_STARTUP_CHECK_DAILY_TIMES = [DEFAULT_STARTUP_CHECK_DAILY_TIME]
 
-let scheduledJob: schedule.Job | null = null
+let scheduledJobs: schedule.Job[] = []
 let checkRunning = false
 
 function parseTimeHHmm(s: string): { hour: number; minute: number } | null {
@@ -50,6 +53,21 @@ function parseTimeHHmm(s: string): { hour: number; minute: number } | null {
 		return null
 	}
 	return { hour, minute }
+}
+
+function formatTimeHHmm(parsed: { hour: number; minute: number }): string {
+	return `${String(parsed.hour).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")}`
+}
+
+function normalizeDailyTimes(times: string[]): string[] {
+	const normalized: string[] = []
+	for (const time of times) {
+		const parsed = parseTimeHHmm(time)
+		if (!parsed) continue
+		const formatted = formatTimeHHmm(parsed)
+		if (!normalized.includes(formatted)) normalized.push(formatted)
+	}
+	return normalized.sort()
 }
 
 function resolveOverallLevel(
@@ -82,7 +100,7 @@ export function setStartupCheckPushResultEnabled(enabled: boolean): {
 }
 
 export function getStartupCheckDailyEnabled(): boolean {
-	return scheduleStore.get(DAILY_ENABLED_KEY) ?? false
+	return scheduleStore.get(DAILY_ENABLED_KEY) ?? true
 }
 
 export function setStartupCheckDailyEnabled(enabled: boolean): { ok: true } {
@@ -91,23 +109,43 @@ export function setStartupCheckDailyEnabled(enabled: boolean): { ok: true } {
 	return { ok: true }
 }
 
-export function getStartupCheckDailyTime(): string {
-	return (
-		(scheduleStore.get(DAILY_TIME_KEY) as string | undefined) ??
-		DEFAULT_STARTUP_CHECK_DAILY_TIME
-	)
+export function getStartupCheckDailyTimes(): string[] {
+	const stored = scheduleStore.get(DAILY_TIMES_KEY) as string[] | undefined
+	if (stored?.length) {
+		const normalized = normalizeDailyTimes(stored)
+		if (normalized.length > 0) return normalized
+	}
+
+	const legacy = scheduleStore.get(LEGACY_DAILY_TIME_KEY) as string | undefined
+	if (legacy) {
+		const parsed = parseTimeHHmm(legacy)
+		if (parsed) return [formatTimeHHmm(parsed)]
+	}
+
+	return [...DEFAULT_STARTUP_CHECK_DAILY_TIMES]
 }
 
-export function setStartupCheckDailyTime(timeHHmm: string): {
+export function setStartupCheckDailyTimes(times: string[]): {
 	ok: boolean
 	error?: string
 } {
-	const parsed = parseTimeHHmm(timeHHmm)
-	if (!parsed) {
-		return { ok: false, error: "时间格式须为 HH:mm（24 小时制）" }
+	if (!Array.isArray(times) || times.length === 0) {
+		return { ok: false, error: "至少保留一个执行时间" }
 	}
-	const normalized = `${String(parsed.hour).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")}`
-	scheduleStore.set(DAILY_TIME_KEY, normalized)
+
+	const normalized: string[] = []
+	for (const time of times) {
+		const parsed = parseTimeHHmm(time)
+		if (!parsed) {
+			return { ok: false, error: `时间格式须为 HH:mm（24 小时制）：${time}` }
+		}
+		const formatted = formatTimeHHmm(parsed)
+		if (!normalized.includes(formatted)) normalized.push(formatted)
+	}
+
+	normalized.sort()
+	scheduleStore.set(DAILY_TIMES_KEY, normalized)
+	scheduleStore.delete(LEGACY_DAILY_TIME_KEY)
 	refreshStartupCheckSchedule()
 	return { ok: true }
 }
@@ -115,7 +153,7 @@ export function setStartupCheckDailyTime(timeHHmm: string): {
 export function getStartupCheckScheduleConfig(): StartupCheckScheduleConfig {
 	return {
 		dailyEnabled: getStartupCheckDailyEnabled(),
-		dailyTime: getStartupCheckDailyTime(),
+		dailyTimes: getStartupCheckDailyTimes(),
 		pushResultEnabled: getStartupCheckPushResultEnabled(),
 	}
 }
@@ -162,33 +200,46 @@ async function runScheduledStartupCheck(): Promise<void> {
 }
 
 export function refreshStartupCheckSchedule(): void {
-	if (scheduledJob) {
-		scheduledJob.cancel()
-		scheduledJob = null
+	for (const job of scheduledJobs) {
+		job.cancel()
 	}
+	scheduledJobs = []
 
 	if (!getStartupCheckDailyEnabled()) {
 		logger.info("[startup-check] 每日定时自检已关闭，未设置计划")
 		return
 	}
 
-	const timeStr = getStartupCheckDailyTime()
-	const parsed = parseTimeHHmm(timeStr)
-	if (!parsed) {
-		logger.warn(`[startup-check] 无效的计划时间，跳过调度: ${timeStr}`)
+	const times = getStartupCheckDailyTimes()
+	const scheduledLabels: string[] = []
+
+	for (const timeStr of times) {
+		const parsed = parseTimeHHmm(timeStr)
+		if (!parsed) {
+			logger.warn(`[startup-check] 无效的计划时间，跳过: ${timeStr}`)
+			continue
+		}
+
+		const rule = new schedule.RecurrenceRule()
+		rule.hour = parsed.hour
+		rule.minute = parsed.minute
+		rule.second = 0
+
+		const job = schedule.scheduleJob(rule, () => {
+			void runScheduledStartupCheck()
+		})
+		if (job) {
+			scheduledJobs.push(job)
+			scheduledLabels.push(formatTimeHHmm(parsed))
+		}
+	}
+
+	if (scheduledLabels.length === 0) {
+		logger.warn("[startup-check] 无有效计划时间，跳过调度")
 		return
 	}
 
-	const rule = new schedule.RecurrenceRule()
-	rule.hour = parsed.hour
-	rule.minute = parsed.minute
-	rule.second = 0
-
-	scheduledJob = schedule.scheduleJob(rule, () => {
-		void runScheduledStartupCheck()
-	})
-
 	logger.info(
-		`[startup-check] 已设置每日 ${String(parsed.hour).padStart(2, "0")}:${String(parsed.minute).padStart(2, "0")} 自动自检`,
+		`[startup-check] 已设置每日 ${scheduledLabels.join("、")} 自动自检（共 ${scheduledLabels.length} 次）`,
 	)
 }

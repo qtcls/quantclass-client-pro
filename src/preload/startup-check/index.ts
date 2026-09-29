@@ -65,10 +65,10 @@ export const startupCheckIPC = {
 			"startup-check:set-daily-enabled",
 			enabled,
 		) as Promise<{ ok: true }>,
-	setStartupCheckDailyTime: (timeHHmm: string) =>
+	setStartupCheckDailyTimes: (times: string[]) =>
 		ipcRenderer.invoke(
-			"startup-check:set-daily-time",
-			timeHHmm,
+			"startup-check:set-daily-times",
+			times,
 		) as Promise<{ ok: boolean; error?: string }>,
 	setStartupCheckPushResultEnabled: (enabled: boolean) =>
 		ipcRenderer.invoke(

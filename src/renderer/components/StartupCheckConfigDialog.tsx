@@ -30,18 +30,20 @@ import {
 	Clock,
 	Loader2,
 	Play,
+	Plus,
 	Power,
 	ShieldCheck,
+	Trash2,
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
-const DEFAULT_DAILY_TIME = "09:00"
+const DEFAULT_DAILY_TIMES = ["09:15"]
 
 const {
 	getStartupCheckScheduleConfig,
 	setStartupCheckDailyEnabled,
-	setStartupCheckDailyTime,
+	setStartupCheckDailyTimes,
 	setStartupCheckPushResultEnabled,
 } = window.electronAPI
 
@@ -57,8 +59,8 @@ export function StartupCheckConfigDialog({
 	const [enabled, setEnabled] = useAtom(startupCheckEnabledAtom)
 	const [, setManualTrigger] = useAtom(startupCheckManualTriggerAtom)
 
-	const [dailyEnabled, setDailyEnabled] = useState(false)
-	const [dailyTime, setDailyTime] = useState(DEFAULT_DAILY_TIME)
+	const [dailyEnabled, setDailyEnabled] = useState(true)
+	const [dailyTimes, setDailyTimes] = useState<string[]>(DEFAULT_DAILY_TIMES)
 	const [pushResultEnabled, setPushResultEnabled] = useState(true)
 	const [loadingConfig, setLoadingConfig] = useState(false)
 	const [savingDailyEnabled, setSavingDailyEnabled] = useState(false)
@@ -70,7 +72,9 @@ export function StartupCheckConfigDialog({
 		try {
 			const cfg = await getStartupCheckScheduleConfig()
 			setDailyEnabled(cfg.dailyEnabled)
-			setDailyTime(cfg.dailyTime || DEFAULT_DAILY_TIME)
+			setDailyTimes(
+				cfg.dailyTimes?.length ? cfg.dailyTimes : DEFAULT_DAILY_TIMES,
+			)
 			setPushResultEnabled(cfg.pushResultEnabled)
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : "读取自检配置失败")
@@ -101,15 +105,35 @@ export function StartupCheckConfigDialog({
 		}
 	}
 
-	async function handleSaveDailyTime() {
+	function handleDailyTimeChange(index: number, value: string) {
+		setDailyTimes((prev) => {
+			const next = [...prev]
+			next[index] = value
+			return next
+		})
+	}
+
+	function handleAddDailyTime() {
+		setDailyTimes((prev) => [...prev, DEFAULT_DAILY_TIMES[0]])
+	}
+
+	function handleRemoveDailyTime(index: number) {
+		setDailyTimes((prev) => {
+			if (prev.length <= 1) return prev
+			return prev.filter((_, i) => i !== index)
+		})
+	}
+
+	async function handleSaveDailyTimes() {
 		setSavingTime(true)
 		try {
-			const res = await setStartupCheckDailyTime(dailyTime)
+			const res = await setStartupCheckDailyTimes(dailyTimes)
 			if (!res.ok) {
 				toast.error(res.error ?? "保存失败")
 				return
 			}
-			toast.success("已保存每日自检时间")
+			toast.success("已保存每日自检计划")
+			await loadConfig()
 		} finally {
 			setSavingTime(false)
 		}
@@ -173,7 +197,7 @@ export function StartupCheckConfigDialog({
 									每日定时自检
 								</Label>
 								<p className="text-xs text-muted-foreground leading-relaxed">
-									客户端保持运行时在指定时刻自动执行完整自检。
+									客户端保持运行时在指定时刻自动执行完整自检，可添加多个计划时间。
 								</p>
 							</div>
 							<Switch
@@ -185,36 +209,73 @@ export function StartupCheckConfigDialog({
 						</div>
 
 						{dailyEnabled ? (
-							<div className="flex items-end gap-2">
-								<div className="flex-1 space-y-1.5">
-									<Label
-										htmlFor="startup-check-daily-time"
-										className="text-sm font-medium"
-									>
-										每日执行时间
-									</Label>
-									<Input
-										id="startup-check-daily-time"
-										type="time"
-										step={60}
-										className="h-9"
-										value={dailyTime}
+							<div className="space-y-3 border-t border-border/60 pt-3">
+								<div className="flex items-center justify-between gap-2">
+									<span className="text-xs font-medium text-muted-foreground">
+										执行时间
+										{dailyTimes.length > 1
+											? ` · ${dailyTimes.length} 个`
+											: ""}
+									</span>
+									<Button
+										type="button"
+										variant="ghost"
+										size="sm"
+										className="h-7 px-2 text-xs text-foreground hover:text-foreground"
 										disabled={loadingConfig}
-										onChange={(e) => setDailyTime(e.target.value)}
-									/>
+										onClick={handleAddDailyTime}
+									>
+										<Plus className="size-3.5 mr-1" />
+										添加时间
+									</Button>
 								</div>
-								<Button
-									type="button"
-									variant="secondary"
-									className="h-9 shrink-0"
-									disabled={savingTime || loadingConfig}
-									onClick={() => void handleSaveDailyTime()}
-								>
-									{savingTime ? (
-										<Loader2 className="size-4 animate-spin mr-1" />
-									) : null}
-									保存计划
-								</Button>
+
+								<div className="divide-y divide-border rounded-md border bg-background/80">
+									{dailyTimes.map((time, index) => (
+										<div
+											key={`daily-time-${index}`}
+											className="flex items-center gap-2 px-2 py-1"
+										>
+											<Input
+												type="time"
+												step={60}
+												className="h-8 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-1"
+												value={time}
+												disabled={loadingConfig}
+												onChange={(e) =>
+													handleDailyTimeChange(index, e.target.value)
+												}
+											/>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+												disabled={loadingConfig || dailyTimes.length <= 1}
+												onClick={() => handleRemoveDailyTime(index)}
+												aria-label="删除计划时间"
+											>
+												<Trash2 className="size-3.5" />
+											</Button>
+										</div>
+									))}
+								</div>
+
+								<div className="flex justify-end">
+									<Button
+										type="button"
+										variant="secondary"
+										size="sm"
+										className="h-8 min-w-[96px]"
+										disabled={savingTime || loadingConfig}
+										onClick={() => void handleSaveDailyTimes()}
+									>
+										{savingTime ? (
+											<Loader2 className="size-3.5 animate-spin mr-1.5" />
+										) : null}
+										保存计划
+									</Button>
+								</div>
 							</div>
 						) : null}
 					</div>

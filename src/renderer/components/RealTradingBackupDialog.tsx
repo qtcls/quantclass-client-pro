@@ -143,6 +143,12 @@ export function RealTradingBackupDialog({
 						</DialogDescription>
 					</DialogHeader>
 
+					{loadingConfig ? (
+						<div className="flex items-center justify-center py-8">
+							<Loader2 className="size-5 animate-spin text-muted-foreground" />
+						</div>
+					) : (
+					<>
 					<div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2.5">
 						<div className="space-y-0.5">
 							<Label
@@ -158,7 +164,7 @@ export function RealTradingBackupDialog({
 						<Switch
 							id="real-backup-enabled"
 							checked={enabled}
-							disabled={loadingConfig || savingEnabled}
+							disabled={savingEnabled}
 							onCheckedChange={(checked) => void handleToggleEnabled(checked)}
 						/>
 					</div>
@@ -205,7 +211,7 @@ export function RealTradingBackupDialog({
 								源目录（存储路径/real_trading）
 							</span>
 							<p className="font-mono text-xs leading-snug break-all rounded border bg-background px-2 py-1.5">
-								{loadingConfig ? "…" : sourceDir || "—"}
+								{sourceDir || "—"}
 							</p>
 						</div>
 						<div className="space-y-1">
@@ -213,7 +219,7 @@ export function RealTradingBackupDialog({
 								备份保存目录
 							</span>
 							<p className="font-mono text-xs leading-snug break-all rounded border bg-background px-2 py-1.5">
-								{loadingConfig ? "…" : backupDir || "—"}
+								{backupDir || "—"}
 							</p>
 						</div>
 
@@ -231,7 +237,6 @@ export function RealTradingBackupDialog({
 									step={60}
 									className="h-9"
 									value={dailyTime}
-									disabled={loadingConfig}
 									onChange={(e) => setDailyTime(e.target.value)}
 								/>
 							</div>
@@ -239,7 +244,7 @@ export function RealTradingBackupDialog({
 								type="button"
 								variant="secondary"
 								className="h-9 shrink-0 sm:mb-px"
-								disabled={loadingConfig || savingTime}
+								disabled={savingTime}
 								onClick={() => void handleSaveTime()}
 							>
 								{savingTime ? (
@@ -256,10 +261,7 @@ export function RealTradingBackupDialog({
 								size="sm"
 								className="h-8 w-fit"
 								disabled={
-									runningBackup ||
-									loadingConfig ||
-									!sourceDir ||
-									Boolean(configWarning)
+									runningBackup || !sourceDir || Boolean(configWarning)
 								}
 								onClick={() => setBackupConfirmOpen(true)}
 							>
@@ -272,6 +274,8 @@ export function RealTradingBackupDialog({
 							</Button>
 						</div>
 					</div>
+					</>
+					)}
 				</DialogContent>
 			</Dialog>
 

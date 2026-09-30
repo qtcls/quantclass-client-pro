@@ -10,9 +10,7 @@
 
 import { StartupCheckConfigDialog } from "@/renderer/components/StartupCheckConfigDialog"
 import { cn } from "@/renderer/lib/utils"
-import { startupCheckEnabledAtom } from "@/renderer/store/startup-check"
-import { useAtomValue } from "jotai"
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 type ChipStatus = "ok" | "idle"
 
@@ -26,11 +24,24 @@ const CHIP_TEXT: Record<ChipStatus, string> = {
 	idle: "text-muted-foreground",
 }
 
+const { getStartupCheckScheduleConfig } = window.electronAPI
+
 export function StartupCheckChip() {
-	const enabled = useAtomValue(startupCheckEnabledAtom)
+	const [launchEnabled, setLaunchEnabled] = useState(true)
 	const [configOpen, setConfigOpen] = useState(false)
-	const chipStatus: ChipStatus = enabled ? "ok" : "idle"
-	const statusLabel = enabled ? "已开启" : "未开启"
+	const chipStatus: ChipStatus = launchEnabled ? "ok" : "idle"
+	const statusLabel = launchEnabled ? "启动已开" : "启动未开"
+
+	const refreshLaunchEnabled = useCallback(async () => {
+		try {
+			const cfg = await getStartupCheckScheduleConfig()
+			setLaunchEnabled(cfg.launchEnabled)
+		} catch {}
+	}, [])
+
+	useEffect(() => {
+		void refreshLaunchEnabled()
+	}, [refreshLaunchEnabled])
 
 	return (
 		<>
@@ -55,7 +66,11 @@ export function StartupCheckChip() {
 				</span>
 			</button>
 
-			<StartupCheckConfigDialog open={configOpen} onOpenChange={setConfigOpen} />
+			<StartupCheckConfigDialog
+				open={configOpen}
+				onOpenChange={setConfigOpen}
+				onConfigChange={() => void refreshLaunchEnabled()}
+			/>
 		</>
 	)
 }

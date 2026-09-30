@@ -9,15 +9,6 @@
  */
 
 import { atom } from "jotai"
-import { atomWithStorage } from "jotai/utils"
-
-// 客户端启动时是否自动执行自检，默认开启
-export const startupCheckEnabledAtom = atomWithStorage<boolean>(
-	"startupCheckEnabled",
-	true,
-	undefined,
-	{ getOnInit: true },
-)
 
 // 递增以触发一次手动自检
 export const startupCheckManualTriggerAtom = atom(0)

@@ -20,11 +20,8 @@ import {
 import { Input } from "@/renderer/components/ui/input"
 import { Label } from "@/renderer/components/ui/label"
 import { Switch } from "@/renderer/components/ui/switch"
-import {
-	startupCheckEnabledAtom,
-	startupCheckManualTriggerAtom,
-} from "@/renderer/store/startup-check"
-import { useAtom } from "jotai"
+import { startupCheckManualTriggerAtom } from "@/renderer/store/startup-check"
+import { useSetAtom } from "jotai"
 import {
 	BellRing,
 	Clock,
@@ -40,37 +37,34 @@ import { toast } from "sonner"
 
 const DEFAULT_DAILY_TIMES = ["09:15"]
 
-const {
-	getStartupCheckScheduleConfig,
-	setStartupCheckDailyEnabled,
-	setStartupCheckDailyTimes,
-	setStartupCheckPushResultEnabled,
-} = window.electronAPI
+const { getStartupCheckScheduleConfig, setStartupCheckScheduleConfig } =
+	window.electronAPI
 
 interface StartupCheckConfigDialogProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
+	onConfigChange?: () => void
 }
 
 export function StartupCheckConfigDialog({
 	open,
 	onOpenChange,
+	onConfigChange,
 }: StartupCheckConfigDialogProps) {
-	const [enabled, setEnabled] = useAtom(startupCheckEnabledAtom)
-	const [, setManualTrigger] = useAtom(startupCheckManualTriggerAtom)
+	const setManualTrigger = useSetAtom(startupCheckManualTriggerAtom)
 
+	const [launchEnabled, setLaunchEnabled] = useState(true)
 	const [dailyEnabled, setDailyEnabled] = useState(true)
 	const [dailyTimes, setDailyTimes] = useState<string[]>(DEFAULT_DAILY_TIMES)
 	const [pushResultEnabled, setPushResultEnabled] = useState(true)
 	const [loadingConfig, setLoadingConfig] = useState(false)
-	const [savingDailyEnabled, setSavingDailyEnabled] = useState(false)
-	const [savingPushEnabled, setSavingPushEnabled] = useState(false)
-	const [savingTime, setSavingTime] = useState(false)
+	const [saving, setSaving] = useState(false)
 
 	const loadConfig = useCallback(async () => {
 		setLoadingConfig(true)
 		try {
 			const cfg = await getStartupCheckScheduleConfig()
+			setLaunchEnabled(cfg.launchEnabled)
 			setDailyEnabled(cfg.dailyEnabled)
 			setDailyTimes(
 				cfg.dailyTimes?.length ? cfg.dailyTimes : DEFAULT_DAILY_TIMES,
@@ -92,19 +86,6 @@ export function StartupCheckConfigDialog({
 		setManualTrigger((v) => v + 1)
 	}
 
-	async function handleToggleDailyEnabled(checked: boolean) {
-		setSavingDailyEnabled(true)
-		try {
-			await setStartupCheckDailyEnabled(checked)
-			setDailyEnabled(checked)
-			toast.success(checked ? "已开启每日定时自检" : "已关闭每日定时自检")
-		} catch (e) {
-			toast.error(e instanceof Error ? e.message : "保存失败")
-		} finally {
-			setSavingDailyEnabled(false)
-		}
-	}
-
 	function handleDailyTimeChange(index: number, value: string) {
 		setDailyTimes((prev) => {
 			const next = [...prev]
@@ -124,31 +105,26 @@ export function StartupCheckConfigDialog({
 		})
 	}
 
-	async function handleSaveDailyTimes() {
-		setSavingTime(true)
+	async function handleSave() {
+		setSaving(true)
 		try {
-			const res = await setStartupCheckDailyTimes(dailyTimes)
+			const res = await setStartupCheckScheduleConfig({
+				launchEnabled,
+				dailyEnabled,
+				dailyTimes,
+				pushResultEnabled,
+			})
 			if (!res.ok) {
 				toast.error(res.error ?? "保存失败")
 				return
 			}
-			toast.success("已保存每日自检计划")
-			await loadConfig()
-		} finally {
-			setSavingTime(false)
-		}
-	}
-
-	async function handleTogglePushEnabled(checked: boolean) {
-		setSavingPushEnabled(true)
-		try {
-			await setStartupCheckPushResultEnabled(checked)
-			setPushResultEnabled(checked)
-			toast.success(checked ? "已开启自检结果推送" : "已关闭自检结果推送")
+			toast.success("自检配置已保存")
+			onConfigChange?.()
+			onOpenChange(false)
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : "保存失败")
 		} finally {
-			setSavingPushEnabled(false)
+			setSaving(false)
 		}
 	}
 
@@ -165,6 +141,11 @@ export function StartupCheckConfigDialog({
 					</DialogDescription>
 				</DialogHeader>
 
+				{loadingConfig ? (
+					<div className="flex items-center justify-center py-8">
+						<Loader2 className="size-5 animate-spin text-muted-foreground" />
+					</div>
+				) : (
 				<div className="space-y-2.5">
 					<div className="flex items-center justify-between gap-4 rounded-md border bg-muted/30 px-3 py-3">
 						<div className="space-y-1 min-w-0">
@@ -181,8 +162,9 @@ export function StartupCheckConfigDialog({
 						</div>
 						<Switch
 							id="startup-check-enabled"
-							checked={enabled}
-							onCheckedChange={setEnabled}
+							checked={launchEnabled}
+							disabled={loadingConfig}
+							onCheckedChange={setLaunchEnabled}
 						/>
 					</div>
 
@@ -200,12 +182,12 @@ export function StartupCheckConfigDialog({
 									客户端保持运行时在指定时刻自动执行完整自检，可添加多个计划时间。
 								</p>
 							</div>
-							<Switch
-								id="startup-check-daily-enabled"
-								checked={dailyEnabled}
-								disabled={loadingConfig || savingDailyEnabled}
-								onCheckedChange={handleToggleDailyEnabled}
-							/>
+						<Switch
+							id="startup-check-daily-enabled"
+							checked={dailyEnabled}
+							disabled={loadingConfig}
+							onCheckedChange={setDailyEnabled}
+						/>
 						</div>
 
 						{dailyEnabled ? (
@@ -261,21 +243,6 @@ export function StartupCheckConfigDialog({
 									))}
 								</div>
 
-								<div className="flex justify-end">
-									<Button
-										type="button"
-										variant="secondary"
-										size="sm"
-										className="h-8 min-w-[96px]"
-										disabled={savingTime || loadingConfig}
-										onClick={() => void handleSaveDailyTimes()}
-									>
-										{savingTime ? (
-											<Loader2 className="size-3.5 animate-spin mr-1.5" />
-										) : null}
-										保存计划
-									</Button>
-								</div>
 							</div>
 						) : null}
 					</div>
@@ -296,16 +263,36 @@ export function StartupCheckConfigDialog({
 						<Switch
 							id="startup-check-push-enabled"
 							checked={pushResultEnabled}
-							disabled={loadingConfig || savingPushEnabled}
-							onCheckedChange={handleTogglePushEnabled}
+							disabled={loadingConfig}
+							onCheckedChange={setPushResultEnabled}
 						/>
 					</div>
 				</div>
+				)}
 
-				<DialogFooter className="sm:justify-end">
-					<Button size="sm" className="h-8 gap-1.5" onClick={handleManualCheck}>
+				<DialogFooter className="sm:justify-between">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="h-8 gap-1.5"
+						disabled={saving}
+						onClick={handleManualCheck}
+					>
 						<Play className="size-3.5" />
 						立即执行自检
+					</Button>
+					<Button
+						type="button"
+						size="sm"
+						className="h-8 min-w-[64px]"
+						disabled={saving || loadingConfig}
+						onClick={() => void handleSave()}
+					>
+						{saving ? (
+							<Loader2 className="size-3.5 animate-spin mr-1.5" />
+						) : null}
+						保存
 					</Button>
 				</DialogFooter>
 			</DialogContent>

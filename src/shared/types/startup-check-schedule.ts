@@ -20,6 +20,7 @@ export interface StartupCheckReportPayload {
 }
 
 export interface StartupCheckScheduleConfig {
+	launchEnabled: boolean
 	dailyEnabled: boolean
 	dailyTimes: string[]
 	pushResultEnabled: boolean

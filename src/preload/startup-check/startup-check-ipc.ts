@@ -21,9 +21,7 @@ import {
 import {
 	getStartupCheckScheduleConfig,
 	publishStartupCheckReport,
-	setStartupCheckDailyEnabled,
-	setStartupCheckDailyTimes,
-	setStartupCheckPushResultEnabled,
+	setStartupCheckScheduleConfig,
 } from "@/main/lib/startup-check/schedule.js"
 import type {
 	StartupCheckReportPayload,
@@ -127,25 +125,9 @@ export const regStartupCheckIPC = () => {
 	)
 
 	ipcMain.handle(
-		"startup-check:set-daily-enabled",
-		async (_event, enabled: boolean) => {
-			return setStartupCheckDailyEnabled(Boolean(enabled))
-		},
-	)
-
-	ipcMain.handle(
-		"startup-check:set-daily-times",
-		async (_event, times: string[]) => {
-			return setStartupCheckDailyTimes(
-				Array.isArray(times) ? times.map(String) : [],
-			)
-		},
-	)
-
-	ipcMain.handle(
-		"startup-check:set-push-result-enabled",
-		async (_event, enabled: boolean) => {
-			return setStartupCheckPushResultEnabled(Boolean(enabled))
+		"startup-check:set-schedule-config",
+		async (_event, patch: Partial<StartupCheckScheduleConfig>) => {
+			return setStartupCheckScheduleConfig(patch)
 		},
 	)
 

@@ -19,17 +19,18 @@ import type {
 import Store from "electron-store"
 import schedule from "node-schedule"
 
-const scheduleStore = new Store<{
-	startupCheckDailyEnabled?: boolean
-	startupCheckDailyTimes?: string[]
-	startupCheckDailyTime?: string
-	startupCheckPushResultEnabled?: boolean
-}>()
+interface StoredScheduleConfig {
+	launchEnabled?: boolean
+	dailyEnabled?: boolean
+	dailyTimes?: string[]
+	pushResultEnabled?: boolean
+}
 
-const DAILY_ENABLED_KEY = "startupCheckDailyEnabled" as const
-const DAILY_TIMES_KEY = "startupCheckDailyTimes" as const
-const LEGACY_DAILY_TIME_KEY = "startupCheckDailyTime" as const
-const PUSH_RESULT_KEY = "startupCheckPushResultEnabled" as const
+const CONFIG_KEY = "startupCheckScheduleConfig" as const
+
+const scheduleStore = new Store<{
+	[CONFIG_KEY]?: StoredScheduleConfig
+}>()
 
 export const DEFAULT_STARTUP_CHECK_DAILY_TIME = "09:15"
 export const DEFAULT_STARTUP_CHECK_DAILY_TIMES = [DEFAULT_STARTUP_CHECK_DAILY_TIME]
@@ -88,80 +89,81 @@ function formatStartupCheckMessage(steps: StartupCheckStepResult[]): string {
 		.join("\n")
 }
 
-export function getStartupCheckPushResultEnabled(): boolean {
-	return scheduleStore.get(PUSH_RESULT_KEY) ?? true
+function readStoredConfig(): StoredScheduleConfig {
+	return scheduleStore.get(CONFIG_KEY) ?? {}
 }
 
-export function setStartupCheckPushResultEnabled(enabled: boolean): {
-	ok: true
-} {
-	scheduleStore.set(PUSH_RESULT_KEY, enabled)
-	return { ok: true }
+function patchStoredConfig(patch: Partial<StoredScheduleConfig>): void {
+	const current = readStoredConfig()
+	scheduleStore.set(CONFIG_KEY, { ...current, ...patch })
 }
 
-export function getStartupCheckDailyEnabled(): boolean {
-	return scheduleStore.get(DAILY_ENABLED_KEY) ?? true
-}
-
-export function setStartupCheckDailyEnabled(enabled: boolean): { ok: true } {
-	scheduleStore.set(DAILY_ENABLED_KEY, enabled)
-	refreshStartupCheckSchedule()
-	return { ok: true }
-}
-
-export function getStartupCheckDailyTimes(): string[] {
-	const stored = scheduleStore.get(DAILY_TIMES_KEY) as string[] | undefined
-	if (stored?.length) {
-		const normalized = normalizeDailyTimes(stored)
+function getDailyTimes(): string[] {
+	const stored = readStoredConfig()
+	if (stored.dailyTimes?.length) {
+		const normalized = normalizeDailyTimes(stored.dailyTimes)
 		if (normalized.length > 0) return normalized
 	}
-
-	const legacy = scheduleStore.get(LEGACY_DAILY_TIME_KEY) as string | undefined
-	if (legacy) {
-		const parsed = parseTimeHHmm(legacy)
-		if (parsed) return [formatTimeHHmm(parsed)]
-	}
-
 	return [...DEFAULT_STARTUP_CHECK_DAILY_TIMES]
 }
 
-export function setStartupCheckDailyTimes(times: string[]): {
-	ok: boolean
-	error?: string
-} {
-	if (!Array.isArray(times) || times.length === 0) {
-		return { ok: false, error: "至少保留一个执行时间" }
+export function getStartupCheckScheduleConfig(): StartupCheckScheduleConfig {
+	const stored = readStoredConfig()
+	return {
+		launchEnabled: stored.launchEnabled ?? true,
+		dailyEnabled: stored.dailyEnabled ?? true,
+		dailyTimes: getDailyTimes(),
+		pushResultEnabled: stored.pushResultEnabled ?? true,
 	}
-
-	const normalized: string[] = []
-	for (const time of times) {
-		const parsed = parseTimeHHmm(time)
-		if (!parsed) {
-			return { ok: false, error: `时间格式须为 HH:mm（24 小时制）：${time}` }
-		}
-		const formatted = formatTimeHHmm(parsed)
-		if (!normalized.includes(formatted)) normalized.push(formatted)
-	}
-
-	normalized.sort()
-	scheduleStore.set(DAILY_TIMES_KEY, normalized)
-	scheduleStore.delete(LEGACY_DAILY_TIME_KEY)
-	refreshStartupCheckSchedule()
-	return { ok: true }
 }
 
-export function getStartupCheckScheduleConfig(): StartupCheckScheduleConfig {
-	return {
-		dailyEnabled: getStartupCheckDailyEnabled(),
-		dailyTimes: getStartupCheckDailyTimes(),
-		pushResultEnabled: getStartupCheckPushResultEnabled(),
+export function setStartupCheckScheduleConfig(
+	patch: Partial<StartupCheckScheduleConfig>,
+): { ok: boolean; error?: string } {
+	const toPatch: StoredScheduleConfig = {}
+
+	if (patch.launchEnabled !== undefined) {
+		toPatch.launchEnabled = patch.launchEnabled
 	}
+
+	if (patch.dailyEnabled !== undefined) {
+		toPatch.dailyEnabled = patch.dailyEnabled
+	}
+
+	if (patch.pushResultEnabled !== undefined) {
+		toPatch.pushResultEnabled = patch.pushResultEnabled
+	}
+
+	if (patch.dailyTimes !== undefined) {
+		if (!Array.isArray(patch.dailyTimes) || patch.dailyTimes.length === 0) {
+			return { ok: false, error: "至少保留一个执行时间" }
+		}
+		const normalized: string[] = []
+		for (const time of patch.dailyTimes) {
+			const parsed = parseTimeHHmm(time)
+			if (!parsed) {
+				return { ok: false, error: `时间格式须为 HH:mm（24 小时制）：${time}` }
+			}
+			const formatted = formatTimeHHmm(parsed)
+			if (!normalized.includes(formatted)) normalized.push(formatted)
+		}
+		normalized.sort()
+		toPatch.dailyTimes = normalized
+	}
+
+	patchStoredConfig(toPatch)
+
+	const needsRefresh =
+		patch.dailyEnabled !== undefined || patch.dailyTimes !== undefined
+	if (needsRefresh) refreshStartupCheckSchedule()
+
+	return { ok: true }
 }
 
 export async function publishStartupCheckReport(
 	steps: StartupCheckStepResult[],
 ): Promise<void> {
-	if (!getStartupCheckPushResultEnabled()) return
+	if (!(readStoredConfig().pushResultEnabled ?? true)) return
 
 	const level = resolveOverallLevel(steps)
 	const message = formatStartupCheckMessage(steps)
@@ -205,12 +207,13 @@ export function refreshStartupCheckSchedule(): void {
 	}
 	scheduledJobs = []
 
-	if (!getStartupCheckDailyEnabled()) {
+	const cfg = getStartupCheckScheduleConfig()
+	if (!cfg.dailyEnabled) {
 		logger.info("[startup-check] 每日定时自检已关闭，未设置计划")
 		return
 	}
 
-	const times = getStartupCheckDailyTimes()
+	const times = cfg.dailyTimes
 	const scheduledLabels: string[] = []
 
 	for (const timeStr of times) {

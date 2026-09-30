@@ -60,21 +60,11 @@ export const startupCheckIPC = {
 		ipcRenderer.invoke(
 			"startup-check:get-schedule-config",
 		) as Promise<StartupCheckScheduleConfig>,
-	setStartupCheckDailyEnabled: (enabled: boolean) =>
+	setStartupCheckScheduleConfig: (patch: Partial<StartupCheckScheduleConfig>) =>
 		ipcRenderer.invoke(
-			"startup-check:set-daily-enabled",
-			enabled,
-		) as Promise<{ ok: true }>,
-	setStartupCheckDailyTimes: (times: string[]) =>
-		ipcRenderer.invoke(
-			"startup-check:set-daily-times",
-			times,
+			"startup-check:set-schedule-config",
+			patch,
 		) as Promise<{ ok: boolean; error?: string }>,
-	setStartupCheckPushResultEnabled: (enabled: boolean) =>
-		ipcRenderer.invoke(
-			"startup-check:set-push-result-enabled",
-			enabled,
-		) as Promise<{ ok: true }>,
 	reportStartupCheckResult: (payload: StartupCheckReportPayload) =>
 		ipcRenderer.invoke(
 			"startup-check:report-result",

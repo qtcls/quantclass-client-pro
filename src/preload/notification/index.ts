@@ -13,6 +13,7 @@ import type {
 	NotificationListParams,
 	NotificationListResult,
 } from "@/shared/types/client-notification.js"
+import type { NotificationWeComConfig } from "@/shared/types/notification-wecom-config.js"
 import { ipcRenderer } from "electron"
 
 export const notificationIPC = {
@@ -41,4 +42,12 @@ export const notificationIPC = {
 	removeNotificationListeners: () => {
 		ipcRenderer.removeAllListeners("notification:new")
 	},
+
+	getNotificationWeComConfig: (): Promise<NotificationWeComConfig | null> =>
+		ipcRenderer.invoke("notification:wecom-config-get"),
+
+	setNotificationWeComConfig: (
+		patch: Partial<NotificationWeComConfig>,
+	): Promise<boolean> =>
+		ipcRenderer.invoke("notification:wecom-config-set", patch),
 }

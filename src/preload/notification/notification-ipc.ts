@@ -16,6 +16,11 @@ import {
 	markNotificationRead,
 } from "@/main/server/controllers/notify.js"
 import DBManager from "@/main/lib/db-manager.js"
+import {
+	getNotificationWeComConfig,
+	setNotificationWeComConfig,
+} from "@/main/lib/notification-wecom-config.js"
+import type { NotificationWeComConfig } from "@/shared/types/notification-wecom-config.js"
 import logger from "@/main/utils/wiston.js"
 import type { NotificationListParams } from "@/shared/types/client-notification.js"
 import { ipcMain } from "electron"
@@ -81,10 +86,38 @@ function markAllReadHandler(): void {
 	})
 }
 
+function wecomConfigGetHandler(): void {
+	ipcMain.handle("notification:wecom-config-get", async () => {
+		try {
+			return await getNotificationWeComConfig()
+		} catch (error) {
+			logger.error(`[notification-ipc] wecom-config-get 异常: ${error}`)
+			return null
+		}
+	})
+}
+
+function wecomConfigSetHandler(): void {
+	ipcMain.handle(
+		"notification:wecom-config-set",
+		async (_event, patch: Partial<NotificationWeComConfig>) => {
+			try {
+				await setNotificationWeComConfig(patch)
+				return true
+			} catch (error) {
+				logger.error(`[notification-ipc] wecom-config-set 异常: ${error}`)
+				return false
+			}
+		},
+	)
+}
+
 export const regNotificationIPC = () => {
 	listHandler()
 	unreadCountHandler()
 	markReadHandler()
 	markAllReadHandler()
+	wecomConfigGetHandler()
+	wecomConfigSetHandler()
 	console.log("[reg] notification-ipc")
 }

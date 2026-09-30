@@ -12,10 +12,7 @@ import {
 	StartupCheckDialog,
 	type StartupCheckStep,
 } from "@/renderer/components/StartupCheckDialog"
-import {
-	startupCheckEnabledAtom,
-	startupCheckManualTriggerAtom,
-} from "@/renderer/store/startup-check"
+import { startupCheckManualTriggerAtom } from "@/renderer/store/startup-check"
 import { userAtom } from "@/renderer/store/user"
 import type { StartupCheckFinishedStep } from "@/renderer/components/StartupCheckDialog"
 import { useAtomValue } from "jotai"
@@ -26,6 +23,7 @@ const {
 	checkStartupQmtConnect,
 	checkDataConsistencyAnalyze,
 	checkDataConsistencyAlign,
+	getStartupCheckScheduleConfig,
 	reportStartupCheckResult,
 } = window.electronAPI
 
@@ -92,7 +90,6 @@ export async function runDataConsistencyCheck(): Promise<DataConsistencyCheckRes
 }
 
 export function StartupCheckLauncher() {
-	const enabled = useAtomValue(startupCheckEnabledAtom)
 	const manualTrigger = useAtomValue(startupCheckManualTriggerAtom)
 	const { isLoggedIn, user } = useAtomValue(userAtom)
 	const [open, setOpen] = useState(false)
@@ -101,8 +98,12 @@ export function StartupCheckLauncher() {
 	useEffect(() => {
 		if (didAutoLaunchRef.current) return
 		didAutoLaunchRef.current = true
-		if (enabled) setOpen(true)
-	}, [enabled])
+		void getStartupCheckScheduleConfig()
+			.then((cfg) => {
+				if (cfg.launchEnabled) setOpen(true)
+			})
+			.catch(() => {})
+	}, [])
 
 	useEffect(() => {
 		if (manualTrigger > 0) setOpen(true)

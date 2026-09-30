@@ -212,7 +212,7 @@ export function StartupCheckConfigDialog({
 									</Button>
 								</div>
 
-								<div className="divide-y divide-border rounded-md border bg-background/80">
+								<div className="h-32 overflow-y-auto divide-y divide-border rounded-md border bg-background/80">
 									{dailyTimes.map((time, index) => (
 										<div
 											key={`daily-time-${index}`}

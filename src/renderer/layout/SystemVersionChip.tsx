@@ -29,10 +29,12 @@ import { UpdateStatus } from "@/renderer/context/update-context"
 import { useAppUpdate } from "@/renderer/hooks/useAppUpdate"
 import { useVersionCheck } from "@/renderer/hooks/useVersionCheck"
 import { cn } from "@/renderer/lib/utils"
+import { realMarketConfigSchemaAtom } from "@/renderer/store/storage"
 import type { KernelVersionUpdateLevel } from "@/renderer/utils/kernel-version-status"
 import { formatBytes } from "@/renderer/utils/formatBytes"
+import { useAtomValue } from "jotai"
 import { CircleArrowUp } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Markdown from "react-markdown"
 import { useNavigate } from "react-router"
 
@@ -62,6 +64,9 @@ const CHIP_TEXT: Record<ChipStatus, string> = {
 	err: "text-red-600",
 }
 
+const CHIP_TITLE_WIDTH_CLASS = "inline-block w-[1.5rem]"
+const CHIP_STATUS_WIDTH_CLASS = "inline-block w-[2.25rem] font-mono text-[10px]"
+
 interface SystemVersionChipProps {
 	level: KernelVersionUpdateLevel
 }
@@ -71,11 +76,21 @@ export function SystemVersionChip({ level }: SystemVersionChipProps) {
 	const { hasAnyUpdate, getUpdateMessage } = useVersionCheck()
 	const navigate = useNavigate()
 	const [showVersionUpdate, setShowVersionUpdate] = useState(false)
+	const [showQmtMode, setShowQmtMode] = useState(false)
+	const qmtMode = useAtomValue(realMarketConfigSchemaAtom).qmt_mode ?? "mini_qmt"
+
+	useEffect(() => {
+		const timer = setInterval(() => {
+			setShowQmtMode((prev) => !prev)
+		}, 2000)
+		return () => clearInterval(timer)
+	}, [])
 
 	const isDownloading = isWindows && status === UpdateStatus.Downloading
 	const isConfirmReady = isWindows && status === UpdateStatus.Confirm
-	const chipStatus = KERNEL_LEVEL_CHIP_STATUS[level]
-	const isRequiredUpdate = level === "required"
+	const chipStatus = showQmtMode ? "ok" : KERNEL_LEVEL_CHIP_STATUS[level]
+	const isRequiredUpdate = !showQmtMode && level === "required"
+	const qmtModeLabel = qmtMode === "qmt" ? "正常" : "mini"
 
 	return (
 		<div className="relative">
@@ -121,8 +136,9 @@ export function SystemVersionChip({ level }: SystemVersionChipProps) {
 					<button
 						type="button"
 						className={cn(
-							"inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] cursor-pointer transition-colors hover:border-foreground/35 hover:text-foreground",
+							"inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] cursor-pointer transition-colors hover:border-foreground/35 hover:text-foreground shrink-0",
 							CHIP_TEXT[chipStatus],
+							showQmtMode && "border-green-500/40",
 							isRequiredUpdate && "border-red-500/40",
 						)}
 						onClick={() => {
@@ -131,7 +147,11 @@ export function SystemVersionChip({ level }: SystemVersionChipProps) {
 						}}
 						onMouseEnter={() => setShowVersionUpdate(hasAnyUpdate)}
 						onMouseLeave={() => setShowVersionUpdate(false)}
-						aria-label={`系统 ${SYSTEM_KERNEL_LEVEL_LABEL[level]}`}
+						aria-label={
+							showQmtMode
+								? `QMT ${qmtModeLabel}`
+								: `系统 ${SYSTEM_KERNEL_LEVEL_LABEL[level]}`
+						}
 					>
 						<i
 							className={cn(
@@ -142,12 +162,20 @@ export function SystemVersionChip({ level }: SystemVersionChipProps) {
 							)}
 						/>
 						<span
-							className={cn(isRequiredUpdate && "motion-safe:animate-pulse")}
+							className={cn(
+								CHIP_TITLE_WIDTH_CLASS,
+								isRequiredUpdate && "motion-safe:animate-pulse",
+							)}
 						>
-							系统
+							{showQmtMode ? "QMT" : "系统"}
 						</span>
-						<span className="font-mono text-[10px] text-muted-foreground">
-							{SYSTEM_KERNEL_LEVEL_LABEL[level]}
+						<span
+							className={cn(
+								CHIP_STATUS_WIDTH_CLASS,
+								showQmtMode ? "text-green-600" : "text-muted-foreground",
+							)}
+						>
+							{showQmtMode ? qmtModeLabel : SYSTEM_KERNEL_LEVEL_LABEL[level]}
 						</span>
 					</button>
 				</PopoverTrigger>

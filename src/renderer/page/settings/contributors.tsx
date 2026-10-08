@@ -3,7 +3,11 @@ import {
 	AvatarFallback,
 	AvatarImage,
 } from "@/renderer/components/ui/avatar"
-import { contributorsList } from "@/renderer/constant/contributors"
+import { Separator } from "@/renderer/components/ui/separator"
+import {
+	contributors2026,
+	contributorsBefore2026,
+} from "@/renderer/constant/contributors"
 import { cn } from "@/renderer/lib/utils"
 
 const { openUrl } = window.electronAPI
@@ -53,6 +57,30 @@ const ContributorCard = ({
 		</div>
 	)
 }
+function ContributorSection({
+	title,
+	contributors,
+}: {
+	title: string
+	contributors: {
+		name: string
+		avatar: string
+		homepage: string
+		gourd?: number
+	}[]
+}) {
+	return (
+		<div className="flex flex-col gap-3">
+			<div className="text-muted-foreground text-sm font-medium">{title}</div>
+			<div className="grid grid-cols-4 gap-4">
+				{contributors.map((item) => (
+					<ContributorCard key={item.name} {...item} />
+				))}
+			</div>
+		</div>
+	)
+}
+
 const Contributors = () => {
 	return (
 		<div className="flex flex-col gap-4">
@@ -60,11 +88,14 @@ const Contributors = () => {
 				感谢以下同学参与到客户端的开发、测试中来 (以下排名不分先后)
 			</div>
 
-			<div className="grid grid-cols-4 gap-4">
-				{contributorsList.map((item) => (
-					<ContributorCard key={item.name} {...item} />
-				))}
-			</div>
+			<ContributorSection title="2026" contributors={contributors2026} />
+
+			<Separator />
+
+			<ContributorSection
+				title="2026之前"
+				contributors={contributorsBefore2026}
+			/>
 		</div>
 	)
 }

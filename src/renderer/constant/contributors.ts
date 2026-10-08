@@ -8,7 +8,17 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
-export const contributorsList = [
+export const contributors2026 = [
+	{
+		name: "阿明",
+		homepage: "https://bbs.quantclass.cn/user/11165",
+		avatar:
+			"https://bbs-quantclass-cn-1253788117.file.myqcloud.com/public/avatar/000/01/11/65.png",
+		gourd: 21,
+	},
+]
+
+export const contributorsBefore2026 = [
 	{
 		name: "冬眠侠Fog",
 		homepage: "https://bbs.quantclass.cn/user/51906",
@@ -338,3 +348,6 @@ export const contributorsList = [
 			"https://bbs-quantclass-cn-1253788117.file.myqcloud.com/public/avatar/000/03/26/25.png?1654685809",
 	},
 ]
+
+/** @deprecated use contributorsBefore2026 or contributors2026 */
+export const contributorsList = contributorsBefore2026

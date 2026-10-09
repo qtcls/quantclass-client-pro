@@ -47,16 +47,26 @@ import { toast } from "sonner"
 
 const { openPaymentClientPortal } = window.electronAPI
 
-const CREDIT_CONSUMPTION_RULES = [
+const BASIC_CREDIT_PRODUCTS = [
 	{
-		label: "全量恢复",
-		value: "原价 80%",
-		description: "按原产品价格的 80% 扣除积分",
+		name: "邢不行财务数据",
+		full: "47.04",
+		incremental: "0.588",
 	},
 	{
-		label: "增量更新",
-		value: "约原价 1%",
-		description: "按实际数据文件大小定价",
+		name: "主要指数历史日线数据",
+		full: "0.08",
+		incremental: "0.001",
+	},
+	{
+		name: "股票历史日线数据",
+		full: "7.04",
+		incremental: "0.088",
+	},
+	{
+		name: "ETF基金日线数据",
+		full: "7.04",
+		incremental: "0.088",
 	},
 ] as const
 
@@ -208,27 +218,35 @@ export default function CreditPage() {
 				<CardHeader className="pb-3">
 					<CardTitle className="text-base">积分消耗规则</CardTitle>
 					<CardDescription>
-						在数据页对单个产品执行更新，或开启自动更新时，均会消耗积分
+						在数据页对单个产品执行更新，或开启自动更新时，均会消耗积分。下表为单次全量恢复、单次增量更新积分的大致消耗。
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="pb-4">
-					<div className="grid gap-3 sm:grid-cols-2">
-						{CREDIT_CONSUMPTION_RULES.map((rule) => (
-							<div
-								key={rule.label}
-								className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3"
-							>
-								<div>
-									<p className="text-sm font-medium">{rule.label}</p>
-									<p className="text-xs text-muted-foreground">
-										{rule.description}
-									</p>
-								</div>
-								<span className="font-mono text-sm whitespace-nowrap">
-									{rule.value}
-								</span>
-							</div>
-						))}
+					<div className="overflow-hidden rounded-lg border">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>数据产品</TableHead>
+									<TableHead className="text-right">全量恢复（约）</TableHead>
+									<TableHead className="text-right">增量更新（约）</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{BASIC_CREDIT_PRODUCTS.map((product) => (
+									<TableRow key={product.name}>
+										<TableCell className="font-medium">
+											{product.name}
+										</TableCell>
+										<TableCell className="text-right font-mono">
+											{product.full}
+										</TableCell>
+										<TableCell className="text-right font-mono">
+											{product.incremental}
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
 					</div>
 				</CardContent>
 			</Card>

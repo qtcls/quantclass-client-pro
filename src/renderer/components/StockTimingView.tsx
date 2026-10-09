@@ -33,9 +33,16 @@ import {
 	TableRow,
 } from "@/renderer/components/ui/table"
 import {
+	STOCK_TIMING_CARD_BODY_HEIGHT_MAX,
+	STOCK_TIMING_CARD_BODY_HEIGHT_MIN,
+	STOCK_TIMING_CAROUSEL_SLIDE_BASIS_MAX,
+	STOCK_TIMING_CAROUSEL_SLIDE_BASIS_MIN,
 	stockTimingCardExpandedSetAtom,
+	stockTimingCarouselCardBodyHeightAtom,
 	stockTimingCarouselModeAtom,
+	stockTimingCarouselSlideBasisPercentAtom,
 	stockTimingDateModeAtom,
+	stockTimingListCardBodyHeightAtom,
 	stockTimingViewAtom,
 } from "@/renderer/store/stock-timing-view"
 import type {
@@ -51,6 +58,7 @@ import {
 	LayoutList,
 	LineChart,
 } from "lucide-react"
+import { useCallback } from "react"
 import { toast } from "sonner"
 
 const TIME_SLOTS: StockTimingTimeSlot[] = ["0930", "1030", "1300", "1400"]
@@ -60,6 +68,20 @@ const SLOT_LABEL: Record<StockTimingTimeSlot, string> = {
 	"1030": "10:30",
 	"1300": "13:00",
 	"1400": "14:00",
+}
+
+function getCarouselViewportWidth(fromEl: HTMLElement): number {
+	let el: HTMLElement | null = fromEl
+	while (el) {
+		if (
+			el.classList.contains("overflow-hidden") &&
+			el.closest('[aria-roledescription="carousel"]')
+		) {
+			return el.clientWidth || 800
+		}
+		el = el.parentElement
+	}
+	return 800
 }
 
 function SignalCell({ value }: { value: number | null }) {
@@ -77,7 +99,94 @@ function StrategyCard({
 	index,
 }: { block: StockTimingStrategyBlock; index: number }) {
 	const [expandedSet, setExpandedSet] = useAtom(stockTimingCardExpandedSetAtom)
+	const [carouselMode] = useAtom(stockTimingCarouselModeAtom)
+	const heightAtom = carouselMode
+		? stockTimingCarouselCardBodyHeightAtom
+		: stockTimingListCardBodyHeightAtom
+	const [bodyHeight, setBodyHeight] = useAtom(heightAtom)
+	const [slideBasisPercent, setSlideBasisPercent] = useAtom(
+		stockTimingCarouselSlideBasisPercentAtom,
+	)
 	const isExpanded = expandedSet.has(index)
+
+	const handleWidthResizePointerDown = useCallback(
+		(e: React.PointerEvent<HTMLDivElement>) => {
+			if (!carouselMode) return
+			e.preventDefault()
+			e.stopPropagation()
+			const startX = e.clientX
+			const startBasis = slideBasisPercent
+			const viewportWidth = getCarouselViewportWidth(e.currentTarget)
+			const target = e.currentTarget
+
+			target.setPointerCapture(e.pointerId)
+
+			const onMove = (ev: PointerEvent) => {
+				if (ev.pointerId !== e.pointerId) return
+				const deltaPercent = ((ev.clientX - startX) / viewportWidth) * 100
+				const next = Math.round(
+					Math.min(
+						STOCK_TIMING_CAROUSEL_SLIDE_BASIS_MAX,
+						Math.max(
+							STOCK_TIMING_CAROUSEL_SLIDE_BASIS_MIN,
+							startBasis + deltaPercent,
+						),
+					),
+				)
+				setSlideBasisPercent(next)
+			}
+
+			const onEnd = (ev: PointerEvent) => {
+				if (ev.pointerId !== e.pointerId) return
+				target.releasePointerCapture(e.pointerId)
+				target.removeEventListener("pointermove", onMove)
+				target.removeEventListener("pointerup", onEnd)
+				target.removeEventListener("pointercancel", onEnd)
+			}
+
+			target.addEventListener("pointermove", onMove)
+			target.addEventListener("pointerup", onEnd)
+			target.addEventListener("pointercancel", onEnd)
+		},
+		[carouselMode, setSlideBasisPercent, slideBasisPercent],
+	)
+
+	const handleResizePointerDown = useCallback(
+		(e: React.PointerEvent<HTMLDivElement>) => {
+			if (isExpanded) return
+			e.preventDefault()
+			const startY = e.clientY
+			const startHeight = bodyHeight
+			const target = e.currentTarget
+
+			target.setPointerCapture(e.pointerId)
+
+			const onMove = (ev: PointerEvent) => {
+				if (ev.pointerId !== e.pointerId) return
+				const next = Math.min(
+					STOCK_TIMING_CARD_BODY_HEIGHT_MAX,
+					Math.max(
+						STOCK_TIMING_CARD_BODY_HEIGHT_MIN,
+						startHeight + ev.clientY - startY,
+					),
+				)
+				setBodyHeight(next)
+			}
+
+			const onEnd = (ev: PointerEvent) => {
+				if (ev.pointerId !== e.pointerId) return
+				target.releasePointerCapture(e.pointerId)
+				target.removeEventListener("pointermove", onMove)
+				target.removeEventListener("pointerup", onEnd)
+				target.removeEventListener("pointercancel", onEnd)
+			}
+
+			target.addEventListener("pointermove", onMove)
+			target.addEventListener("pointerup", onEnd)
+			target.addEventListener("pointercancel", onEnd)
+		},
+		[bodyHeight, isExpanded, setBodyHeight],
+	)
 
 	const toggleExpanded = () => {
 		setExpandedSet((prev) => {
@@ -92,10 +201,20 @@ function StrategyCard({
 	}
 
 	return (
-		<Card className="w-full">
+		<Card className="relative w-full">
+			{carouselMode ? (
+				<div
+					aria-label="拖动调节卡片宽度"
+					className="absolute inset-y-0 right-0 z-10 flex w-2.5 cursor-col-resize items-center justify-center touch-none select-none hover:bg-muted/35 active:bg-muted/55"
+					onPointerDown={handleWidthResizePointerDown}
+				>
+					<div className="pointer-events-none h-10 w-0.5 rounded-full bg-border/80" />
+				</div>
+			) : null}
 			<div className="px-3 py-1">
 				<div
-					className={isExpanded ? undefined : "overflow-y-auto max-h-[112px]"}
+					className={isExpanded ? undefined : "overflow-y-auto"}
+					style={isExpanded ? undefined : { maxHeight: bodyHeight }}
 				>
 					<Table containerStyle={{ maxWidth: "100%" }}>
 						<TableHeader>
@@ -169,6 +288,15 @@ function StrategyCard({
 					</Table>
 				</div>
 			</div>
+			{!isExpanded ? (
+				<div
+					aria-label="拖动调节卡片高度"
+					className="flex h-2.5 cursor-row-resize items-center justify-center border-t border-border/50 bg-muted/20 hover:bg-muted/45 active:bg-muted/60 touch-none select-none"
+					onPointerDown={handleResizePointerDown}
+				>
+					<div className="pointer-events-none h-0.5 w-10 rounded-full bg-border/80" />
+				</div>
+			) : null}
 		</Card>
 	)
 }
@@ -177,6 +305,7 @@ export default function StockTimingView() {
 	const [dateMode, setDateMode] = useAtom(stockTimingDateModeAtom)
 	const [carouselMode, setCarouselMode] = useAtom(stockTimingCarouselModeAtom)
 	const setExpandedSet = useSetAtom(stockTimingCardExpandedSetAtom)
+	const [slideBasisPercent] = useAtom(stockTimingCarouselSlideBasisPercentAtom)
 	const [{ data: matrix, isPending, refetch }] = useAtom(stockTimingViewAtom)
 
 	const handleRefetch = () => {
@@ -267,7 +396,8 @@ export default function StockTimingView() {
 							{matrix.map((block, i) => (
 								<CarouselItem
 									key={block.strategyName}
-									className="pl-4 basis-2/3"
+									className="pl-4"
+									style={{ flexBasis: `${slideBasisPercent}%` }}
 								>
 									<StrategyCard block={block} index={i} />
 								</CarouselItem>

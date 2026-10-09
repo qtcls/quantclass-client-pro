@@ -11,6 +11,10 @@
 import type { StartupCheckResult } from "@/preload/startup-check/startup-check-ipc.js"
 import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin.js"
 import type {
+	StartupCheckReportPayload,
+	StartupCheckScheduleConfig,
+} from "@/shared/types/startup-check-schedule.js"
+import type {
 	DataConsistencyActionResult,
 	DataConsistencyReport,
 } from "@/shared/types/startup-check.js"
@@ -20,6 +24,8 @@ export type {
 	StartupCheckResult,
 	DataConsistencyReport,
 	DataConsistencyActionResult,
+	StartupCheckScheduleConfig,
+	StartupCheckReportPayload,
 }
 
 export const startupCheckIPC = {
@@ -37,9 +43,9 @@ export const startupCheckIPC = {
 			report,
 		) as Promise<DataConsistencyActionResult>,
 	getDataRecycleBin: () =>
-		ipcRenderer.invoke(
-			"startup-check:data:recycle-bin:list",
-		) as Promise<DataRecycleBinEntry[]>,
+		ipcRenderer.invoke("startup-check:data:recycle-bin:list") as Promise<
+			DataRecycleBinEntry[]
+		>,
 	removeDataRecycleBinItems: (names: string[]) =>
 		ipcRenderer.invoke(
 			"startup-check:data:recycle-bin:remove",
@@ -50,4 +56,17 @@ export const startupCheckIPC = {
 			"startup-check:data:recycle-bin:purge",
 			names,
 		) as Promise<DataConsistencyActionResult>,
+	getStartupCheckScheduleConfig: () =>
+		ipcRenderer.invoke(
+			"startup-check:get-schedule-config",
+		) as Promise<StartupCheckScheduleConfig>,
+	setStartupCheckScheduleConfig: (patch: Partial<StartupCheckScheduleConfig>) =>
+		ipcRenderer.invoke("startup-check:set-schedule-config", patch) as Promise<{
+			ok: boolean
+			error?: string
+		}>,
+	reportStartupCheckResult: (payload: StartupCheckReportPayload) =>
+		ipcRenderer.invoke("startup-check:report-result", payload) as Promise<{
+			ok: true
+		}>,
 }

@@ -8,6 +8,7 @@
  * See the LICENSE file and https://mariadb.com/bsl-1.1/
  */
 
+import { NotificationWeComConfigDialog } from "@/renderer/components/notifications/NotificationWeComConfigDialog"
 import { Badge } from "@/renderer/components/ui/badge"
 import { Button } from "@/renderer/components/ui/button"
 import { Label } from "@/renderer/components/ui/label"
@@ -51,6 +52,7 @@ import {
 	Mail,
 	RefreshCw,
 	RotateCcw,
+	Settings2,
 	XCircle,
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -103,6 +105,7 @@ const SOURCE_LABEL: Record<string, string> = {
 	rocket: "Rocket",
 	fusion: "Fusion",
 	aqua: "Aqua",
+	client: "客户端",
 }
 
 /** 三条来源各一色，与 event 同行展示 */
@@ -113,6 +116,8 @@ const SOURCE_BADGE_CLASS: Record<NotificationSource, string> = {
 	fusion:
 		"border-sky-600/55 bg-sky-500/15 text-sky-950 shadow-none dark:border-sky-400/45 dark:bg-sky-500/20 dark:text-sky-50",
 	aqua: "border-sky-600/55 bg-sky-500/15 text-sky-950 shadow-none dark:border-sky-400/45 dark:bg-sky-500/20 dark:text-sky-50",
+	client:
+		"border-emerald-600/55 bg-emerald-500/15 text-emerald-950 shadow-none dark:border-emerald-400/45 dark:bg-emerald-500/20 dark:text-emerald-50",
 }
 
 const LEVEL_LABEL: Record<string, string> = {
@@ -237,6 +242,7 @@ export function NotificationsPanel() {
 	const [page, setPage] = useState(1)
 	const [pageSize, setPageSize] = useState(50)
 	const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS)
+	const [configOpen, setConfigOpen] = useState(false)
 	const filtersRef = useRef(filters)
 	filtersRef.current = filters
 	const setUnread = useSetAtom(unreadNotificationCountAtom)
@@ -328,13 +334,32 @@ export function NotificationsPanel() {
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-			<div className="shrink-0 space-y-0.5 border-b pb-2">
-				<div className="flex items-center gap-2 text-sm font-semibold">
-					<Bell className="size-4 shrink-0" />
-					<span>通知中心</span>
+			<div className="shrink-0 border-b pb-2">
+				<div className="flex items-center justify-between gap-2">
+					<div className="flex items-center gap-2 text-sm font-semibold">
+						<Bell className="size-4 shrink-0" />
+						<span>通知中心</span>
+					</div>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="h-7 w-7 text-muted-foreground hover:text-foreground"
+						title="企微推送配置"
+						onClick={() => setConfigOpen(true)}
+					>
+						<Settings2 className="size-4" />
+					</Button>
 				</div>
-				<p className="text-xs text-muted-foreground">由内核推送的通知记录</p>
+				<p className="text-xs text-muted-foreground mt-0.5">
+					由内核推送的通知记录
+				</p>
 			</div>
+
+			<NotificationWeComConfigDialog
+				open={configOpen}
+				onOpenChange={setConfigOpen}
+			/>
 
 			<div className="shrink-0 rounded-md border bg-muted/30 px-3 py-2.5">
 				<div className="flex flex-wrap items-end gap-2.5">

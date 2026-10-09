@@ -19,6 +19,7 @@ import { createWindow } from "@/main/lib/createWindow.js"
 import DBManager from "@/main/lib/db-manager.js"
 import { resetMinDataRoundsRunningForToday } from "@/main/lib/min-data-rounds-startup.js"
 import { refreshRealTradingBackupSchedule } from "@/main/lib/real-trading-backup.js"
+import { refreshStartupCheckSchedule } from "@/main/lib/startup-check/schedule.js"
 import { tokenStore } from "@/main/lib/tokenStore.js"
 import { createTray } from "@/main/lib/tray.js"
 import { runMigrations } from "@/main/migration/runner.js"
@@ -138,6 +139,7 @@ if (!gotTheLock) {
 
 		// -- 初始化实盘备份定时任务
 		refreshRealTradingBackupSchedule()
+		refreshStartupCheckSchedule()
 
 		// -- 创建主窗口与终端窗口
 		await createWindow()

@@ -8,6 +8,10 @@
  * See the LICENSE file and https://mariadb.com/bsl11/
  */
 
+import {
+	getNotificationWeComConfig,
+	isWeComPushAllowed,
+} from "@/main/lib/notification-wecom-config.js"
 import store from "@/main/store/index.js"
 import logger from "@/main/utils/wiston.js"
 import {
@@ -108,7 +112,6 @@ export async function sendWeComRobotText(
 	}
 }
 
-const WECOM_EVENT_DAILY_LIMIT = 20
 const WECOM_EVENT_COUNTS_KEY = "wecom_event_daily_counts"
 
 interface WeComEventDailyCounts {
@@ -117,6 +120,9 @@ interface WeComEventDailyCounts {
 }
 
 async function checkWeComEventLimit(event: string): Promise<boolean> {
+	const cfg = await getNotificationWeComConfig()
+	const dailyLimit = cfg.dailyLimit
+
 	const today = dayjs().format("YYYY-MM-DD")
 	const stored = (await store.getValue(WECOM_EVENT_COUNTS_KEY, {
 		date: today,
@@ -132,7 +138,7 @@ async function checkWeComEventLimit(event: string): Promise<boolean> {
 	}
 
 	const current = stored.counts[event] ?? 0
-	if (current >= WECOM_EVENT_DAILY_LIMIT) {
+	if (current >= dailyLimit) {
 		return false
 	}
 
@@ -144,12 +150,20 @@ async function checkWeComEventLimit(event: string): Promise<boolean> {
 export async function sendWeComRobotTextForNotification(
 	row: ClientNotification,
 ): Promise<void> {
-	const event = row.event ?? "_no_event_"
-
-	const allowed = await checkWeComEventLimit(event)
-	if (!allowed) {
+	const pushAllowed = await isWeComPushAllowed(row.source)
+	if (!pushAllowed) {
 		logger.info(
-			`[wecom-robot] 事件 "${event}" 今日已达 ${WECOM_EVENT_DAILY_LIMIT} 条上限，跳过企微推送 (id=${row.id})`,
+			`[wecom-robot] 通知 id=${row.id} source=${row.source} 被免打扰或来源过滤，跳过企微推送`,
+		)
+		return
+	}
+
+	const event = row.event ?? "_no_event_"
+	const limitAllowed = await checkWeComEventLimit(event)
+	if (!limitAllowed) {
+		const cfg = await getNotificationWeComConfig()
+		logger.info(
+			`[wecom-robot] 事件 "${event}" 今日已达 ${cfg.dailyLimit} 条上限，跳过企微推送 (id=${row.id})`,
 		)
 		return
 	}

@@ -9,6 +9,7 @@
  */
 
 import {
+	type StartupCheckResult,
 	alignFolderAndDb,
 	analyzeDataConsistency,
 	checkNetworkConnectivity,
@@ -16,9 +17,17 @@ import {
 	purgeDataRecycleBinItems,
 	readDataRecycleBin,
 	removeFromRecycleBin,
-	type StartupCheckResult,
 } from "@/main/lib/startup-check/index.js"
+import {
+	getStartupCheckScheduleConfig,
+	publishStartupCheckReport,
+	setStartupCheckScheduleConfig,
+} from "@/main/lib/startup-check/schedule.js"
 import type { DataRecycleBinEntry } from "@/shared/types/data-recycle-bin.js"
+import type {
+	StartupCheckReportPayload,
+	StartupCheckScheduleConfig,
+} from "@/shared/types/startup-check-schedule.js"
 import type {
 	DataConsistencyActionResult,
 	DataConsistencyReport,
@@ -29,6 +38,8 @@ export type {
 	StartupCheckResult,
 	DataConsistencyReport,
 	DataConsistencyActionResult,
+	StartupCheckScheduleConfig,
+	StartupCheckReportPayload,
 }
 
 export const regStartupCheckIPC = () => {
@@ -39,12 +50,9 @@ export const regStartupCheckIPC = () => {
 		},
 	)
 
-	ipcMain.handle(
-		"startup-check:qmt",
-		async (): Promise<StartupCheckResult> => {
-			return await checkQmtConnect()
-		},
-	)
+	ipcMain.handle("startup-check:qmt", async (): Promise<StartupCheckResult> => {
+		return await checkQmtConnect()
+	})
 
 	ipcMain.handle(
 		"startup-check:data:analyze",
@@ -76,10 +84,7 @@ export const regStartupCheckIPC = () => {
 
 	ipcMain.handle(
 		"startup-check:data:recycle-bin:remove",
-		async (
-			_event,
-			names: string[],
-		): Promise<DataConsistencyActionResult> => {
+		async (_event, names: string[]): Promise<DataConsistencyActionResult> => {
 			try {
 				await removeFromRecycleBin(names)
 				return { ok: true }
@@ -92,10 +97,7 @@ export const regStartupCheckIPC = () => {
 
 	ipcMain.handle(
 		"startup-check:data:recycle-bin:purge",
-		async (
-			_event,
-			names: string[],
-		): Promise<DataConsistencyActionResult> => {
+		async (_event, names: string[]): Promise<DataConsistencyActionResult> => {
 			try {
 				await purgeDataRecycleBinItems(names)
 				return { ok: true }
@@ -103,6 +105,29 @@ export const regStartupCheckIPC = () => {
 				const error = e instanceof Error ? e.message : String(e)
 				return { ok: false, error }
 			}
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:get-schedule-config",
+		async (): Promise<StartupCheckScheduleConfig> => {
+			return getStartupCheckScheduleConfig()
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:set-schedule-config",
+		async (_event, patch: Partial<StartupCheckScheduleConfig>) => {
+			return setStartupCheckScheduleConfig(patch)
+		},
+	)
+
+	ipcMain.handle(
+		"startup-check:report-result",
+		async (_event, payload: StartupCheckReportPayload) => {
+			if (!payload?.steps?.length) return { ok: true }
+			await publishStartupCheckReport(payload.steps)
+			return { ok: true }
 		},
 	)
 

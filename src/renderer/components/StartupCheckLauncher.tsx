@@ -12,13 +12,19 @@ import {
 	StartupCheckDialog,
 	type StartupCheckStep,
 } from "@/renderer/components/StartupCheckDialog"
-import { useMemo, useState } from "react"
+import type { StartupCheckFinishedStep } from "@/renderer/components/StartupCheckDialog"
+import { startupCheckManualTriggerAtom } from "@/renderer/store/startup-check"
+import { userAtom } from "@/renderer/store/user"
+import { useAtomValue } from "jotai"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 const {
 	checkStartupNetwork,
 	checkStartupQmtConnect,
 	checkDataConsistencyAnalyze,
 	checkDataConsistencyAlign,
+	getStartupCheckScheduleConfig,
+	reportStartupCheckResult,
 } = window.electronAPI
 
 export interface DataConsistencyCheckResult {
@@ -84,7 +90,31 @@ export async function runDataConsistencyCheck(): Promise<DataConsistencyCheckRes
 }
 
 export function StartupCheckLauncher() {
-	const [open, setOpen] = useState(true)
+	const manualTrigger = useAtomValue(startupCheckManualTriggerAtom)
+	const { isLoggedIn, user } = useAtomValue(userAtom)
+	const [open, setOpen] = useState(false)
+	const didAutoLaunchRef = useRef(false)
+
+	useEffect(() => {
+		if (didAutoLaunchRef.current) return
+		didAutoLaunchRef.current = true
+		void getStartupCheckScheduleConfig()
+			.then((cfg) => {
+				if (cfg.launchEnabled) setOpen(true)
+			})
+			.catch(() => {})
+	}, [])
+
+	useEffect(() => {
+		if (manualTrigger > 0) setOpen(true)
+	}, [manualTrigger])
+
+	const handleCheckFinished = useCallback(
+		(results: StartupCheckFinishedStep[]) => {
+			void reportStartupCheckResult({ steps: results })
+		},
+		[],
+	)
 
 	const steps = useMemo<StartupCheckStep[]>(
 		() => [
@@ -96,6 +126,20 @@ export function StartupCheckLauncher() {
 					return {
 						ok: res.ok,
 						detail: res.ok ? undefined : (res.detail ?? res.message),
+					}
+				},
+			},
+			{
+				id: "login",
+				title: "用户登录",
+				run: async () => {
+					if (isLoggedIn && user) {
+						const name = user.nickname || user.uuid
+						return { ok: true, detail: `已登录：${name}` }
+					}
+					return {
+						ok: false,
+						detail: "当前用户未登录，请点击右上角账户入口完成登录",
 					}
 				},
 			},
@@ -116,8 +160,15 @@ export function StartupCheckLauncher() {
 				run: runDataConsistencyCheck,
 			},
 		],
-		[],
+		[isLoggedIn, user],
 	)
 
-	return <StartupCheckDialog open={open} onOpenChange={setOpen} steps={steps} />
+	return (
+		<StartupCheckDialog
+			open={open}
+			onOpenChange={setOpen}
+			steps={steps}
+			onFinished={handleCheckFinished}
+		/>
+	)
 }

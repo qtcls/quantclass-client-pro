@@ -11,6 +11,7 @@ export const NOTIFICATION_SOURCES = [
 	"rocket",
 	"fusion",
 	"aqua",
+	"client",
 ] as const
 export type NotificationSource = (typeof NOTIFICATION_SOURCES)[number]
 
